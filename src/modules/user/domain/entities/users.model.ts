@@ -1,5 +1,15 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
+/**
+ * User Entity: Lớp Domain.
+ * Định nghĩa cấu trúc dữ liệu cốt lõi và các quy tắc nghiệp vụ của User.
+ */
 export enum Gender {
   MALE = 'MALE',
   FEMALE = 'FEMALE',
@@ -12,10 +22,21 @@ export enum GenderPreference {
   BOTH = 'BOTH',
 }
 
+export enum UserRole {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
   @Column({ nullable: true })
   fullName: string;
