@@ -1,12 +1,16 @@
 import { Controller, Get, Patch, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from "src/modules/user/application/users.service";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { RolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorators/customize";
 import { UserRole } from "src/modules/user/domain/entities/users.model";
 
+
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminUsersController {
     constructor(private readonly usersService: UsersService) {}
     

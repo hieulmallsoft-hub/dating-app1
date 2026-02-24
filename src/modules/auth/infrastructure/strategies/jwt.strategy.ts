@@ -8,7 +8,13 @@ import { AuthService } from '../../application/auth.service';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService, private authService: AuthService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req) => {
+        let token = null;
+        if (req && req.cookies) {
+          token = req.cookies['access_token'];
+        }
+        return token || ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+      },
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET') || 'secretKey',
     });
@@ -16,6 +22,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     // payload từ token: { sub, email, role }
-    return { user_Id: payload.sub, email: payload.email };
+    return { 
+      id: payload.sub, // Ensure standard 'id' field is available
+      user_Id: payload.sub, // Keep backward compatibility
+      email: payload.email, 
+      role: payload.role 
+    };
   }
 }

@@ -1,0 +1,5 @@
+
+==================================================
+ACCESS TOKEN (Copy this to Swagger "Authorize"):
+Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsInN1YiI6IjZhOTY5ZmFjLWVhOWQtNDVmYS05Mjg5LWU4NmNhMTNmOWY3ZCIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MDc5MzMzNiwiZXhwIjoxNzcwODc5NzM2fQ.wypik6cCL8H85ov8fPIRUbbJZOd1HoTg7mXTptqCHxs
+==================================================

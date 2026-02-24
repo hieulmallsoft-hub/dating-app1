@@ -26,7 +26,6 @@ export class Admin {
   @Column({ type: 'varchar', length: 30, nullable: true })
   phoneNumber?: string;
 
-  // Nếu bạn làm refresh/logout “thật”
   @Column({
     name: 'refresh_token_hash',
     type: 'varchar',

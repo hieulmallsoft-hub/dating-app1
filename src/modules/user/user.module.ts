@@ -2,17 +2,22 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './domain/entities/users.model';
 import UserController from './presentation/user.controller';
+import { UsersController } from './presentation/users.controller';
 import { UsersService } from './application/users.service';
 import { UserRepository } from './infrastructure/persistence/user.repository';
+import { IUSER_REPOSITORY } from './domain/repositories/user.repository';
 
-/**
- * UserModule: Module quản lý người dùng.
- * Tuân thủ Clean Architecture với các lớp: Presentation, Application, Domain, Infrastructure.
- */
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
-  controllers: [UserController],
-  providers: [UsersService, UserRepository],
-  exports: [UsersService],
+  controllers: [UserController, UsersController],
+  providers: [
+    UsersService,
+    UserRepository,
+    {
+      provide: IUSER_REPOSITORY,
+      useClass: UserRepository,
+    },
+  ],
+  exports: [UsersService, UserRepository, IUSER_REPOSITORY],
 })
 export class UserModule {}

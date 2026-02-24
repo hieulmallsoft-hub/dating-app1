@@ -1,8 +1,10 @@
 import { Controller, Get, Param, Post, Put, Delete, Body } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from '../application/users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Public } from 'src/common/decorators/customize';
 
+@ApiBearerAuth('JWT-auth')
 @Controller('users')
 export class UserController {
   constructor(private readonly usersService: UsersService) {}
@@ -11,7 +13,6 @@ export class UserController {
   getAllUser(){
     return this.usersService.getAllUsers();
   }
-
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
     console.log('🔥🔥🔥 CONTROLLER VERSION MỚI 🔥🔥🔥');

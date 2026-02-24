@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 /**
@@ -26,10 +27,27 @@ export enum UserRole {
   USER = 'USER',
   ADMIN = 'ADMIN',
 }
+
+export enum AuthProvider {
+  LOCAL = 'LOCAL',
+  GOOGLE = 'GOOGLE',
+  APPLE = 'APPLE',
+}
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({
+    type: 'enum',
+    enum: AuthProvider,
+    default: AuthProvider.LOCAL,
+  })
+  provider: AuthProvider;
+
+  @Index()
+  @Column({ nullable: true })
+  socialId: string;
 
   @Column({
     type: 'enum',
@@ -44,7 +62,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ select: false }) // Hide password by default
+  @Column({ select: false, nullable: true }) // Hide password by default and make it nullable for social login
   password: string;
 
   @Column({ nullable: true })
@@ -112,4 +130,13 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ select: false, nullable: true })
+  refreshToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  refreshTokenExp: Date;
+
+  @Column({ default: false })
+  isBanned: boolean;
 }

@@ -3,53 +3,44 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
-import { UserRepository } from '../infrastructure/persistence/user.repository';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../presentation/dto/create-user.dto';
+import { IUserRepository, IUSER_REPOSITORY } from '../domain/repositories/user.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    @Inject(IUSER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
+  ) {}
 
   getAllUsers() {
-    // Chỉ trả field an toàn (tuỳ entity bạn có gì)
-    return this.userRepository.find({
-      select: ['id', 'email', 'fullName', 'role'], // thêm field bạn muốn public
-    });
+    return this.userRepository.findAll();
   }
 
   async getUserById(id: string) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      select: ['id', 'email', 'fullName', 'role'],
-    });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
   async getUserByEmail(email: string) {
-    return this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'fullName', 'role'],
-    });
+    return this.userRepository.findByEmail(email);
   }
 
-  // Dùng cho login: cần password (vì thường select:false)
   async getUserWithPassword(email: string) {
-    return this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'password', 'fullName', 'role'],
-    });
+    return this.userRepository.findByEmailWithPassword(email);
   }
 
   async createUser(dto: CreateUserDto) {
-    const existed = await this.userRepository.findOne({ where: { email: dto.email } });
+    const existed = await this.userRepository.findByEmail(dto.email);
     if (existed) throw new ConflictException('Email already exists');
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = dto.password ? await bcrypt.hash(dto.password, 10) : null;
 
-    const newUser = this.userRepository.create({
+    const newUser = await this.userRepository.createUserData({
       email: dto.email,
       fullName: dto.fullName,
       password: passwordHash,
@@ -60,54 +51,56 @@ export class UsersService {
       bio: dto.bio,
       photos: dto.photos,
       avatar: dto.avatar,
-      // role nên set server-side (default USER), không lấy từ client
-      // role: UserRole.USER,
+      socialId: (dto as any).socialId,
+      provider: (dto as any).provider,
     });
 
-    const saved = await this.userRepository.save(newUser);
+    const saved = await this.userRepository.saveUser(newUser);
 
-    // Không trả password
-    return { id: saved.id, email: saved.email, fullName: saved.fullName, role: saved.role };
+    return {
+      id: saved.id,
+      email: saved.email,
+      fullName: saved.fullName,
+      role: saved.role,
+      provider: saved.provider,
+      socialId: saved.socialId,
+    } as any;
   }
 
   async updateUser(id: string, dto: any) {
-    const existed = await this.userRepository.findOne({ where: { id } });
+    const existed = await this.userRepository.findById(id);
     if (!existed) throw new NotFoundException('User not found');
 
-    // Chặn client tự update role (trừ khi bạn làm admin route)
     if ('role' in dto) throw new BadRequestException('Cannot update role');
 
-    // Nếu update password → hash
     if (dto.password) {
       dto.password = await bcrypt.hash(dto.password, 10);
     }
 
-    // Nếu update email → check unique
     if (dto.email && dto.email !== existed.email) {
-      const emailTaken = await this.userRepository.findOne({ where: { email: dto.email } });
+      const emailTaken = await this.userRepository.findByEmail(dto.email);
       if (emailTaken) throw new ConflictException('Email already exists');
     }
 
-    await this.userRepository.update(id, dto);
+    await this.userRepository.updateUserData(id, dto);
     return this.getUserById(id);
   }
 
   async deleteUser(id: string) {
-    const existed = await this.userRepository.findOne({ where: { id } });
+    const existed = await this.userRepository.findById(id);
     if (!existed) throw new NotFoundException('User not found');
 
-    await this.userRepository.delete(id);
+    await this.userRepository.deleteUser(id);
     return { message: 'User deleted successfully' };
   }
 
   // --- Admin features ---
   async banUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
 
-    // Toggle ban status (if active -> inactive, if inactive -> active)
     user.isActive = !user.isActive;
-    await this.userRepository.save(user);
+    await this.userRepository.saveUser(user);
     
     return { 
       message: user.isActive ? 'User unbanned successfully' : 'User banned successfully', 
@@ -116,12 +109,19 @@ export class UsersService {
   }
 
   async getUserDetailForAdmin(id: string) {
-    const user = await this.userRepository.findOne({ 
-      where: { id },
-      // Select all fields explicitly or implicitly. 
-      // Password is hidden by default in entity (@Column({ select: false })).
-    });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  async updateRefreshToken(id: string, refreshToken: string, refreshTokenExp: Date) {
+    await this.userRepository.updateUserData(id, {
+      refreshToken,
+      refreshTokenExp,
+    });
+  }
+
+  async getUserByRefreshToken(refreshToken: string) {
+    return this.userRepository.findByRefreshToken(refreshToken);
   }
 }
