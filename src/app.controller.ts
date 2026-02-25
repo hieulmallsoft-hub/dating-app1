@@ -1,14 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller, Get } from "@nestjs/common";
+import { AppService } from "./app.service";
 
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth } from "@nestjs/swagger";
 
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-  @Get()
-  getHello(): string {
-    return 'Hello World!11111';
-  }
+    constructor(private readonly appService: AppService) {}
+    @Get()
+    getHello(): string {
+        return "Hello World!11111";
+    }
 }

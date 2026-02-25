@@ -1,10 +1,65 @@
-node_modules
-dist
-.git
+# General / OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+.npm
+.eslintcache
+yarn-error.log*
+
+# Build Output
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+*.txt
+npm-debug.log*
+yarn-debug.log*
+
+# Environment Variables (Recursive)
+**/*.env
+**/.env
+**/.env.*
+# Note: unlike .gitignore, we usually DON'T want .example.env in the runtime image either, 
+# so we don't need the exclamation mark exception here unless you specifically need it.
+# !.example.env
+
+# Application Data (Exclude local data to keep image clean)
+*.seed
+tmp/
+temp/
+
+# Note: Uploads are usually mounted volumes, so we exclude local uploads from image build
+uploads/
+public/uploads/
+
+# Testing & Metrics
+coverage/
+test-results/
+playwright-report/
+
+# Docs & Git
+.git/
 .gitignore
-.dockerignore
-Dockerfile
-docker-compose.yml
-npm-debug.log
-README.md
-.env
+*.md
+!README.md
+!LOGGING_GUIDE.md
+
+# AWS
+.aws/
+
+# Docker (Exclude build definitions from the image itself)
+Dockerfile*
+docker-compose*.yml
+deploy-*/

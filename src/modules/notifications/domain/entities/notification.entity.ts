@@ -1,37 +1,30 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { User } from '../../../user/domain/entities/users.model';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { User } from "../../../user/domain/entities/users.model";
 
-@Entity('notifications')
+@Entity("notifications")
 export class Notification {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
-  user: User;
+    @ManyToOne(() => User)
+    @JoinColumn({ name: "userId" })
+    user: User;
 
-  @Column()
-  userId: string;
+    @Column()
+    userId: string;
 
-  @Column()
-  title: string;
+    @Column()
+    title: string;
 
-  @Column({ type: 'text' })
-  content: string;
+    @Column({ type: "text" })
+    content: string;
 
-  @Column({ nullable: true })
-  type: string; // moment, invite, chat, etc.
+    @Column({ nullable: true })
+    type: string; // moment, invite, chat, etc.
 
-  @Column({ default: false })
-  isRead: boolean;
+    @Column({ default: false })
+    isRead: boolean;
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
 }

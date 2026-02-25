@@ -38,29 +38,29 @@ Dự án áp dụng mô hình 4 lớp để tách biệt trách nhiệm:
 
 - **Chức năng**: Tiếp nhận yêu cầu từ client (HTTP Request) và trả về dữ liệu (HTTP Response).
 - **Files**:
-  - `user.controller.ts`: Định nghĩa các endpoint (GET, POST...).
-  - `dto/`: Định nghĩa các Data Transfer Object đầu vào/đầu ra (VD: `create-user.dto.ts`).
+    - `user.controller.ts`: Định nghĩa các endpoint (GET, POST...).
+    - `dto/`: Định nghĩa các Data Transfer Object đầu vào/đầu ra (VD: `create-user.dto.ts`).
 
 ### 2. Application Layer (`application/`) - Tầng xử lý nghiệp vụ
 
 - **Chức năng**: Điều phối các hoạt động của ứng dụng, thực thi các Use Cases. Không quan tâm dữ liệu lưu trữ ở đâu.
 - **Files**:
-  - `users.service.ts`: Chứa logic điều hướng, kết nối giữa domain và infrastructure.
-  - `use-cases/`: (Tùy chọn) Chia nhỏ các nghiệp vụ phức tạp thành nhiều file riêng biệt.
+    - `users.service.ts`: Chứa logic điều hướng, kết nối giữa domain và infrastructure.
+    - `use-cases/`: (Tùy chọn) Chia nhỏ các nghiệp vụ phức tạp thành nhiều file riêng biệt.
 
 ### 3. Domain Layer (`domain/`) - Tầng lõi nghiệp vụ (Business Core)
 
 - **Chức năng**: Chứa các quy tắc nghiệp vụ quan trọng nhất. Đây là tầng quan trọng nhất và không phụ thuộc vào bất kỳ công nghệ nào bên ngoài.
 - **Files**:
-  - `entities/`: Các thực thể kinh doanh (VD: `users.model.ts`).
-  - `repositories/`: Định nghĩa **Interface** cho việc truy xuất dữ liệu (VD: `user.repository.ts`).
+    - `entities/`: Các thực thể kinh doanh (VD: `users.model.ts`).
+    - `repositories/`: Định nghĩa **Interface** cho việc truy xuất dữ liệu (VD: `user.repository.ts`).
 
 ### 4. Infrastructure Layer (`infrastructure/`) - Tầng hạ tầng kỹ thuật
 
 - **Chức năng**: Triển khai cụ thể các công nghệ bên ngoài (Database, Mail Service, Payment Gateway...).
 - **Files**:
-  - `persistence/`: Lưu trữ dữ liệu.
-    - `user.repository.impl.ts`: Triển khai các phương thức truy vấn từ Domain Interface (sử dụng TypeORM, Mongoose...).
+    - `persistence/`: Lưu trữ dữ liệu.
+        - `user.repository.impl.ts`: Triển khai các phương thức truy vấn từ Domain Interface (sử dụng TypeORM, Mongoose...).
 
 ---
 

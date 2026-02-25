@@ -7,8 +7,8 @@ import { User } from "./entities/user.entity";
 export class UsersService {
     constructor(
         @InjectRepository(User)
-        private usersRepository: Repository<User>,
-    ) { }
+        private usersRepository: Repository<User>
+    ) {}
 
     async findOneByEmail(email: string): Promise<User | undefined> {
         return this.usersRepository.findOne({ where: { email } });
@@ -36,4 +36,3 @@ export class UsersService {
         await this.usersRepository.delete(id);
     }
 }
-

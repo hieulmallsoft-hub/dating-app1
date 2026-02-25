@@ -7,13 +7,13 @@ import {
     IsNumber,
     MinLength,
     MaxLength,
-    IsDateString,
+    IsDateString
 } from "class-validator";
 
 export enum Gender {
-    MALE = 'male',
-    FEMALE = 'female',
-    OTHER = 'other',
+    MALE = "male",
+    FEMALE = "female",
+    OTHER = "other"
 }
 
 export class RegisterDto {

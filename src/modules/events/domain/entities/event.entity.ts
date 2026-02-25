@@ -1,49 +1,49 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { User } from '../../../user/domain/entities/users.model';
-import { Couple } from '../../../couple/domain/entities/couple.entity';
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    CreateDateColumn,
+    UpdateDateColumn,
+    ManyToOne,
+    JoinColumn
+} from "typeorm";
+import { User } from "../../../user/domain/entities/users.model";
+import { Couple } from "../../../couple/domain/entities/couple.entity";
 
-@Entity('events')
+@Entity("events")
 export class Event {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
 
-  @Column()
-  title: string;
+    @Column()
+    title: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+    @Column({ type: "text", nullable: true })
+    description: string;
 
-  @Column({ type: 'timestamp' })
-  date: Date;
+    @Column({ type: "timestamp" })
+    date: Date;
 
-  @Column({ default: false })
-  isAnniversary: boolean;
+    @Column({ default: false })
+    isAnniversary: boolean;
 
-  @ManyToOne(() => Couple)
-  @JoinColumn({ name: 'coupleId' })
-  couple: Couple;
+    @ManyToOne(() => Couple)
+    @JoinColumn({ name: "coupleId" })
+    couple: Couple;
 
-  @Column()
-  coupleId: string;
+    @Column()
+    coupleId: string;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'creatorId' })
-  creator: User;
+    @ManyToOne(() => User)
+    @JoinColumn({ name: "creatorId" })
+    creator: User;
 
-  @Column()
-  creatorId: string;
+    @Column()
+    creatorId: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

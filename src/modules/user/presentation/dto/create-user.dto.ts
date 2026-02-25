@@ -1,5 +1,15 @@
-import { IsString, IsEmail, IsDate, IsEnum, IsArray, IsNumber, IsBoolean, IsNotEmpty, IsOptional } from 'class-validator';
-import { Gender, GenderPreference } from '../../domain/entities/users.model';
+import {
+    IsString,
+    IsEmail,
+    IsDate,
+    IsEnum,
+    IsArray,
+    IsNumber,
+    IsBoolean,
+    IsNotEmpty,
+    IsOptional
+} from "class-validator";
+import { Gender, GenderPreference } from "../../domain/entities/users.model";
 
 export class CreateUserDto {
     @IsString()
@@ -53,5 +63,4 @@ export class CreateUserDto {
     @IsDate()
     @IsOptional()
     lastActiveAt?: Date;
-
 }

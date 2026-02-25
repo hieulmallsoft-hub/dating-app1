@@ -1,82 +1,82 @@
-import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
-import * as session from 'express-session';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
+import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import { join } from "path";
+import * as session from "express-session";
+import { AppModule } from "./app.module";
+import { ValidationPipe } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
+import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+    app.useStaticAssets(join(__dirname, "..", "public"));
 
-  app.use(cookieParser());
+    app.use(cookieParser());
 
-  // Enable global validation pipe
-  app.useGlobalPipes(new ValidationPipe());
+    // Enable global validation pipe
+    app.useGlobalPipes(new ValidationPipe());
 
-  // Enable CORS
-  app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
-  // Security headers using Helmet
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: [`'self'`],
-          styleSrc: [`'self'`, `'unsafe-inline'`],
-          scriptSrc: [`'self'`, `'unsafe-inline'`, `https://cdn.jsdelivr.net`],
-          imgSrc: [`'self'`, `data:`, `https://cdn.jsdelivr.net`],
-        },
-      },
-      crossOriginEmbedderPolicy: false,
-    }),
-  );
-  app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
-  // Add session middleware for Passport OAuth
-  app.use(
-    session({
-      secret: process.env.JWT_SECRET || 'my-secret',
-      resave: false,
-      saveUninitialized: false,
-      cookie: { maxAge: 3600000 },
-    }),
-  );
+    // Enable CORS
+    app.enableCors({
+        origin: true,
+        methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+        credentials: true
+    });
+    // Security headers using Helmet
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: [`'self'`],
+                    styleSrc: [`'self'`, `'unsafe-inline'`],
+                    scriptSrc: [`'self'`, `'unsafe-inline'`, `https://cdn.jsdelivr.net`],
+                    imgSrc: [`'self'`, `data:`, `https://cdn.jsdelivr.net`]
+                }
+            },
+            crossOriginEmbedderPolicy: false
+        })
+    );
+    app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+    // Add session middleware for Passport OAuth
+    app.use(
+        session({
+            secret: process.env.JWT_SECRET || "my-secret",
+            resave: false,
+            saveUninitialized: false,
+            cookie: { maxAge: 3600000 }
+        })
+    );
 
-  // Setup Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Dating App API')
-    .setDescription('The dating app API description')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller!
-    )
-    // .addSecurityRequirements('JWT-auth') // Removed global security to handle it manually
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    // Setup Swagger
+    const config = new DocumentBuilder()
+        .setTitle("Dating App API")
+        .setDescription("The dating app API description")
+        .setVersion("1.0")
+        .addBearerAuth(
+            {
+                type: "http",
+                scheme: "bearer",
+                bearerFormat: "JWT",
+                name: "JWT",
+                description: "Enter JWT token",
+                in: "header"
+            },
+            "JWT-auth" // This name here is important for matching up with @ApiBearerAuth() in your controller!
+        )
+        // .addSecurityRequirements('JWT-auth') // Removed global security to handle it manually
+        .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document);
 
-  // app.setGlobalPrefix('api');
-  const configService = app.get(ConfigService);
-  const port = configService.get('PORT') || 3000;
-  
-  await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
+    // app.setGlobalPrefix('api');
+    const configService = app.get(ConfigService);
+    const port = configService.get("PORT") || 3000;
+
+    await app.listen(port);
+    console.log(`Application is running on: http://localhost:${port}`);
+    console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();

@@ -1,53 +1,46 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { User } from '../../../user/domain/entities/users.model';
-import { Couple } from '../../../couple/domain/entities/couple.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { User } from "../../../user/domain/entities/users.model";
+import { Couple } from "../../../couple/domain/entities/couple.entity";
 
 export enum MessageType {
-  TEXT = 'TEXT',
-  IMAGE = 'IMAGE',
-  VOICE = 'VOICE',
-  LOCATION = 'LOCATION',
+    TEXT = "TEXT",
+    IMAGE = "IMAGE",
+    VOICE = "VOICE",
+    LOCATION = "LOCATION"
 }
 
-@Entity('messages')
+@Entity("messages")
 export class Message {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
 
-  @ManyToOne(() => Couple)
-  @JoinColumn({ name: 'coupleId' })
-  couple: Couple;
+    @ManyToOne(() => Couple)
+    @JoinColumn({ name: "coupleId" })
+    couple: Couple;
 
-  @Column()
-  coupleId: string;
+    @Column()
+    coupleId: string;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'senderId' })
-  sender: User;
+    @ManyToOne(() => User)
+    @JoinColumn({ name: "senderId" })
+    sender: User;
 
-  @Column()
-  senderId: string;
+    @Column()
+    senderId: string;
 
-  @Column({
-    type: 'enum',
-    enum: MessageType,
-    default: MessageType.TEXT,
-  })
-  type: MessageType;
+    @Column({
+        type: "enum",
+        enum: MessageType,
+        default: MessageType.TEXT
+    })
+    type: MessageType;
 
-  @Column({ type: 'text', nullable: true })
-  content: string;
+    @Column({ type: "text", nullable: true })
+    content: string;
 
-  @Column({ default: false })
-  isRead: boolean;
+    @Column({ default: false })
+    isRead: boolean;
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
 }

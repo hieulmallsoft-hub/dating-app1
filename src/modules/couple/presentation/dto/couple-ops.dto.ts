@@ -1,17 +1,17 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsHexColor } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsHexColor } from "class-validator";
 
 export class JoinCoupleDto {
-  @IsString()
-  @IsNotEmpty()
-  inviteCode: string;
+    @IsString()
+    @IsNotEmpty()
+    inviteCode: string;
 }
 
 export class UpdateCoupleDto {
-  @IsDateString()
-  @IsOptional()
-  startDate?: string;
+    @IsDateString()
+    @IsOptional()
+    startDate?: string;
 
-  @IsString()
-  @IsOptional()
-  theme?: string;
+    @IsString()
+    @IsOptional()
+    theme?: string;
 }

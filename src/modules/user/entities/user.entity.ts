@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-@Entity('users')
+@Entity("users")
 export class User {
     @PrimaryGeneratedColumn()
     id: number;
@@ -15,9 +15,9 @@ export class User {
     fullName: string;
 
     @Column({
-        type: 'enum',
-        enum: ['male', 'female', 'other'],
-        default: 'other',
+        type: "enum",
+        enum: ["male", "female", "other"],
+        default: "other"
     })
     gender: string;
 
