@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+  --primary-color: #ff4d80;
+  --secondary-color: #011627;
+  --bg-gradient: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  --text-main: #011627;
+  --text-muted: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    'Outfit',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif;
+  background-color: #f0f2f5;
+  color: var(--text-main);
+  line-height: 1.5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  max-width: 480px; /* Mobile width */
+  height: 100vh;
+  background: var(--bg-gradient);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  position: relative;
+}
+
+.screen {
+  padding: 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.mascot-container {
+  margin-bottom: 2rem;
+  position: relative;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.mascot-img {
+  width: 280px;
+  height: auto;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.highlight {
+  color: var(--primary-color);
+}
+
+p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 3rem;
+}
+
+.button-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btn {
+  width: 100%;
+  padding: 1.2rem;
+  border-radius: 50px;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-apple {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-google {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-icon {
+  width: 24px;
+  height: 24px;
+}

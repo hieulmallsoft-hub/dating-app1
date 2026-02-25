@@ -1,129 +1,71 @@
-# Dating App Backend
+# Dating App - Clean Architecture Structure
 
-Backend API cho ứng dụng hẹn hò được xây dựng với NestJS.
+Tài liệu này giải thích cấu trúc thư mục của dự án sau khi refactor theo mô hình **Clean Architecture / DDD (Domain-Driven Design)**.
 
-## Yêu cầu hệ thống
+## Tổng quan cấu trúc `src/`
 
-- Node.js >= 18.x
-- PostgreSQL hoặc MySQL
-- npm hoặc yarn
-
-## Cài đặt
-
-```bash
-# Cài đặt dependencies
-npm install
-
-# Tạo file .env từ template
-cp .env.example .env
-```
-
-## Cấu hình
-
-Chỉnh sửa file `.env` với thông tin database và cấu hình của bạn:
-
-```env
-DB_TYPE=postgres
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-DB_DATABASE=dating_app
-JWT_SECRET=your-secret-key
-```
-
-## Chạy ứng dụng
-
-```bash
-# Development mode
-npm run start:dev
-
-# Production mode
-npm run build
-npm run start:prod
-```
-
-## API Documentation
-
-Sau khi chạy server, truy cập Swagger documentation tại:
-
-```
-http://localhost:3000/api
-```
-
-## Cấu trúc dự án
-
-```
+```text
 src/
-├── auth/              # Authentication module (JWT, login, register)
-│   ├── dto/          # Data transfer objects
-│   ├── guards/       # Auth guards
-│   └── strategies/   # Passport strategies
-├── users/            # Users module
-│   ├── dto/          # User DTOs
-│   └── entities/     # User entity
-├── common/           # Common utilities
-│   ├── decorators/   # Custom decorators
-│   ├── filters/      # Exception filters
-│   └── interceptors/ # Response interceptors
-├── app.module.ts     # Root module
-└── main.ts           # Application entry point
+├── main.ts                # File chạy dự án (Bootstrap)
+├── app.module.ts          # Module chính của ứng dụng, kết nối các module con và cấu hình global
+├── app.controller.ts      # Controller mặc định (thường để check health)
+├── app.service.ts         # Service mặc định
+│
+├── config/                # Cấu hình hệ thống (Environment variables)
+│   ├── app.config.ts      # Cấu hình chung cho App (port, env)
+│   ├── database.config.ts # Cấu hình kết nối Database (PostgreSQL/TypeORM)
+│   └── jwt.config.ts      # Cấu hình cho xác thực JWT (secretKey, expiresIn)
+│
+├── common/                # Tài nguyên dùng chung toàn hệ thống
+│   ├── decorators/        # Custom decorators (VD: @CurrentUser, @Public)
+│   ├── filters/           # Xử lý lỗi tập trung (VD: HttpExceptionFilter)
+│   ├── guards/            # Bảo vệ API (VD: JwtAuthGuard, RolesGuard)
+│   ├── interceptors/      # Chặn và xử lý request/response (VD: TransformInterceptor)
+│   ├── pipes/             # Validate và chuyển đổi dữ liệu (VD: ValidationPipe)
+│   ├── constants/         # Các hằng số toàn hệ thống
+│   └── utils/             # Các hàm tiện ích bổ trợ
+│
+└── modules/               # Các module nghiệp vụ chính
+    ├── user/              # Module quản lý người dùng
+    └── auth/              # Module xác thực (Login, Register...)
 ```
 
-## Các lệnh hữu ích
+## Giải thích các lớp trong một module (VD: `modules/user/`)
 
-```bash
-# Chạy tests
-npm run test
+Dự án áp dụng mô hình 4 lớp để tách biệt trách nhiệm:
 
-# Chạy tests với coverage
-npm run test:cov
+### 1. Presentation Layer (`presentation/`) - Tầng giao diện API
 
-# Lint code
-npm run lint
+- **Chức năng**: Tiếp nhận yêu cầu từ client (HTTP Request) và trả về dữ liệu (HTTP Response).
+- **Files**:
+  - `user.controller.ts`: Định nghĩa các endpoint (GET, POST...).
+  - `dto/`: Định nghĩa các Data Transfer Object đầu vào/đầu ra (VD: `create-user.dto.ts`).
 
-# Format code
-npm run format
-```
+### 2. Application Layer (`application/`) - Tầng xử lý nghiệp vụ
 
-## API Endpoints
+- **Chức năng**: Điều phối các hoạt động của ứng dụng, thực thi các Use Cases. Không quan tâm dữ liệu lưu trữ ở đâu.
+- **Files**:
+  - `users.service.ts`: Chứa logic điều hướng, kết nối giữa domain và infrastructure.
+  - `use-cases/`: (Tùy chọn) Chia nhỏ các nghiệp vụ phức tạp thành nhiều file riêng biệt.
 
-### Authentication
+### 3. Domain Layer (`domain/`) - Tầng lõi nghiệp vụ (Business Core)
 
-- `POST /auth/register` - Đăng ký tài khoản mới
-- `POST /auth/login` - Đăng nhập
-- `GET /auth/profile` - Lấy thông tin user hiện tại (cần token)
+- **Chức năng**: Chứa các quy tắc nghiệp vụ quan trọng nhất. Đây là tầng quan trọng nhất và không phụ thuộc vào bất kỳ công nghệ nào bên ngoài.
+- **Files**:
+  - `entities/`: Các thực thể kinh doanh (VD: `users.model.ts`).
+  - `repositories/`: Định nghĩa **Interface** cho việc truy xuất dữ liệu (VD: `user.repository.ts`).
 
-### Users
+### 4. Infrastructure Layer (`infrastructure/`) - Tầng hạ tầng kỹ thuật
 
-- `GET /users` - Lấy danh sách users (cần token)
-- `GET /users/:id` - Lấy thông tin user theo ID (cần token)
-- `PATCH /users/:id` - Cập nhật thông tin user (cần token)
-- `DELETE /users/:id` - Xóa user (cần token)
+- **Chức năng**: Triển khai cụ thể các công nghệ bên ngoài (Database, Mail Service, Payment Gateway...).
+- **Files**:
+  - `persistence/`: Lưu trữ dữ liệu.
+    - `user.repository.impl.ts`: Triển khai các phương thức truy vấn từ Domain Interface (sử dụng TypeORM, Mongoose...).
 
-### Health Check
+---
 
-- `GET /` - Kiểm tra trạng thái server
+## Lợi ích của cấu trúc này
 
-## Database Schema
-
-### Users Table
-
-- `id` - UUID primary key
-- `email` - Email (unique)
-- `password` - Hashed password
-- `name` - Tên người dùng
-- `avatar` - URL ảnh đại diện
-- `dateOfBirth` - Ngày sinh
-- `gender` - Giới tính
-- `bio` - Tiểu sử
-- `location` - Vị trí
-- `interests` - Sở thích (array)
-- `isActive` - Trạng thái hoạt động
-- `createdAt` - Ngày tạo
-- `updatedAt` - Ngày cập nhật
-
-## License
-
-MIT
-Test PR from nestjs branch
+- **Dễ bảo trì**: Thay đổi Database hoặc công nghệ bên ngoài không ảnh hưởng đến Business Logic.
+- **Dễ kiểm thử**: Có thể viết Unit Test cho từng lớp riêng biệt.
+- **Khả năng mở rộng**: Khi dự án lớn hơn, việc tìm kiếm và thêm tính năng mới rất rõ ràng.
