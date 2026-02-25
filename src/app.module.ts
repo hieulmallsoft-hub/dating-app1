@@ -6,8 +6,6 @@ import AppController from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { User } from './modules/user/domain/entities/users.model';
-import { Admin } from './modules/admin/domain/entities/admin.model';
 import { AdminModule } from './modules/admin/admin.module';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
@@ -44,7 +42,7 @@ import { SecurityModule } from './modules/security/security.module';
     UserModule,
     AuthModule,
     AdminModule,
-    CoupleModule,
+    CoupleModule,   
     InvitesModule,
     MomentsModule,
     MediaModule,

@@ -1,13 +1,18 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import * as session from 'express-session';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   app.use(cookieParser());
 
@@ -67,6 +72,11 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   // app.setGlobalPrefix('api');
-  await app.listen(process.env.PORT || 3000);
+  const configService = app.get(ConfigService);
+  const port = configService.get('PORT') || 3000;
+  
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();

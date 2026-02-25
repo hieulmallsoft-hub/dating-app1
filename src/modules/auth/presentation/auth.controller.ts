@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Req, Logg
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../application/auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -13,7 +14,11 @@ import { Public } from 'src/common/decorators/customize';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService
+  ) {}
+
   // register
   @Post('register')
   @Public()
@@ -59,10 +64,12 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
     const result = await this.authService.validateSocialUser(req.user);
     this.setTokensCookie(res, result.tokens);
-    return { user: result.user, tokens: result.tokens };
+    
+    const frontendUrl = this.configService.get('CORS_ORIGIN') || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}?access_token=${result.tokens.access_token}&refresh_token=${result.tokens.refresh_token}`);
   }
 
   // Apple Auth
@@ -74,10 +81,12 @@ export class AuthController {
   @Public()
   @Post('apple/callback')
   @UseGuards(AuthGuard('apple'))
-  async appleAuthRedirect(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async appleAuthRedirect(@Req() req, @Res() res: Response) {
     const result = await this.authService.validateSocialUser(req.user);
     this.setTokensCookie(res, result.tokens);
-    return { user: result.user, tokens: result.tokens };
+    
+    const frontendUrl = this.configService.get('CORS_ORIGIN') || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}?access_token=${result.tokens.access_token}&refresh_token=${result.tokens.refresh_token}`);
   }
 
   // Social Login POST (for Mobile/Android/iOS)

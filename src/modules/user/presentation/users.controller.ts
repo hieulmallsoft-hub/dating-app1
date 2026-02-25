@@ -1,24 +1,58 @@
-import { Controller, Get, Put, Delete, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, Req, Param } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from '../application/users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../../auth/infrastructure/strategies/jwt-auth-guard';
+import { Public, Roles } from 'src/common/decorators/customize';
+import { UserRole } from '../domain/entities/users.model';
 
-@Controller('me')
+
+@ApiTags('users')
+@ApiBearerAuth('JWT-auth')
+@Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Public()
+  async getAllUsers() {
+    return this.usersService.getAllUsers();
+  }
+
+  @Get('me')
   async getMe(@Req() req) {
-    return this.usersService.getUserById(req.user.sub);
+    return this.usersService.getUserById(req.user.sub || req.user.id);
   }
 
-  @Put()
+  @Get('email/:email')
+  @Public()
+  async getUserByEmail(@Param('email') email: string) {
+    return this.usersService.getUserByEmail(email);
+  }
+
+  @Get(':id')
+  async getUserById(@Param('id') id: string) {
+    return this.usersService.getUserById(id);
+  }
+
+  @Put('me')
   async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateUser(req.user.sub, updateUserDto);
+    return this.usersService.updateUser(req.user.sub || req.user.id, updateUserDto);
   }
 
-  @Delete()
+  @Put(':id')
+  @Roles(UserRole.ADMIN)
+  async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.updateUser(id, updateUserDto);
+  }
+
+  @Delete('me')
   async deleteMe(@Req() req) {
-    return this.usersService.deleteUser(req.user.sub);
+    return this.usersService.deleteUser(req.user.sub || req.user.id);
+  }
+
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
   }
 }
+
