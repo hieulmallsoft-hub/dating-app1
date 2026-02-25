@@ -12,5 +12,3 @@ export class AppController {
     return 'Hello World!11111';
   }
 }
-
-export default AppController;
