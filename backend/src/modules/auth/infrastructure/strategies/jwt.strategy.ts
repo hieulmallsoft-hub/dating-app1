@@ -1,14 +1,14 @@
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { PassportStrategy } from "@nestjs/passport";
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
 import { AuthService } from "../../application/auth.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(
-        private configService: ConfigService,
-        private authService: AuthService
+        private readonly configService: ConfigService,
+        private readonly authService: AuthService
     ) {
         super({
             jwtFromRequest: (req) => {
@@ -16,6 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
                 if (req && req.cookies) {
                     token = req.cookies["access_token"];
                 }
+
                 return token || ExtractJwt.fromAuthHeaderAsBearerToken()(req);
             },
             ignoreExpiration: false,
@@ -24,12 +25,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: any) {
-        // payload từ token: { sub, email, role }
-        return {
-            id: payload.sub, // Ensure standard 'id' field is available
-            user_Id: payload.sub, // Keep backward compatibility
-            email: payload.email,
-            role: payload.role
-        };
+        return this.authService.validateAccessTokenPayload(payload);
     }
 }

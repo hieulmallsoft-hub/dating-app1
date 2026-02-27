@@ -4,7 +4,7 @@ import './App.css';
 import Home from './components/Home';
 
 const App: React.FC = () => {
-  const BACKEND_URL = 'http://127.0.0.1:3001';
+  const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Check for simulation flag or REAL tokens in URL

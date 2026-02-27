@@ -37,6 +37,7 @@ export class UsersService {
             email: dto.email,
             fullName: dto.fullName,
             password: passwordHash,
+            tokenVersion: 0,
             phoneNumber: dto.phoneNumber,
             birthDate: dto.birthDate,
             gender: dto.gender,
@@ -96,7 +97,7 @@ export class UsersService {
         return user;
     }
 
-    async updateRefreshToken(id: string, refreshToken: string, refreshTokenExp: Date) {
+    async updateRefreshToken(id: string, refreshToken: string | null, refreshTokenExp: Date | null) {
         await this.userRepository.updateById(id, {
             refreshToken,
             refreshTokenExp
@@ -105,5 +106,27 @@ export class UsersService {
 
     async getUserByRefreshToken(refreshToken: string) {
         return this.userRepository.findByRefreshToken(refreshToken);
+    }
+
+    async replaceSession(id: string, refreshToken: string, refreshTokenExp: Date) {
+        return this.userRepository.replaceSession(id, refreshToken, refreshTokenExp);
+    }
+
+    async rotateRefreshToken(
+        id: string,
+        currentRefreshToken: string,
+        refreshToken: string,
+        refreshTokenExp: Date
+    ) {
+        return this.userRepository.rotateRefreshToken(
+            id,
+            currentRefreshToken,
+            refreshToken,
+            refreshTokenExp
+        );
+    }
+
+    async clearSession(id: string) {
+        return this.userRepository.clearSession(id);
     }
 }

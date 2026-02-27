@@ -8,6 +8,7 @@ import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { SocialLoginDto, RefreshTokenDto } from "./dto/auth-ops.dto";
 import { JwtAuthGuard } from "../infrastructure/strategies/jwt-auth-guard";
+import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
 
 @Controller("auth")
@@ -28,11 +29,10 @@ export class AuthController {
             const user = await this.authService.register(registerDto);
             this.logger.log(`Đăng ký thành công: ${registerDto.email}`);
 
-            // Auto-login after registration
-            const { tokens } = await this.authService.generateTokens(user);
-            this.setTokensCookie(res, tokens);
+            const result = await this.authService.createSession(user);
+            this.setTokensCookie(res, result.tokens);
 
-            return { user, tokens };
+            return result;
         } catch (error) {
             this.logger.error(`Lỗi khi đăng ký: ${error.message}`, error.stack);
             throw error;
@@ -58,12 +58,12 @@ export class AuthController {
     // Google Auth
     @Public()
     @Get("google")
-    @UseGuards(AuthGuard("google"))
+    @UseGuards(GoogleAuthGuard)
     async googleAuth(@Req() req) {}
 
     @Public()
     @Get("google/callback")
-    @UseGuards(AuthGuard("google"))
+    @UseGuards(GoogleAuthGuard)
     async googleAuthRedirect(@Req() req, @Res() res: Response) {
         const result = await this.authService.validateSocialUser(req.user);
         this.setTokensCookie(res, result.tokens);
@@ -115,8 +115,13 @@ export class AuthController {
     @Public()
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
-    async refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @Res({ passthrough: true }) res: Response) {
-        const result = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    async refreshToken(
+        @Body() refreshTokenDto: RefreshTokenDto,
+        @Req() req: Request & { cookies?: Record<string, string> },
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const refreshToken = refreshTokenDto.refreshToken || req.cookies?.refresh_token;
+        const result = await this.authService.refreshToken(refreshToken);
         this.setTokensCookie(res, result.tokens);
         return { user: result.user, tokens: result.tokens };
     }

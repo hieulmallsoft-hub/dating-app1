@@ -3,14 +3,16 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
+import { AuthService } from "../../application/auth.service";
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
     private readonly logger = new Logger(WsJwtGuard.name);
 
     constructor(
-        private jwtService: JwtService,
-        private configService: ConfigService
+        private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
+        private readonly authService: AuthService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,8 +29,8 @@ export class WsJwtGuard implements CanActivate {
                 secret: this.configService.get("JWT_SECRET")
             });
 
-            // Attach user to client
-            client["user"] = payload;
+            const user = await this.authService.validateAccessTokenPayload(payload);
+            client["user"] = user;
             return true;
         } catch (err) {
             this.logger.error(`WS Auth Error: ${err.message}`);

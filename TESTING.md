@@ -7,11 +7,11 @@ Tài liệu này hướng dẫn cách kiểm tra toàn bộ các chức năng c�
 > [!WARNING]
 > **Không test được `GET /auth/google` trực tiếp trên Swagger bằng nút "Execute"**.
 > Swagger sẽ báo lỗi **"Failed to fetch"** hoặc **CORS** do chặn redirect.
-> 👉 **Cách test**: Copy link `http://localhost:3001/auth/google` dán thẳng vào thanh địa chỉ trình duyệt.
+> 👉 **Cách test**: Copy link `http://localhost:3000/auth/google` dán thẳng vào thanh địa chỉ trình duyệt.
 
 ## 1. Chuẩn Bị
 
-- **URL**: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
+- **URL**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 - **Authorize**: Đăng nhập và copy `access_token` (không có chữ `Bearer`) vào nút **Authorize**.
 
 ---

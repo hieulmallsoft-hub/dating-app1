@@ -97,6 +97,9 @@ export class User {
     @Column({ nullable: true })
     school: string;
 
+    @Column({ default: 0 })
+    tokenVersion: number;
+
     @Column({ type: "decimal", precision: 10, scale: 7, nullable: true })
     latitude: number;
 
@@ -116,7 +119,7 @@ export class User {
     isPremium: boolean;
 
     @Column({ nullable: true, type: "timestamp" })
-    lastActiveAt: Date;
+    lastActiveAt: Date;    
 
     @CreateDateColumn()
     createdAt: Date;
