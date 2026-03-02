@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "../../../user/domain/entities/users\.model";
+import { User } from "../../../user/domain/entities/users.enity";
 
 export enum InviteStatus {
     PENDING = "PENDING",

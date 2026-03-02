@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import { CoupleService } from "./couple.service";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
-import { User } from "../../user/domain/entities/users.model";
+import { User } from "../../user/domain/entities/users.enity";
 
 describe("CoupleService", () => {
     let service: CoupleService;
@@ -24,6 +24,42 @@ describe("CoupleService", () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+    });
+
+    it("returns the partner user when fetching the current couple", async () => {
+        const user1 = { id: "user-1", fullName: "Alice" } as User;
+        const user2 = { id: "user-2", fullName: "Bob" } as User;
+
+        coupleRepository.findOne.mockResolvedValue({
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE,
+            user1,
+            user2
+        });
+
+        const result = await service.getMyCoupleWithPartner("user-1");
+
+        expect(result.partner).toEqual(user2);
+    });
+
+    it("returns the opposite side as partner when requester is user2", async () => {
+        const user1 = { id: "user-1", fullName: "Alice" } as User;
+        const user2 = { id: "user-2", fullName: "Bob" } as User;
+
+        coupleRepository.findOne.mockResolvedValue({
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE,
+            user1,
+            user2
+        });
+
+        const result = await service.getMyCoupleWithPartner("user-2");
+
+        expect(result.partner).toEqual(user1);
     });
 
     it("rejects invite codes with an invalid format before opening a transaction", async () => {

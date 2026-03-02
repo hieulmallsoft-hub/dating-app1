@@ -15,7 +15,6 @@ import { HttpLoggerMiddleware } from "./common/middleware/http-logger.middleware
 import { APP_GUARD } from "@nestjs/core";
 import { JwtAuthGuard } from "./modules/auth/infrastructure/strategies/jwt-auth-guard";
 import { CoupleModule } from "./modules/couple/couple.module";
-import { InvitesModule } from "./modules/invites/invites.module";
 import { MomentsModule } from "./modules/moments/moments.module";
 import { MediaModule } from "./modules/media/media.module";
 import { UploadsModule } from "./modules/uploads/uploads.module";
@@ -44,7 +43,6 @@ import { SecurityModule } from "./modules/security/security.module";
         AuthModule,
         AdminModule,
         CoupleModule,
-        InvitesModule,
         MomentsModule,
         MediaModule,
         UploadsModule,

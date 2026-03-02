@@ -2,7 +2,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-apple";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { AuthProvider } from "../../../user/domain/entities/users\.model";
+import { AuthProvider } from "../../../user/domain/entities/users.enity";
 import * as path from "path";
 
 @Injectable()

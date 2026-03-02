@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum, IsDateString, MaxLength, IsArray, IsUrl } from "class-validator";
-import { Gender, GenderPreference } from "../../domain/entities/users\.model";
+import { Gender, GenderPreference } from "../../domain/entities/users.enity";
 
 export class UpdateUserDto {
     @IsString()

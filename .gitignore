@@ -39,17 +39,15 @@ yarn-debug.log*
 *.seed
 tmp/
 temp/
-uploads/
-admin/
-chat/
-couples/
-moments/
-media/
-places/
-events/
-notifications/
-settings/
-security/
+/uploads/
+/admin/
+/chat/
+/moments/
+/places/
+/events/
+/notifications/
+/settings/
+/security/
 public/uploads/
 
 # Testing

@@ -9,7 +9,7 @@ import {
     IsNotEmpty,
     IsOptional
 } from "class-validator";
-import { Gender, GenderPreference } from "../../domain/entities/users\.model";
+import { Gender, GenderPreference } from "../../domain/entities/users.enity";
 
 export class CreateUserDto {
     @IsString()

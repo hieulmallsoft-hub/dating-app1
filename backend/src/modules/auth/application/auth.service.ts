@@ -6,7 +6,7 @@ import * as crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { comparePassword } from "../../../common/utils/utils";
 import { UsersService } from "../../user/application/user.service";
-import { AuthProvider } from "../../user/domain/entities/users.model";
+import { AuthProvider } from "../../user/domain/entities/users.enity";
 import { LoginDto } from "../presentation/dto/login.dto";
 import { RegisterDto } from "../presentation/dto/register.dto";
 
@@ -203,6 +203,7 @@ export class AuthService {
             }
 
             return {
+                sub: user.id,
                 id: user.id,
                 user_Id: user.id,
                 email: user.email,

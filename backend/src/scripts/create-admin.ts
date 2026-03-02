@@ -1,7 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import * as bcrypt from "bcryptjs";
 import { AppModule } from "../app.module";
-import { UserRole } from "../modules/user/domain/entities/users\.model";
+import { UserRole } from "../modules/user/domain/entities/users.enity";
 import { UserRepository } from "../modules/user/infrastructure/persistence/user.repository";
 
 async function bootstrap() {

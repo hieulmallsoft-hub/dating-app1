@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "../application/user.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { Public, Roles } from "src/common/decorators/customize";
-import { UserRole } from "../domain/entities/users\.model";
+import { UserRole } from "../domain/entities/users.enity";
 
 @ApiTags("users")
 @ApiBearerAuth("JWT-auth")

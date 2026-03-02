@@ -9,7 +9,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import { User } from "../../../user/domain/entities/users.model";
+import { User } from "../../../user/domain/entities/users.enity";
 
 export enum CoupleStatus {
     ACTIVE = "ACTIVE",

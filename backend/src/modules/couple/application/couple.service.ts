@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
 import * as crypto from "crypto";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, IsNull, Not, Repository } from "typeorm";
 import { CoupleRepository } from "../infrastructure/persistence/couple.repository";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
-import { User } from "../../user/domain/entities/users.model";
+import { User } from "../../user/domain/entities/users.enity";
 
 @Injectable()
 export class CoupleService {
@@ -22,6 +22,14 @@ export class CoupleService {
         }
 
         return couple;
+    }
+
+    async getMyCoupleWithPartner(userId: string): Promise<Couple & { partner: User | null }> {
+        const couple = await this.getMyCouple(userId);
+        return {
+            ...couple,
+            partner: this.getPartnerFromCouple(couple, userId)
+        };
     }
 
     async createInvite(userId: string) {
@@ -217,6 +225,18 @@ export class CoupleService {
         throw new ConflictException("Could not generate a unique invite code");
     }
 
+    private getPartnerFromCouple(couple: Couple, userId: string): User | null {
+        if (couple.user1Id === userId) {
+            return couple.user2 ?? null;
+        }
+
+        if (couple.user2Id === userId) {
+            return couple.user1 ?? null;
+        }
+
+        return null;
+    }
+
     private findActiveCoupleByUserId(
         userId: string,
         repo: Repository<Couple> = this.coupleRepository,
@@ -224,7 +244,7 @@ export class CoupleService {
     ) {
         return repo.findOne({
             where: [
-                { user1Id: userId, status: CoupleStatus.ACTIVE },
+                { user1Id: userId, user2Id: Not(IsNull()), status: CoupleStatus.ACTIVE },
                 { user2Id: userId, status: CoupleStatus.ACTIVE }
             ],
             relations: withRelations ? ["user1", "user2"] : undefined
