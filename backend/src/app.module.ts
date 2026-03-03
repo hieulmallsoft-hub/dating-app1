@@ -4,26 +4,25 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { UserModule } from "./modules/user/user.module";
-import { AuthModule } from "./modules/auth/auth.module";
-import { AdminModule } from "./modules/admin/admin.module";
+import { UserModule } from "./modules/common-user/user/user.module";
+import { AuthModule } from "./modules/common-user/auth/auth.module";
 import databaseConfig from "./config/database.config";
 import jwtConfig from "./config/jwt.config";
 import appConfig from "./config/app.config";
 import authConfig from "./config/auth.config";
 import { HttpLoggerMiddleware } from "./common/middleware/http-logger.middleware";
 import { APP_GUARD } from "@nestjs/core";
-import { JwtAuthGuard } from "./modules/auth/infrastructure/strategies/jwt-auth-guard";
-import { CoupleModule } from "./modules/couple/couple.module";
-import { MomentsModule } from "./modules/moments/moments.module";
-import { MediaModule } from "./modules/media/media.module";
-import { UploadsModule } from "./modules/uploads/uploads.module";
-import { ChatModule } from "./modules/chat/chat.module";
-import { PlacesModule } from "./modules/places/places.module";
-import { EventsModule } from "./modules/events/events.module";
-import { NotificationsModule } from "./modules/notifications/notifications.module";
-import { SettingsModule } from "./modules/settings/settings.module";
-import { SecurityModule } from "./modules/security/security.module";
+import { JwtAuthGuard } from "./modules/common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { CoupleModule } from "./modules/couple-features/couple/couple.module";
+import { MomentsModule } from "./modules/couple-features/moments/moments.module";
+import { MediaModule } from "./modules/couple-features/media/media.module";
+import { UploadsModule } from "./modules/common-user/uploads/uploads.module";
+import { ChatModule } from "./modules/couple-features/chat/chat.module";
+import { PlacesModule } from "./modules/couple-features/places/places.module";
+import { EventsModule } from "./modules/couple-features/events/events.module";
+import { NotificationsModule } from "./modules/common-user/notifications/notifications.module";
+import { SettingsModule } from "./modules/common-user/settings/settings.module";
+import { SecurityModule } from "./modules/common-user/security/security.module";
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -41,7 +40,6 @@ import { SecurityModule } from "./modules/security/security.module";
         }),
         UserModule,
         AuthModule,
-        AdminModule,
         CoupleModule,
         MomentsModule,
         MediaModule,
@@ -78,3 +76,4 @@ export class AppModule implements OnModuleInit {
         consumer.apply(HttpLoggerMiddleware).forRoutes("*");
     }
 }
+

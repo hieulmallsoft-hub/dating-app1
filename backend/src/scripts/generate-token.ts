@@ -1,26 +1,22 @@
 import { NestFactory } from "@nestjs/core";
 import * as fs from "fs";
 import { AppModule } from "../app.module";
-import { AuthService } from "../modules/auth/application/auth.service";
-import { UsersService } from "../modules/user/application/user.service";
+import { AuthService } from "../modules/common-user/auth/application/auth.service";
+import { UsersService } from "../modules/common-user/user/application/user.service";
 
 async function bootstrap() {
     const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
     const authService = app.get(AuthService);
     const usersService = app.get(UsersService);
 
-    const email = process.argv[2] || "admin@admin.com";
+    const email = process.argv[2] || "user@example.com";
 
     console.log(`Checking for user: ${email}...`);
 
     const user = await usersService.getUserByEmail(email);
 
     if (!user) {
-        console.log(`User ${email} not found. checking for ANY user...`);
-        // This part might be tricky if no method to get all users, but let's try to assume create-admin might be needed.
-        console.log(
-            'Please run "npm run create:admin" first to create a default admin user, or provide an existing email.'
-        );
+        console.log(`User ${email} not found. Please pass an existing email as argument.`);
         await app.close();
         return;
     }
@@ -45,3 +41,4 @@ Bearer ${tokens.tokens.access_token}
 }
 
 bootstrap();
+

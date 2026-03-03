@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import { join } from "path";
+import { existsSync, mkdirSync } from "fs";
+import { join, resolve } from "path";
 import * as session from "express-session";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
@@ -11,8 +12,16 @@ import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    const configService = app.get(ConfigService);
+    const port = configService.get("PORT") || 3000;
+    const uploadPath = configService.get<string>("UPLOAD_PATH") || "./uploads";
+    const uploadRoot = resolve(process.cwd(), uploadPath);
 
     app.useStaticAssets(join(__dirname, "..", "public"));
+    if (!existsSync(uploadRoot)) {
+        mkdirSync(uploadRoot, { recursive: true });
+    }
+    app.useStaticAssets(uploadRoot, { prefix: "/uploads" });
 
     app.use(cookieParser());
 
@@ -72,9 +81,6 @@ async function bootstrap() {
     SwaggerModule.setup("api/docs", app, document);
 
     // app.setGlobalPrefix('api');
-    const configService = app.get(ConfigService);
-    const port = configService.get("PORT") || 3000;
-
     await app.listen(port);
     console.log(`Application is running on: http://localhost:${port}`);
     console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);

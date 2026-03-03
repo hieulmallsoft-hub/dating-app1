@@ -1,11 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { io, type Socket } from "socket.io-client";
 import { getHttpMessage, getHttpStatus } from "../api/error";
+import { BACKEND_URL } from "../api/http";
 import * as mediaApi from "../api/media";
 import * as uploadsApi from "../api/uploads";
+import { getAccessToken } from "../lib/authStorage";
 
 type Props = {
   onAuthInvalid: () => void;
 };
+
+function isNotInCoupleError(status: number | undefined, message: string) {
+  if (status !== 404) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes("not in a couple");
+}
 
 export default function AlbumPanel({ onAuthInvalid }: Props) {
   const [filter, setFilter] = useState<mediaApi.AlbumFilter>("all");
@@ -15,6 +24,7 @@ export default function AlbumPanel({ onAuthInvalid }: Props) {
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const loadRef = useRef<(mode: "reset" | "more") => Promise<void>>(async () => undefined);
 
   const canLoadMore = useMemo(
     () => Boolean(nextCursor) && !isLoading && !isWorking,
@@ -36,14 +46,15 @@ export default function AlbumPanel({ onAuthInvalid }: Props) {
         setNextCursor(page.nextCursor);
       } catch (err: unknown) {
         const status = getHttpStatus(err);
+        const message = getHttpMessage(err, "Failed to load album");
         if (status === 401) {
           onAuthInvalid();
-        } else if (status === 404) {
+        } else if (isNotInCoupleError(status, message)) {
           setItems([]);
           setNextCursor(null);
           setError("Ban chua ghep doi, hay ghep doi truoc khi dung album");
         } else {
-          setError(getHttpMessage(err, "Failed to load album"));
+          setError(message);
         }
       } finally {
         setIsLoading(false);
@@ -55,6 +66,50 @@ export default function AlbumPanel({ onAuthInvalid }: Props) {
   useEffect(() => {
     void load("reset");
   }, [filter, load]);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
+  useEffect(() => {
+    const accessToken = getAccessToken();
+    if (!accessToken) return;
+
+    const socket: Socket = io(BACKEND_URL, {
+      transports: ["websocket"],
+      auth: {
+        token: `Bearer ${accessToken}`,
+      },
+    });
+
+    socket.on("connect", () => {
+      socket.emit("album:join", {});
+    });
+
+    socket.on("album:changed", () => {
+      void loadRef.current("reset");
+    });
+
+    socket.on("exception", (payload: unknown) => {
+      if (typeof payload === "string" && payload.toLowerCase().includes("unauthorized")) {
+        onAuthInvalid();
+        return;
+      }
+      if (
+        typeof payload === "object" &&
+        payload &&
+        "message" in payload &&
+        typeof (payload as { message?: unknown }).message === "string" &&
+        ((payload as { message: string }).message || "").toLowerCase().includes("unauthorized")
+      ) {
+        onAuthInvalid();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [onAuthInvalid]);
 
   const upload = async (file: File) => {
     setIsWorking(true);
@@ -70,12 +125,13 @@ export default function AlbumPanel({ onAuthInvalid }: Props) {
       setSuccess("Da tai len");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
+      const message = getHttpMessage(err, "Upload failed");
       if (status === 401) {
         onAuthInvalid();
-      } else if (status === 404) {
+      } else if (isNotInCoupleError(status, message)) {
         setError("Ban chua ghep doi, hay ghep doi truoc khi dung album");
       } else {
-        setError(getHttpMessage(err, "Upload failed"));
+        setError(message);
       }
     } finally {
       setIsWorking(false);

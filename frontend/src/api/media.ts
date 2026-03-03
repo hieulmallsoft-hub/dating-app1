@@ -3,6 +3,7 @@ import { http } from "./http";
 export type AlbumFilter = "all" | "me" | "partner";
 export type MediaType = "image" | "video";
 export type MediaVisibility = "couple_only" | "friends" | "public";
+export type MediaStatus = "processing" | "active" | "flagged" | "synced";
 
 export type MediaItem = {
   id: string;
@@ -13,6 +14,7 @@ export type MediaItem = {
   caption?: string | null;
   type: MediaType;
   visibility?: MediaVisibility;
+  status: MediaStatus;
   createdAt: string;
   updatedAt: string;
 };
@@ -20,6 +22,18 @@ export type MediaItem = {
 export type MediaPage = {
   items: MediaItem[];
   nextCursor: string | null;
+};
+
+export type MediaChangeType = "created" | "updated" | "deleted";
+
+export type MediaChange = {
+  changed: boolean;
+  version: number;
+  coupleId?: string;
+  type?: MediaChangeType;
+  mediaId?: string;
+  actorId?: string;
+  at?: string;
 };
 
 export type CreateMediaPayload = {
@@ -66,3 +80,20 @@ export async function deleteMedia(id: string) {
   return data;
 }
 
+export async function updateMediaStatus(id: string, status: MediaStatus) {
+  const { data } = await http.patch<MediaItem>(`/media/${id}/status`, { status });
+  return data;
+}
+
+export async function waitAlbumChange(params?: {
+  since?: number;
+  timeoutMs?: number;
+}) {
+  const { data } = await http.get<MediaChange>("/media/changes", {
+    params: {
+      since: params?.since ?? 0,
+      timeoutMs: params?.timeoutMs ?? 25000,
+    },
+  });
+  return data;
+}
