@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   CalendarDays,
+  MapPin,
   Settings,
   User,
   Image as ImageIcon,
@@ -10,8 +11,9 @@ import AlbumPanel from "./AlbumPanel";
 import ChatPanel from "./ChatPanel";
 import CouplePanel from "./CouplePanel";
 import EventsPanel from "./EventsPanel";
+import PlacesPanel from "./PlacesPanel";
 import ProfilePanel from "./ProfilePanel";
-type Tab = "events" | "chat" | "album" | "profile";
+type Tab = "events" | "places" | "chat" | "album" | "profile";
 
 type Props = {
   onLogout: () => void;
@@ -36,6 +38,7 @@ const Home: React.FC<Props> = ({ onLogout, onAuthInvalid }) => {
 
       <main className="feed">
         {tab === "events" ? <EventsPanel onAuthInvalid={onAuthInvalid} /> : null}
+        {tab === "places" ? <PlacesPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "album" ? <AlbumPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "chat" ? <ChatPanel onAuthInvalid={onAuthInvalid} /> : null}
 
@@ -54,6 +57,13 @@ const Home: React.FC<Props> = ({ onLogout, onAuthInvalid }) => {
           type="button"
         >
           <CalendarDays size={24} />
+        </button>
+        <button
+          className={`nav-item ${tab === "places" ? "active" : ""}`}
+          onClick={() => setTab("places")}
+          type="button"
+        >
+          <MapPin size={24} />
         </button>
         <button
           className={`nav-item ${tab === "chat" ? "active" : ""}`}

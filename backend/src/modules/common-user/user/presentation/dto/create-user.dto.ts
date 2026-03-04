@@ -9,6 +9,7 @@ import {
     IsNotEmpty,
     IsOptional
 } from "class-validator";
+import { Type } from "class-transformer";
 import { Gender, GenderPreference } from "../../domain/entities/users.enity";
 
 export class CreateUserDto {
@@ -22,7 +23,7 @@ export class CreateUserDto {
 
     @IsString()
     @IsOptional()
-    password: string;
+    password?: string;
 
     @IsString()
     @IsOptional()
@@ -30,6 +31,7 @@ export class CreateUserDto {
 
     @IsDate()
     @IsOptional()
+    @Type(() => Date)
     birthDate?: Date;
 
     @IsEnum(Gender)
@@ -62,5 +64,6 @@ export class CreateUserDto {
 
     @IsDate()
     @IsOptional()
+    @Type(() => Date)
     lastActiveAt?: Date;
 }

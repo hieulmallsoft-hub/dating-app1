@@ -578,6 +578,338 @@ p {
   gap: 10px;
 }
 
+.location-panel {
+  max-width: 560px;
+}
+
+.location-map-shell {
+  margin-top: 14px;
+  border: 1px solid #eceff3;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  background: #eef1f6;
+}
+
+.location-top-row {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  z-index: 900;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.location-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.location-chip.active {
+  background: rgba(34, 197, 94, 0.82);
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.location-chip.muted {
+  background: rgba(2, 6, 23, 0.62);
+}
+
+.live-map {
+  width: 100%;
+  height: 54vh;
+  min-height: 360px;
+  max-height: 540px;
+  z-index: 0;
+}
+
+.live-map.pick-mode,
+.live-map.pick-mode * {
+  cursor: crosshair !important;
+}
+
+.location-float-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-float-btn {
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #1f2937;
+  border-radius: 12px;
+  min-width: 72px;
+  height: 36px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+}
+
+.location-float-btn:hover {
+  transform: translateY(-1px);
+}
+
+.location-permission-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 950;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.12), rgba(2, 6, 23, 0.5));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+}
+
+.location-permission-sheet {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid #eceff3;
+  border-radius: 18px;
+  background: white;
+  padding: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-permission-sheet h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 1rem;
+}
+
+.location-permission-sheet p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.location-permission-badge {
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 77, 128, 0.1);
+  border: 1px solid rgba(255, 77, 128, 0.24);
+  color: #be185d;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.location-permission-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.location-bottom-sheet {
+  margin-top: 12px;
+  border: 1px solid #eceff3;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-users-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.location-user-card {
+  border: 1px solid #eceff3;
+  border-radius: 14px;
+  background: #fbfcff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.location-user-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+.location-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.location-user-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.location-user-dot.me {
+  background: #ff4d80;
+}
+
+.location-user-dot.partner {
+  background: #0ea5e9;
+}
+
+.location-action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.location-tab-btn {
+  border: 1px solid #eceff3;
+  border-radius: 12px;
+  background: white;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 900;
+  height: 34px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.location-tab-btn.active {
+  border-color: rgba(255, 77, 128, 0.35);
+  background: rgba(255, 77, 128, 0.08);
+  color: #111827;
+}
+
+.location-tab-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.location-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 170px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.location-history-item {
+  border: 1px solid #eceff3;
+  border-radius: 12px;
+  background: #fbfcff;
+  padding: 8px 10px;
+}
+
+.location-history-main {
+  color: #111827;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.location-history-sub {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.location-empty {
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.82rem;
+  padding: 10px;
+}
+
+.location-marker-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.location-marker {
+  width: 44px;
+  height: 44px;
+  position: relative;
+}
+
+.location-marker-core {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.32);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  position: relative;
+  z-index: 2;
+}
+
+.location-marker-core img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.location-marker-fallback {
+  color: #111827;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.location-marker-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  z-index: 1;
+  animation: markerPulse 1.8s ease-out infinite;
+}
+
+.location-marker.me .location-marker-pulse {
+  border-color: rgba(255, 77, 128, 0.42);
+}
+
+.location-marker.partner .location-marker-pulse {
+  border-color: rgba(14, 165, 233, 0.42);
+}
+
+@keyframes markerPulse {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
 .chat-card {
   margin-top: 14px;
   border: 1px solid #eceff3;
@@ -691,6 +1023,30 @@ p {
 .chat-input:focus {
   border-color: rgba(255, 77, 128, 0.35);
   box-shadow: 0 0 0 4px rgba(255, 77, 128, 0.12);
+}
+
+@media (max-width: 420px) {
+  .location-top-row {
+    right: 56px;
+  }
+
+  .location-chip {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+  }
+
+  .location-users-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .location-action-row {
+    flex-direction: column;
+  }
+
+  .live-map {
+    min-height: 320px;
+    height: 52vh;
+  }
 }
 
 .panel-title h3 {

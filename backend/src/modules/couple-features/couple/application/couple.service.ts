@@ -6,6 +6,7 @@ import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
 import { User } from "../../../common-user/user/domain/entities/users.enity";
+import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
 
 @Injectable()
 export class CoupleService {
@@ -29,6 +30,47 @@ export class CoupleService {
         return {
             ...couple,
             partner: this.getPartnerFromCouple(couple, userId)
+        };
+    }
+
+    async getCoupleLocations(userId: string) {
+        const couple = await this.getMyCouple(userId);
+        const me = this.getMeFromCouple(couple, userId);
+        const partner = this.getPartnerFromCouple(couple, userId);
+
+        return {
+            me: this.toUserLocation(me),
+            partner: this.toUserLocation(partner)
+        };
+    }
+
+    async getCoupleLocationHistory(userId: string, limitInput?: number) {
+        const couple = await this.getMyCouple(userId);
+        const me = this.getMeFromCouple(couple, userId);
+        const partner = this.getPartnerFromCouple(couple, userId);
+        const limit = this.normalizeHistoryLimit(limitInput);
+        const historyRepository = this.dataSource.getRepository(LocationHistory);
+
+        const [myHistory, partnerHistory] = await Promise.all([
+            me?.id
+                ? historyRepository.find({
+                      where: { userId: me.id },
+                      order: { recordedAt: "DESC" },
+                      take: limit
+                  })
+                : Promise.resolve([]),
+            partner?.id
+                ? historyRepository.find({
+                      where: { userId: partner.id },
+                      order: { recordedAt: "DESC" },
+                      take: limit
+                  })
+                : Promise.resolve([])
+        ]);
+
+        return {
+            me: [...myHistory].reverse().map((entry) => this.toHistoryPoint(entry)),
+            partner: [...partnerHistory].reverse().map((entry) => this.toHistoryPoint(entry))
         };
     }
 
@@ -235,6 +277,54 @@ export class CoupleService {
         }
 
         return null;
+    }
+
+    private getMeFromCouple(couple: Couple, userId: string): User | null {
+        if (couple.user1Id === userId) {
+            return couple.user1 ?? null;
+        }
+
+        if (couple.user2Id === userId) {
+            return couple.user2 ?? null;
+        }
+
+        return null;
+    }
+
+    private toUserLocation(user: User | null) {
+        if (!user) return null;
+
+        return {
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            avatar: user.avatar,
+            latitude: user.latitude !== null && user.latitude !== undefined ? Number(user.latitude) : null,
+            longitude: user.longitude !== null && user.longitude !== undefined ? Number(user.longitude) : null,
+            lastActiveAt: user.lastActiveAt ? new Date(user.lastActiveAt).toISOString() : null
+        };
+    }
+
+    private toHistoryPoint(entry: LocationHistory) {
+        const pointTime = entry.recordedAt ?? entry.createdAt ?? new Date();
+        return {
+            id: entry.id,
+            userId: entry.userId,
+            latitude: Number(entry.latitude),
+            longitude: Number(entry.longitude),
+            accuracy:
+                entry.accuracy !== null && entry.accuracy !== undefined
+                    ? Number(entry.accuracy)
+                    : null,
+            createdAt: new Date(pointTime).toISOString()
+        };
+    }
+
+    private normalizeHistoryLimit(limitInput?: number) {
+        if (typeof limitInput !== "number" || Number.isNaN(limitInput)) {
+            return 120;
+        }
+        return Math.max(1, Math.min(500, Math.floor(limitInput)));
     }
 
     private findActiveCoupleByUserId(

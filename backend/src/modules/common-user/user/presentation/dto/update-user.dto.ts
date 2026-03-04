@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsEnum, IsDateString, MaxLength, IsArray, IsUrl } from "class-validator";
+import { IsString, IsOptional, IsEnum, IsDate, MaxLength, IsArray, IsUrl } from "class-validator";
+import { Type } from "class-transformer";
 import { Gender, GenderPreference } from "../../domain/entities/users.enity";
 
 export class UpdateUserDto {
@@ -11,9 +12,10 @@ export class UpdateUserDto {
     @IsOptional()
     gender?: Gender;
 
-    @IsDateString()
+    @IsDate()
     @IsOptional()
-    birthDate?: string;
+    @Type(() => Date)
+    birthDate?: Date;
 
     @IsUrl({ require_tld: false })
     @IsOptional()

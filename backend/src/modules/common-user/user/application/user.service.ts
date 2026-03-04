@@ -1,12 +1,32 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
+import { DataSource, IsNull, Not } from "typeorm";
 import { CreateUserDto } from "../presentation/dto/create-user.dto";
+import { UpdateUserDto } from "../presentation/dto/update-user.dto";
 import { UserRepository } from "../infrastructure/persistence/user.repository";
+import { LocationHistoryRepository } from "../infrastructure/persistence/location-history.repository";
+import { AuthProvider } from "../domain/entities/users.enity";
+import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
+import { LocationSource } from "../domain/entities/location-history.entity";
+
+type CreateUserPayload = CreateUserDto & {
+    socialId?: string;
+    provider?: AuthProvider;
+};
+
+type UpdateUserPayload = UpdateUserDto & {
+    email?: string;
+    password?: string;
+    socialId?: string;
+    provider?: AuthProvider;
+};
 
 @Injectable()
 export class UsersService {
     constructor(
-        private readonly userRepository: UserRepository
+        private readonly userRepository: UserRepository,
+        private readonly locationHistoryRepository: LocationHistoryRepository,
+        private readonly dataSource: DataSource
     ) {}
 
     getAllUsers() {
@@ -27,7 +47,7 @@ export class UsersService {
         return this.userRepository.findByEmailWithPassword(email);
     }
 
-    async createUser(dto: CreateUserDto) {
+    async createUser(dto: CreateUserPayload) {
         const existed = await this.userRepository.findByEmail(dto.email);
         if (existed) throw new ConflictException("Email already exists");
 
@@ -45,28 +65,132 @@ export class UsersService {
             bio: dto.bio,
             photos: dto.photos,
             avatar: dto.avatar,
-            socialId: (dto as any).socialId,
-            provider: (dto as any).provider
+            socialId: dto.socialId,
+            provider: dto.provider
         });
     }
 
-    async updateUser(id: string, dto: any) {
+    async updateUser(id: string, dto: UpdateUserPayload) {
         const existed = await this.userRepository.findById(id);
         if (!existed) throw new NotFoundException("User not found");
 
-        if ("role" in dto) throw new BadRequestException("Cannot update role");
+        const forbiddenKeys = [
+            "role",
+            "tokenVersion",
+            "refreshToken",
+            "refreshTokenExp",
+            "isBanned",
+            "isActive",
+            "isVerified",
+            "isPremium",
+            "id",
+            "createdAt",
+            "updatedAt",
+            "lastActiveAt"
+        ] as const;
 
-        if (dto.password) {
-            dto.password = await bcrypt.hash(dto.password, 10);
+        const hasForbiddenField = forbiddenKeys.some((key) => key in dto);
+        if (hasForbiddenField) {
+            throw new BadRequestException("Cannot update protected fields");
         }
 
-        if (dto.email && dto.email !== existed.email) {
-            const emailTaken = await this.userRepository.findByEmail(dto.email);
+        const payload: UpdateUserPayload = { ...dto };
+
+        if (payload.password) {
+            payload.password = await bcrypt.hash(payload.password, 10);
+        }
+
+        if (payload.email && payload.email !== existed.email) {
+            const emailTaken = await this.userRepository.findByEmail(payload.email);
             if (emailTaken) throw new ConflictException("Email already exists");
         }
 
-        await this.userRepository.updateById(id, dto);
+        await this.userRepository.updateById(id, payload);
         return this.getUserById(id);
+    }
+
+    async updateMyLocation(
+        id: string,
+        latitude: number,
+        longitude: number,
+        accuracy?: number,
+        batteryLevel?: number,
+        isCharging?: boolean,
+        speed?: number
+    ) {
+        const existed = await this.userRepository.findById(id);
+        if (!existed) throw new NotFoundException("User not found");
+
+        const nextLatitude = Number(latitude.toFixed(7));
+        const nextLongitude = Number(longitude.toFixed(7));
+        const nextAccuracy =
+            typeof accuracy === "number" && Number.isFinite(accuracy)
+                ? Number(Math.max(0, accuracy).toFixed(1))
+                : null;
+        const nextBatteryLevel =
+            typeof batteryLevel === "number" && Number.isFinite(batteryLevel)
+                ? Math.max(0, Math.min(100, Math.round(batteryLevel)))
+                : undefined;
+        const nextIsCharging = typeof isCharging === "boolean" ? isCharging : undefined;
+        const nextSpeed =
+            typeof speed === "number" && Number.isFinite(speed) ? Math.max(0, speed) : undefined;
+        const now = new Date();
+
+        const updatePayload: Record<string, unknown> = {
+            latitude: nextLatitude,
+            longitude: nextLongitude,
+            lastActiveAt: now
+        };
+
+        if (nextBatteryLevel !== undefined) updatePayload.batteryLevel = nextBatteryLevel;
+        if (nextIsCharging !== undefined) updatePayload.isCharging = nextIsCharging;
+        if (nextSpeed !== undefined) updatePayload.speed = nextSpeed;
+
+        await this.userRepository.updateById(id, updatePayload);
+
+        const latest = await this.locationHistoryRepository.findOne({
+            where: { userId: id },
+            order: { recordedAt: "DESC" }
+        });
+
+        const shouldPersist =
+            !latest ||
+            this.distanceMeters(
+                Number(latest.latitude),
+                Number(latest.longitude),
+                nextLatitude,
+                nextLongitude
+            ) >= 10 ||
+            now.getTime() - new Date(latest.recordedAt).getTime() >= 30_000;
+
+        if (shouldPersist) {
+            const coupleId = await this.resolveActiveCoupleId(id);
+            if (coupleId) {
+                await this.locationHistoryRepository.save(
+                    this.locationHistoryRepository.create({
+                        userId: id,
+                        coupleId,
+                        latitude: nextLatitude,
+                        longitude: nextLongitude,
+                        accuracy: nextAccuracy,
+                        speed: nextSpeed ?? null,
+                        heading: null,
+                        recordedAt: now,
+                        source: LocationSource.REALTIME
+                    })
+                );
+            }
+        }
+
+        return {
+            userId: id,
+            latitude: nextLatitude,
+            longitude: nextLongitude,
+            accuracy: nextAccuracy,
+            batteryLevel: nextBatteryLevel ?? null,
+            isCharging: nextIsCharging ?? null,
+            speed: nextSpeed ?? null
+        };
     }
 
     async deleteUser(id: string) {
@@ -108,5 +232,39 @@ export class UsersService {
 
     async clearSession(id: string) {
         return this.userRepository.clearSession(id);
+    }
+
+    private distanceMeters(
+        latitudeA: number,
+        longitudeA: number,
+        latitudeB: number,
+        longitudeB: number
+    ) {
+        const toRad = (value: number) => (value * Math.PI) / 180;
+        const lat1 = toRad(latitudeA);
+        const lat2 = toRad(latitudeB);
+        const deltaLat = toRad(latitudeB - latitudeA);
+        const deltaLon = toRad(longitudeB - longitudeA);
+
+        const h =
+            Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1) *
+                Math.cos(lat2) *
+                Math.sin(deltaLon / 2) *
+                Math.sin(deltaLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        return 6_371_000 * c;
+    }
+
+    private async resolveActiveCoupleId(userId: string) {
+        const coupleRepository = this.dataSource.getRepository(Couple);
+        const couple = await coupleRepository.findOne({
+            where: [
+                { user1Id: userId, user2Id: Not(IsNull()), status: CoupleStatus.ACTIVE },
+                { user2Id: userId, status: CoupleStatus.ACTIVE }
+            ],
+            select: ["id"]
+        });
+        return couple?.id || null;
     }
 }

@@ -1,4 +1,16 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Req, Logger, Res } from "@nestjs/common";
+import {
+    Controller,
+    Post,
+    Body,
+    HttpCode,
+    HttpStatus,
+    UseGuards,
+    Get,
+    Req,
+    Logger,
+    Res,
+    UnauthorizedException
+} from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { AuthGuard } from "@nestjs/passport";
@@ -132,7 +144,11 @@ export class AuthController {
     async logout(@Req() req, @Res({ passthrough: true }) res: Response) {
         res.clearCookie("access_token");
         res.clearCookie("refresh_token");
-        return this.authService.logout(req.user.id || req.user.sub);
+        const userId = req.user?.id || req.user?.sub || req.user?.user_Id;
+        if (!userId) {
+            throw new UnauthorizedException("Invalid access token payload");
+        }
+        return this.authService.logout(userId);
     }
 
     private setTokensCookie(res: Response, tokens: { access_token: string; refresh_token: string }) {

@@ -32,7 +32,7 @@ export class WsJwtGuard implements CanActivate {
             const user = await this.authService.validateAccessTokenPayload(payload);
             client["user"] = user;
             return true;
-        } catch (err) {
+        } catch (err) {                                
             this.logger.error(`WS Auth Error: ${err.message}`);
             throw new WsException("Unauthorized");
         }

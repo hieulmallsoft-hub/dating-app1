@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { SettingRepository } from "../infrastructure/persistence/setting.repository";
 import { Setting } from "../domain/entities/setting.entity";
+import { UpdateSettingsDto } from "../presentation/dto/update-settings.dto";
 
 @Injectable()
 export class SettingsService {
@@ -17,9 +18,21 @@ export class SettingsService {
         return settings;
     }
 
-    async updateSettings(userId: string, dto: any): Promise<Setting> {
+    async updateSettings(userId: string, dto: UpdateSettingsDto): Promise<Setting> {
         const settings = await this.getSettings(userId);
-        Object.assign(settings, dto);
+
+        if (typeof dto.notificationEnabled === "boolean") {
+            settings.notificationEnabled = dto.notificationEnabled;
+        }
+
+        if (dto.theme !== undefined) {
+            settings.theme = dto.theme;
+        }
+
+        if (dto.privacy !== undefined) {
+            settings.privacy = dto.privacy;
+        }
+
         return this.settingRepository.save(settings);
     }
 }

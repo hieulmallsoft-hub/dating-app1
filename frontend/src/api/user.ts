@@ -16,6 +16,8 @@ export type UserMe = {
   jobTitle: string | null;
   company: string | null;
   school: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type UpdateMePayload = Partial<{
@@ -40,4 +42,3 @@ export async function updateMe(payload: UpdateMePayload) {
   const { data } = await http.put<UserMe>("/users/me", payload);
   return data;
 }
-

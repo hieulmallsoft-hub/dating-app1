@@ -46,6 +46,7 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
         }
+        this.assertAccountCanAuthenticate(user);
 
         const isPasswordMatching = await comparePassword(password, user.password);
         if (!isPasswordMatching) {
@@ -70,6 +71,7 @@ export class AuthService {
     }
 
     async createSession(user: any): Promise<AuthResult> {
+        this.assertAccountCanAuthenticate(user);
         const refreshToken = this.generateRefreshToken();
         const refreshTokenExp = this.getRefreshTokenExpiry();
         const tokenVersion = await this.usersService.replaceSession(user.id, refreshToken, refreshTokenExp);
@@ -81,6 +83,10 @@ export class AuthService {
     }
 
     async validateSocialUser(socialUser: any): Promise<AuthResult> {
+        if (!socialUser?.email) {
+            throw new UnauthorizedException("Social account email is required");
+        }
+
         let user = await this.usersService.getUserByEmail(socialUser.email);
 
         if (!user) {
@@ -90,9 +96,10 @@ export class AuthService {
                 avatar: socialUser.avatar,
                 socialId: socialUser.socialId,
                 provider: socialUser.provider,
-                password: null
-            } as any);
+                password: undefined
+            });
         } else {
+            this.assertAccountCanAuthenticate(user);
             user = await this.usersService.updateUser(user.id, {
                 socialId: socialUser.socialId,
                 provider: socialUser.provider,
@@ -159,6 +166,7 @@ export class AuthService {
         if (!user || !user.refreshTokenExp || user.refreshTokenExp < new Date()) {
             throw new UnauthorizedException("Invalid or expired refresh token");
         }
+        this.assertAccountCanAuthenticate(user);
 
         const refreshToken = this.generateRefreshToken();
         const refreshTokenExp = this.getRefreshTokenExpiry();
@@ -194,6 +202,7 @@ export class AuthService {
     async validateAccessTokenPayload(payload: any) {
         try {
             const user = await this.usersService.getUserById(payload.sub);
+            this.assertAccountCanAuthenticate(user);
             const payloadTokenVersion =
                 typeof payload?.tokenVersion === "number" ? payload.tokenVersion : 0;
             const currentTokenVersion = this.getTokenVersion(user);
@@ -252,6 +261,16 @@ export class AuthService {
 
     private getTokenVersion(user: { tokenVersion?: number | null }): number {
         return typeof user?.tokenVersion === "number" ? user.tokenVersion : 0;
+    }
+
+    private assertAccountCanAuthenticate(user: { isBanned?: boolean; isActive?: boolean }) {
+        if (user.isBanned) {
+            throw new UnauthorizedException("Account is banned");
+        }
+
+        if (user.isActive === false) {
+            throw new UnauthorizedException("Account is inactive");
+        }
     }
 }
 

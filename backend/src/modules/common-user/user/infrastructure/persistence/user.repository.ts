@@ -29,6 +29,8 @@ export class UserRepository extends Repository<User> {
                 "password",
                 "fullName",
                 "role",
+                "isBanned",
+                "isActive",
                 "tokenVersion",
                 "refreshToken",
                 "refreshTokenExp"

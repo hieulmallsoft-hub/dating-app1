@@ -26,7 +26,13 @@ async function bootstrap() {
     app.use(cookieParser());
 
     // Enable global validation pipe
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            transform: true,
+            transformOptions: { enableImplicitConversion: true }
+        })
+    );
 
     // Enable CORS
     app.enableCors({
@@ -42,7 +48,13 @@ async function bootstrap() {
                     defaultSrc: [`'self'`],
                     styleSrc: [`'self'`, `'unsafe-inline'`],
                     scriptSrc: [`'self'`, `'unsafe-inline'`, `https://cdn.jsdelivr.net`],
-                    imgSrc: [`'self'`, `data:`, `https://cdn.jsdelivr.net`]
+                    imgSrc: [
+                        `'self'`,
+                        `data:`,
+                        `https://cdn.jsdelivr.net`,
+                        `https://tile.openstreetmap.org`,
+                        `https://*.tile.openstreetmap.org`
+                    ]
                 }
             },
             crossOriginEmbedderPolicy: false

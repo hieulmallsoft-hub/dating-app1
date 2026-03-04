@@ -3,7 +3,6 @@ import {
     Controller,
     Delete,
     Get,
-    NotFoundException,
     Param,
     Patch,
     Post,
@@ -60,10 +59,7 @@ export class MediaController {
     
     @Get(":id/download")
     async getDownloadUrl(@Req() req, @Param("id") id: string) {
-        const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id) as any;
-        if (!media) {
-            throw new NotFoundException("Media not found");
-        }
+        const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id);
         return { downloadUrl: media.downloadUrl };
     }
 

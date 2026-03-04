@@ -1,26 +1,64 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    CreateDateColumn,
+    UpdateDateColumn,
+    ManyToOne,
+    JoinColumn,
+    Index
+} from "typeorm";
 import { User } from "../../../../common-user/user/domain/entities/users.enity";
 import { Couple } from "../../../couple/domain/entities/couple.entity";
 
+
+export enum PlaceType {
+    HOME = "HOME",
+    SCHOOL = "SCHOOL",
+    COMPANY = "COMPANY",
+    RESTAURANT = "RESTAURANT",
+    CAFE = "CAFE",
+    PARK = "PARK",
+    MUSEUM = "MUSEUM",
+    OTHER = "OTHER"
+}
+
+
+@Index(["coupleId", "createdAt"])
+@Index(["coupleId", "updatedAt"])
+@Index(["coupleId", "isDeleted"])
+@Index(["coupleId", "placeType"])
 @Entity("places")
 export class Place {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @Column()
+    @Column({ length: 255 })
     name: string;
 
     @Column({ type: "text", nullable: true })
-    address: string;
+    address: string | null;
 
-    @Column({ type: "decimal", precision: 10, scale: 7, nullable: true })
-    latitude: number;
+    @Column({ type: "double precision", nullable: true })
+    latitude: number|null;
 
-    @Column({ type: "decimal", precision: 10, scale: 7, nullable: true })
-    longitude: number;
+    @Column({ type: "double precision", nullable: true })
+    longitude: number|null;
 
-    @Column({ nullable: true })
-    type: string; // restaurant, cafe, etc.
+    @Column({ type: "enum", enum: PlaceType, default: PlaceType.OTHER })
+    placeType: PlaceType;
+
+    @Column({ type: "int", default: 200 })
+    radius: number;
+
+    @Column({ type: "varchar", length: 255, nullable: true })
+    iconResName: string | null;
+
+    @Column({ default: true })
+    isSynced: boolean;
+
+    @Column({ default: false })
+    isDeleted: boolean;
 
     @ManyToOne(() => Couple)
     @JoinColumn({ name: "coupleId" })
@@ -38,6 +76,9 @@ export class Place {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
 
 

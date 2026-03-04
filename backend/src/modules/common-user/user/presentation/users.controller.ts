@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Delete, Body, Req, Param } from "@nestjs/common";
+import { Controller, Get, Put, Delete, Body, Req, Param, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "../application/user.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -18,7 +18,7 @@ export class UsersController {
 
     @Get("me")
     async getMe(@Req() req) {
-        return this.usersService.getUserById(req.user.sub || req.user.id);
+        return this.usersService.getUserById(this.getCurrentUserId(req));
     }
 
     @Get("email/:email")
@@ -34,11 +34,19 @@ export class UsersController {
 
     @Put("me")
     async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-        return this.usersService.updateUser(req.user.sub || req.user.id, updateUserDto);
+        return this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
     }
 
     @Delete(":id")
     async deleteUser(@Param("id") id: string) {
         return this.usersService.deleteUser(id);
+    }
+
+    private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {
+        const userId = req.user?.sub || req.user?.id || req.user?.user_Id;
+        if (!userId) {
+            throw new UnauthorizedException("Invalid access token payload");
+        }
+        return userId;
     }
 }

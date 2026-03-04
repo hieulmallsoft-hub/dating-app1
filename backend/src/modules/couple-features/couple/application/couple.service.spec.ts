@@ -8,7 +8,7 @@ import { User } from "../../../common-user/user/domain/entities/users.enity";
 describe("CoupleService", () => {
     let service: CoupleService;
     let coupleRepository: { findOne: jest.Mock };
-    let dataSource: { transaction: jest.Mock };
+    let dataSource: { transaction: jest.Mock; getRepository: jest.Mock };
 
     beforeEach(() => {
         coupleRepository = {
@@ -16,7 +16,8 @@ describe("CoupleService", () => {
         };
 
         dataSource = {
-            transaction: jest.fn()
+            transaction: jest.fn(),
+            getRepository: jest.fn()
         };
 
         service = new CoupleService(coupleRepository as never, dataSource as never);
@@ -362,6 +363,110 @@ describe("CoupleService", () => {
         expect(result).toEqual(
             expect.objectContaining({
                 inviteCode: "B1C2D3E4"
+            })
+        );
+    });
+
+    it("returns location history for both me and partner", async () => {
+        const now = new Date();
+        const me = { id: "user-1", fullName: "Alice", email: "alice@test.dev" } as User;
+        const partner = { id: "user-2", fullName: "Bob", email: "bob@test.dev" } as User;
+
+        coupleRepository.findOne.mockResolvedValue({
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE,
+            user1: me,
+            user2: partner
+        });
+
+        const historyRepository = {
+            find: jest.fn().mockImplementation(({ where }: { where: { userId: string } }) => {
+                if (where.userId === "user-1") {
+                    return Promise.resolve([
+                        {
+                            id: "hist-me-2",
+                            userId: "user-1",
+                            latitude: 10.7766,
+                            longitude: 106.7012,
+                            accuracy: 9.5,
+                            createdAt: new Date(now.getTime() - 1_000)
+                        },
+                        {
+                            id: "hist-me-1",
+                            userId: "user-1",
+                            latitude: 10.7765,
+                            longitude: 106.7011,
+                            accuracy: 11.5,
+                            createdAt: new Date(now.getTime() - 2_000)
+                        }
+                    ]);
+                }
+
+                return Promise.resolve([
+                    {
+                        id: "hist-partner-1",
+                        userId: "user-2",
+                        latitude: 10.775,
+                        longitude: 106.699,
+                        accuracy: 20,
+                        createdAt: new Date(now.getTime() - 1_500)
+                    }
+                ]);
+            })
+        };
+        dataSource.getRepository.mockReturnValue(historyRepository);
+
+        const result = await service.getCoupleLocationHistory("user-1", 80);
+
+        expect(historyRepository.find).toHaveBeenCalledTimes(2);
+        expect(result.me).toHaveLength(2);
+        expect(result.partner).toHaveLength(1);
+        expect(result.me[0]).toEqual(
+            expect.objectContaining({
+                id: "hist-me-1",
+                userId: "user-1"
+            })
+        );
+        expect(result.me[1]).toEqual(
+            expect.objectContaining({
+                id: "hist-me-2",
+                accuracy: 9.5
+            })
+        );
+    });
+
+    it("clamps history limit to 500 records", async () => {
+        const me = { id: "user-1", fullName: "Alice", email: "alice@test.dev" } as User;
+        const partner = { id: "user-2", fullName: "Bob", email: "bob@test.dev" } as User;
+
+        coupleRepository.findOne.mockResolvedValue({
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE,
+            user1: me,
+            user2: partner
+        });
+
+        const historyRepository = {
+            find: jest.fn().mockResolvedValue([])
+        };
+        dataSource.getRepository.mockReturnValue(historyRepository);
+
+        await service.getCoupleLocationHistory("user-1", 9999);
+
+        expect(historyRepository.find).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                take: 500
+            })
+        );
+        expect(historyRepository.find).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                take: 500
             })
         );
     });

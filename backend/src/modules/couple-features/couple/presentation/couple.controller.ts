@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Body, Req, UseGuards, HttpCode, HttpStatus, UnauthorizedException } from "@nestjs/common";
+import {
+    Controller,
+    Get,
+    Post,
+    Put,
+    Body,
+    Req,
+    UseGuards,
+    HttpCode,
+    HttpStatus,
+    UnauthorizedException,
+    Query
+} from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { CoupleService } from "../application/couple.service";
 import { JoinCoupleDto, UpdateCoupleDto } from "./dto/couple-ops.dto";
@@ -13,6 +25,17 @@ export class CoupleController {
     @Get()
     async getCouple(@Req() req) {
         return this.coupleService.getMyCoupleWithPartner(this.getCurrentUserId(req));
+    }
+
+    @Get("locations")
+    async getCoupleLocations(@Req() req) {
+        return this.coupleService.getCoupleLocations(this.getCurrentUserId(req));
+    }
+
+    @Get("location-history")
+    async getCoupleLocationHistory(@Req() req, @Query("limit") limit?: string) {
+        const parsedLimit = limit ? Number(limit) : undefined;
+        return this.coupleService.getCoupleLocationHistory(this.getCurrentUserId(req), parsedLimit);
     }
 
     @Post("invite")

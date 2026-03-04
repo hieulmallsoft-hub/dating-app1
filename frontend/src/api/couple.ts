@@ -30,6 +30,35 @@ export type Invite = {
   createdAt: string;
 };
 
+export type CoupleLocationUser = {
+  id: string;
+  fullName: string | null;
+  email: string;
+  avatar: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  lastActiveAt: string | null;
+};
+
+export type CoupleLocationsResponse = {
+  me: CoupleLocationUser | null;
+  partner: CoupleLocationUser | null;
+};
+
+export type CoupleLocationHistoryPoint = {
+  id: string;
+  userId: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  createdAt: string;
+};
+
+export type CoupleLocationHistoryResponse = {
+  me: CoupleLocationHistoryPoint[];
+  partner: CoupleLocationHistoryPoint[];
+};
+
 export async function getMyCouple() {
   const { data } = await http.get<Couple>("/couple");
   return data;
@@ -62,5 +91,17 @@ export async function setTheme(theme: string) {
 
 export async function disconnectCouple() {
   const { data } = await http.post<Couple>("/couple/disconnect");
+  return data;
+}
+
+export async function getCoupleLocations() {
+  const { data } = await http.get<CoupleLocationsResponse>("/couple/locations");
+  return data;
+}
+
+export async function getCoupleLocationHistory(limit = 120) {
+  const { data } = await http.get<CoupleLocationHistoryResponse>("/couple/location-history", {
+    params: { limit },
+  });
   return data;
 }
