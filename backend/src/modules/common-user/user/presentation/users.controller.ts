@@ -2,6 +2,7 @@ import { Controller, Get, Put, Delete, Body, Req, Param, UnauthorizedException }
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "../application/user.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
 import { Public } from "src/common/decorators/customize";
 
 @ApiTags("users")
@@ -35,6 +36,19 @@ export class UsersController {
     @Put("me")
     async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
         return this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
+    }
+
+    @Put("me/location")
+    async updateMyLocation(@Req() req, @Body() dto: UpdateUserLocationDto) {
+        return this.usersService.updateMyLocation(
+            this.getCurrentUserId(req),
+            dto.lat,
+            dto.lng,
+            dto.accuracy,
+            dto.batteryLevel,
+            dto.isCharging,
+            dto.speed
+        );
     }
 
     @Delete(":id")

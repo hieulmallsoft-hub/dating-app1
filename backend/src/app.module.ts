@@ -23,7 +23,6 @@ import { EventsModule } from "./modules/couple-features/events/events.module";
 import { NotificationsModule } from "./modules/common-user/notifications/notifications.module";
 import { SettingsModule } from "./modules/common-user/settings/settings.module";
 import { SecurityModule } from "./modules/common-user/security/security.module";
-import { LocationModule } from "./modules/couple-features/location/location.module";
 import { TripsModule } from "./modules/couple-features/trips/trips.module";
 @Module({
     imports: [
@@ -52,7 +51,6 @@ import { TripsModule } from "./modules/couple-features/trips/trips.module";
         NotificationsModule,
         SettingsModule,
         SecurityModule,
-        LocationModule,
         TripsModule
     ],
     controllers: [AppController],

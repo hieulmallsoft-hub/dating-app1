@@ -36,13 +36,58 @@ export type PartnerRealtimeLocationResponse = {
   statusTimestamp: number | null;
 };
 
+type UpdateUserLocationApiResponse = {
+  userId: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  batteryLevel: number | null;
+  isCharging: boolean | null;
+  speed: number | null;
+};
+
+type CoupleLocationsApiResponse = {
+  partner: {
+    id: string;
+    latitude: number | null;
+    longitude: number | null;
+    batteryLevel?: number | null;
+    isCharging?: boolean | null;
+    speed?: number | null;
+    lastActiveAt: string | null;
+  } | null;
+};
+
 export async function updateRealtimeLocation(payload: UpdateRealtimeLocationPayload) {
-  const { data } = await http.post<UpdateRealtimeLocationResponse>("/location/update", payload);
-  return data;
+  const { data } = await http.put<UpdateUserLocationApiResponse>("/users/me/location", payload);
+  return {
+    lat: data.latitude,
+    lng: data.longitude,
+    bat: data.batteryLevel ?? null,
+    chg: data.isCharging ?? null,
+    spd: data.speed ?? null,
+    acc: data.accuracy ?? null,
+    ts: payload.timestamp ?? Date.now(),
+  };
 }
 
 export async function getPartnerRealtimeLocation() {
-  const { data } = await http.get<PartnerRealtimeLocationResponse>("/location/partner");
-  return data;
-}
+  const { data } = await http.get<CoupleLocationsApiResponse>("/couple/locations");
+  const partner = data.partner;
+  const rawLastUpdated = partner?.lastActiveAt ? new Date(partner.lastActiveAt).getTime() : null;
+  const lastUpdated = typeof rawLastUpdated === "number" && Number.isFinite(rawLastUpdated) ? rawLastUpdated : null;
 
+  return {
+    partner: {
+      userId: partner?.id ?? "",
+      lat: partner?.latitude ?? null,
+      lng: partner?.longitude ?? null,
+      batteryLevel: partner?.batteryLevel ?? null,
+      isCharging: partner?.isCharging ?? null,
+      speed: partner?.speed ?? null,
+      lastUpdated,
+    },
+    status: lastUpdated !== null && Date.now() - lastUpdated <= 30 * 60 * 1000 ? "background" : "offline",
+    statusTimestamp: lastUpdated,
+  } satisfies PartnerRealtimeLocationResponse;
+}
