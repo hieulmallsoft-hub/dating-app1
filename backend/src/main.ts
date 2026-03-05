@@ -14,6 +14,7 @@ async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     const configService = app.get(ConfigService);
     const port = configService.get("PORT") || 3000;
+    const useHttps = String(configService.get("USE_HTTPS") || "").toLowerCase() === "true";
     const uploadPath = configService.get<string>("UPLOAD_PATH") || "./uploads";
     const uploadRoot = resolve(process.cwd(), uploadPath);
 
@@ -54,9 +55,12 @@ async function bootstrap() {
                         `https://cdn.jsdelivr.net`,
                         `https://tile.openstreetmap.org`,
                         `https://*.tile.openstreetmap.org`
-                    ]
+                    ],
+                    // Keep Swagger UI working on plain HTTP deployments (IP:port) without forced HTTPS upgrades.
+                    upgradeInsecureRequests: useHttps ? [] : null
                 }
             },
+            hsts: useHttps,
             crossOriginEmbedderPolicy: false
         })
     );
@@ -90,7 +94,13 @@ async function bootstrap() {
         // .addSecurityRequirements('JWT-auth') // Removed global security to handle it manually
         .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup("api/docs", app, document);
+    SwaggerModule.setup("api/docs", app, document, {
+        jsonDocumentUrl: "api/docs-json",
+        swaggerOptions: {
+            url: "/api/docs-json",
+            persistAuthorization: true
+        }
+    });
 
     // app.setGlobalPrefix('api');
     await app.listen(port);
