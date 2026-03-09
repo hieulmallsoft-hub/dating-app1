@@ -22,7 +22,17 @@ async function bootstrap() {
     if (!existsSync(uploadRoot)) {
         mkdirSync(uploadRoot, { recursive: true });
     }
-    app.useStaticAssets(uploadRoot, { prefix: "/uploads" });
+    app.useStaticAssets(uploadRoot, {
+        prefix: "/uploads",
+        maxAge: "365d",
+        immutable: true,
+        etag: true,
+        lastModified: true,
+        setHeaders: (res) => {
+            // Upload object keys are unique (timestamp + random), so immutable cache is safe.
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+    });
 
     app.use(cookieParser());
 

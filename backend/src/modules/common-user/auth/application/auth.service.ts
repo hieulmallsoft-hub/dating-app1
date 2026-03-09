@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import {
+    ConflictException,
+    Injectable,
+    Logger,
+    ServiceUnavailableException,
+    UnauthorizedException
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as appleSignin from "apple-signin-auth";
@@ -32,13 +38,15 @@ export class AuthService {
     private readonly logger = new Logger(AuthService.name);
     private readonly refreshTokenTtlMs = 30 * 24 * 60 * 60 * 1000;
     private readonly googleClient: OAuth2Client;
+    private readonly googleClientId?: string;
 
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService
     ) {
-        this.googleClient = new OAuth2Client(this.configService.get<string>("auth.google.clientId"));
+        this.googleClientId = this.configService.get<string>("auth.google.clientId")?.trim();
+        this.googleClient = new OAuth2Client(this.googleClientId);
     }
 
     async validateUser(email: string, password: string) {
@@ -114,25 +122,39 @@ export class AuthService {
     }
 
     async loginWithGoogle(idToken: string): Promise<AuthResult> {
+        if (!this.googleClientId) {
+            this.logger.error("Google login is not configured: missing auth.google.clientId");
+            throw new ServiceUnavailableException("Google login is not configured");
+        }
+
         try {
             const ticket = await this.googleClient.verifyIdToken({
                 idToken,
-                audience: this.configService.get<string>("auth.google.clientId")
+                audience: this.googleClientId
             });
             const payload = ticket.getPayload();
+            const allowedIssuers = new Set(["accounts.google.com", "https://accounts.google.com"]);
 
-            if (!payload?.email) {
+            if (
+                !payload?.sub ||
+                !payload?.email ||
+                payload.email_verified !== true ||
+                !allowedIssuers.has(payload.iss || "")
+            ) {
                 throw new UnauthorizedException("Invalid Google token");
             }
 
             return this.validateSocialUser({
-                email: payload.email,
+                email: payload.email.trim().toLowerCase(),
                 fullName: payload.name,
                 avatar: payload.picture,
                 socialId: payload.sub,
                 provider: AuthProvider.GOOGLE
             });
         } catch (error) {
+            if (error instanceof UnauthorizedException || error instanceof ServiceUnavailableException) {
+                throw error;
+            }
             this.logger.error(`Google token verification failed: ${error.message}`);
             throw new UnauthorizedException("Invalid Google token");
         }
@@ -275,4 +297,3 @@ export class AuthService {
         }
     }
 }
-
