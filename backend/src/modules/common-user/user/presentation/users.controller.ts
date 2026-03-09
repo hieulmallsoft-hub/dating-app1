@@ -2,6 +2,7 @@ import { Controller, Get, Put, Delete, Body, Req, Param, UnauthorizedException }
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
+    ApiExcludeEndpoint,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
@@ -20,19 +21,6 @@ import { Public } from "src/common/decorators/customize";
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
-    @Get()
-    @Public()
-    @ApiOperation({
-        summary: "List users",
-        description: "Public endpoint for listing users."
-    })
-    @ApiOkResponse({
-        description: "User list returned"
-    })
-    async getAllUsers() {
-        return this.usersService.getAllUsers();
-    }
-
     @Get("me")
     @ApiOperation({
         summary: "Get current user profile",
@@ -50,6 +38,7 @@ export class UsersController {
 
     @Get("email/:email")
     @Public()
+    @ApiExcludeEndpoint()
     @ApiOperation({
         summary: "Get user by email",
         description: "Public endpoint. Returns user info or null."
@@ -64,29 +53,6 @@ export class UsersController {
     })
     async getUserByEmail(@Param("email") email: string) {
         return this.usersService.getUserByEmail(email);
-    }
-
-    @Get(":id")
-    @ApiOperation({
-        summary: "Get user by id",
-        description: "Requires JWT."
-    })
-    @ApiParam({
-        name: "id",
-        description: "User id",
-        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
-    })
-    @ApiOkResponse({
-        description: "User detail returned"
-    })
-    @ApiNotFoundResponse({
-        description: "User not found"
-    })
-    @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
-    })
-    async getUserById(@Param("id") id: string) {
-        return this.usersService.getUserById(id);
     }
 
     @Put("me")
@@ -134,6 +100,7 @@ export class UsersController {
     }
 
     @Delete(":id")
+    @ApiExcludeEndpoint()
     @ApiOperation({
         summary: "Delete user by id",
         description: "Deletes a user record by id."
