@@ -1,9 +1,50 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ValueTransformer
+} from "typeorm";
 
 export enum Gender { MALE="MALE", FEMALE="FEMALE", OTHER="OTHER" }
-export enum GenderPreference { MALE="MALE", FEMALE="FEMALE", BOTH="BOTH" }
+export enum GenderPreference { MALE=0, FEMALE=1, BOTH=2 }
 export enum AuthProvider { LOCAL="LOCAL", GOOGLE="GOOGLE", APPLE="APPLE" }
 export enum UserRole { USER="USER", ADMIN="ADMIN" }
+
+enum GenderPreferenceDb {
+  MALE = "MALE",
+  FEMALE = "FEMALE",
+  BOTH = "BOTH"
+}
+
+const GENDER_PREFERENCE_TO_DB: Record<GenderPreference, GenderPreferenceDb> = {
+  [GenderPreference.MALE]: GenderPreferenceDb.MALE,
+  [GenderPreference.FEMALE]: GenderPreferenceDb.FEMALE,
+  [GenderPreference.BOTH]: GenderPreferenceDb.BOTH
+};
+
+const GENDER_PREFERENCE_FROM_DB: Record<GenderPreferenceDb, GenderPreference> = {
+  [GenderPreferenceDb.MALE]: GenderPreference.MALE,
+  [GenderPreferenceDb.FEMALE]: GenderPreference.FEMALE,
+  [GenderPreferenceDb.BOTH]: GenderPreference.BOTH
+};
+
+const genderPreferenceTransformer: ValueTransformer = {
+  to(value: GenderPreference | null | undefined) {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    return GENDER_PREFERENCE_TO_DB[value] ?? GenderPreferenceDb.BOTH;
+  },
+  from(value: GenderPreferenceDb | null | undefined) {
+    if (value === null || value === undefined) {
+      return GenderPreference.BOTH;
+    }
+    return GENDER_PREFERENCE_FROM_DB[value] ?? GenderPreference.BOTH;
+  }
+};
 
 @Entity("users")
 @Index(["provider", "socialId"], { unique: true })
@@ -45,7 +86,12 @@ export class User {
   @Column({ type: "enum", enum: Gender, nullable: true })
   gender: Gender | null;
 
-  @Column({ type: "enum", enum: GenderPreference, default: GenderPreference.BOTH })
+  @Column({
+    type: "enum",
+    enum: GenderPreferenceDb,
+    default: GenderPreferenceDb.BOTH,
+    transformer: genderPreferenceTransformer
+  })
   genderPreference: GenderPreference;
 
   @Column({ type: "text", nullable: true })

@@ -3,13 +3,15 @@ import {
     IsEmail,
     IsDate,
     IsEnum,
+    IsIn,
     IsArray,
     IsBoolean,
     IsNotEmpty,
     IsOptional
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { Gender, GenderPreference } from "../../domain/entities/user.entity";
+import { toGenderPreferenceEnum } from "../mappers/gender-preference.mapper";
 
 export class CreateUserDto {
     @IsString()
@@ -37,6 +39,8 @@ export class CreateUserDto {
     @IsOptional()
     gender?: Gender;
 
+    @Transform(({ value }) => toGenderPreferenceEnum(value))
+    @IsIn([GenderPreference.MALE, GenderPreference.FEMALE, GenderPreference.BOTH])
     @IsEnum(GenderPreference)
     @IsOptional()
     genderPreference?: GenderPreference;

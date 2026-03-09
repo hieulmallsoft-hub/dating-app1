@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsDate, MaxLength, IsArray, IsUrl } from "class-validator";
+import { IsString, IsOptional, IsEnum, IsDate, MaxLength, IsArray, IsUrl, IsIn } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Gender, GenderPreference } from "../../domain/entities/user.entity";
@@ -57,7 +57,7 @@ export class UpdateUserDto {
         example: 2
     })
     @Transform(({ value }) => toGenderPreferenceEnum(value))
-    @IsEnum(GenderPreference)
+    @IsIn([GenderPreference.MALE, GenderPreference.FEMALE, GenderPreference.BOTH])
     @IsOptional()
     genderPreference?: GenderPreference;
 
