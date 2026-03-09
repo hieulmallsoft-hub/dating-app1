@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { DataSource, Repository } from "typeorm";
-import { User } from "../../domain/entities/users.enity";
+import { AuthProvider, User } from "../../domain/entities/users.enity";
 
 @Injectable()
 export class UserRepository extends Repository<User> {
@@ -20,14 +20,30 @@ export class UserRepository extends Repository<User> {
         return this.findOne({ where: { email } });
     }
 
+    findByProviderAndSocialId(provider: AuthProvider, socialId: string): Promise<User | null> {
+        return this.findOne({ where: { provider, socialId } });
+    }
+
+    findByAccountCode(accountCode: string): Promise<User | null> {
+        return this.findOne({ where: { accountCode } });
+    }
+
+    async existsByAccountCode(accountCode: string): Promise<boolean> {
+        const count = await this.count({ where: { accountCode } });
+        return count > 0;
+    }
+
     findByEmailWithPassword(email: string): Promise<User | null> {
         return this.findOne({
             where: { email },
             select: [
                 "id",
                 "email",
+                "accountCode",
                 "password",
                 "fullName",
+                "gender",
+                "avatar",
                 "role",
                 "isBanned",
                 "isActive",

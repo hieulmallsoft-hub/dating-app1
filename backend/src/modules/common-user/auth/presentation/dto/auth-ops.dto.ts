@@ -37,6 +37,13 @@ export class AuthUserResponseDto {
     email: string;
 
     @ApiProperty({
+        description: "Stable account code to identify this user across devices",
+        example: "A7K3M9Q2XZ",
+        nullable: true
+    })
+    accountCode: string | null;
+
+    @ApiProperty({
         description: "Display name",
         example: "Mobile User"
     })
@@ -55,6 +62,13 @@ export class AuthUserResponseDto {
         nullable: true
     })
     avatar: string | null;
+
+    @ApiProperty({
+        description: "Birth date (YYYY-MM-DD)",
+        example: "2001-05-07",
+        nullable: true
+    })
+    birthDate: string | null;
 
     @ApiProperty({
         description: "User role",
@@ -78,12 +92,29 @@ export class AuthTokensResponseDto {
     refresh_token: string;
 }
 
+export class AuthSessionMetaResponseDto {
+    @ApiProperty({
+        description: "True when account was just created in this login flow",
+        example: false
+    })
+    isNewUser: boolean;
+
+    @ApiProperty({
+        description: "True when app should redirect user to profile setup screen",
+        example: true
+    })
+    needsProfileSetup: boolean;
+}
+
 export class AuthSessionResponseDto {
     @ApiProperty({ type: AuthUserResponseDto })
     user: AuthUserResponseDto;
 
     @ApiProperty({ type: AuthTokensResponseDto })
     tokens: AuthTokensResponseDto;
+
+    @ApiProperty({ type: () => AuthSessionMetaResponseDto })
+    meta: AuthSessionMetaResponseDto;
 }
 
 export class LogoutResponseDto {
@@ -92,4 +123,22 @@ export class LogoutResponseDto {
         example: true
     })
     success: boolean;
+}
+
+export class CheckAccountCodeQueryDto {
+    @ApiProperty({
+        description: "Account code to check",
+        example: "A7K3M9Q2XZ"
+    })
+    @IsString()
+    @IsNotEmpty()
+    code: string;
+}
+
+export class CheckAccountCodeResponseDto {
+    @ApiProperty({
+        description: "Whether account code exists",
+        example: true
+    })
+    exists: boolean;
 }

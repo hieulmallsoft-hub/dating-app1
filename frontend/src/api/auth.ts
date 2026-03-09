@@ -4,15 +4,21 @@ import type { AuthTokens } from "../lib/authStorage";
 export type AuthUser = {
   id: string;
   email: string;
+  accountCode: string | null;
   fullName: string | null;
   gender: "MALE" | "FEMALE" | "OTHER" | null;
   avatar: string | null;
+  birthDate: string | null;
   role: string;
 };
 
 export type AuthResult = {
   user: AuthUser;
   tokens: AuthTokens;
+  meta: {
+    isNewUser: boolean;
+    needsProfileSetup: boolean;
+  };
 };
 
 export async function login(payload: { email: string; password: string }) {

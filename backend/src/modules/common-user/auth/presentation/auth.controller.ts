@@ -9,6 +9,7 @@ import {
     Req,
     Logger,
     Res,
+    Query,
     UnauthorizedException
 } from "@nestjs/common";
 import {
@@ -33,7 +34,9 @@ import {
     SocialLoginDto,
     RefreshTokenDto,
     AuthSessionResponseDto,
-    LogoutResponseDto
+    LogoutResponseDto,
+    CheckAccountCodeQueryDto,
+    CheckAccountCodeResponseDto
 } from "./dto/auth-ops.dto";
 import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
@@ -72,7 +75,7 @@ export class AuthController {
             const user = await this.authService.register(registerDto);
             this.logger.log(`Đăng ký thành công: ${registerDto.email}`);
 
-            const result = await this.authService.createSession(user);
+            const result = await this.authService.createSession(user, true);
             this.setTokensCookie(res, result.tokens);
 
             return result;
@@ -103,7 +106,7 @@ export class AuthController {
     async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.login(loginDto);
         this.setTokensCookie(res, result.tokens);
-        return { user: result.user, tokens: result.tokens };
+        return result;
     }
 
     // @UseGuards(JwtAuthGuard)
@@ -132,6 +135,25 @@ export class AuthController {
     })
     getProfile(@Req() req: Request & { user: any }) {
         return req.user;
+    }
+
+    @Public()
+    @Get("account-code/exists")
+    @ApiOperation({
+        summary: "Check account code exists",
+        description:
+            "Returns true/false for a stable accountCode. Useful when mobile needs to check account availability by code."
+    })
+    @ApiOkResponse({
+        description: "Check result",
+        type: CheckAccountCodeResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Missing or invalid code query"
+    })
+    async checkAccountCodeExists(@Query() query: CheckAccountCodeQueryDto) {
+        const exists = await this.authService.checkAccountCodeExists(query.code);
+        return { exists };
     }
 
     // Google Auth
@@ -209,7 +231,7 @@ export class AuthController {
     async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
-        return { user: result.user, tokens: result.tokens };
+        return result;
     }
 
     @ApiExcludeEndpoint()
@@ -219,7 +241,7 @@ export class AuthController {
     async appleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithApple(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
-        return { user: result.user, tokens: result.tokens };
+        return result;
     }
 
     @Public()
@@ -259,7 +281,7 @@ export class AuthController {
         const refreshToken = refreshTokenDto.refreshToken || req.cookies?.refresh_token;
         const result = await this.authService.refreshToken(refreshToken);
         this.setTokensCookie(res, result.tokens);
-        return { user: result.user, tokens: result.tokens };
+        return result;
     }
 
     @ApiBearerAuth("JWT-auth")

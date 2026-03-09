@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 import { DataSource, IsNull, Not } from "typeorm";
 import { CreateUserDto } from "../presentation/dto/create-user.dto";
 import { UpdateUserDto } from "../presentation/dto/update-user.dto";
@@ -23,6 +24,9 @@ type UpdateUserPayload = UpdateUserDto & {
 
 @Injectable()
 export class UsersService {
+    private readonly accountCodeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private readonly accountCodeLength = 10;
+
     constructor(
         private readonly userRepository: UserRepository,
         private readonly locationHistoryRepository: LocationHistoryRepository,
@@ -43,6 +47,22 @@ export class UsersService {
         return this.userRepository.findByEmail(email);
     }
 
+    async getUserByProviderAndSocialId(provider: AuthProvider, socialId: string) {
+        return this.userRepository.findByProviderAndSocialId(provider, socialId);
+    }
+
+    async getUserByAccountCode(accountCode: string) {
+        return this.userRepository.findByAccountCode(accountCode);
+    }
+
+    async accountCodeExists(accountCode: string) {
+        const normalizedCode = this.normalizeAccountCode(accountCode);
+        if (!normalizedCode) {
+            return false;
+        }
+        return this.userRepository.existsByAccountCode(normalizedCode);
+    }
+
     async getUserWithPassword(email: string) {
         return this.userRepository.findByEmailWithPassword(email);
     }
@@ -52,9 +72,11 @@ export class UsersService {
         if (existed) throw new ConflictException("Email already exists");
 
         const passwordHash = dto.password ? await bcrypt.hash(dto.password, 10) : null;
+        const accountCode = await this.generateUniqueAccountCode();
 
         return this.userRepository.createAndSave({
             email: dto.email,
+            accountCode,
             fullName: dto.fullName,
             password: passwordHash,
             tokenVersion: 0,
@@ -76,6 +98,7 @@ export class UsersService {
 
         const forbiddenKeys = [
             "role",
+            "accountCode",
             "tokenVersion",
             "refreshToken",
             "refreshTokenExp",
@@ -232,6 +255,44 @@ export class UsersService {
 
     async clearSession(id: string) {
         return this.userRepository.clearSession(id);
+    }
+
+    async ensureAccountCode(id: string) {
+        const existed = await this.userRepository.findById(id);
+        if (!existed) throw new NotFoundException("User not found");
+
+        if (existed.accountCode) {
+            return existed;
+        }
+
+        const accountCode = await this.generateUniqueAccountCode();
+        await this.userRepository.updateById(id, { accountCode });
+        return this.getUserById(id);
+    }
+
+    private normalizeAccountCode(accountCode: string) {
+        return typeof accountCode === "string" ? accountCode.trim().toUpperCase() : "";
+    }
+
+    private createAccountCodeCandidate() {
+        let accountCode = "";
+        for (let index = 0; index < this.accountCodeLength; index += 1) {
+            const randomIndex = randomInt(0, this.accountCodeChars.length);
+            accountCode += this.accountCodeChars[randomIndex];
+        }
+        return accountCode;
+    }
+
+    private async generateUniqueAccountCode() {
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+            const accountCode = this.createAccountCodeCandidate();
+            const existed = await this.userRepository.existsByAccountCode(accountCode);
+            if (!existed) {
+                return accountCode;
+            }
+        }
+
+        throw new ConflictException("Unable to generate account code");
     }
 
     private distanceMeters(

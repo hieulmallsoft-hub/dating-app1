@@ -19,10 +19,17 @@ import { RegisterDto } from "../presentation/dto/register.dto";
 type AuthUser = {
     id: string;
     email: string;
+    accountCode: string | null;
     fullName: string | null;
     gender: string | null;
     avatar: string | null;
+    birthDate: string | null;
     role: string;
+};
+
+type AuthMeta = {
+    isNewUser: boolean;
+    needsProfileSetup: boolean;
 };
 
 type AuthTokens = {
@@ -33,6 +40,7 @@ type AuthTokens = {
 type AuthResult = {
     user: AuthUser;
     tokens: AuthTokens;
+    meta: AuthMeta;
 };
 
 @Injectable()
@@ -57,7 +65,7 @@ export class AuthService {
             throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
         }
         this.assertAccountCanAuthenticate(user);
-        // so sánh mật khẩu đã hash trong database với mật khẩu người dùng nhập vào
+
         const isPasswordMatching = await comparePassword(password, user.password);
         if (!isPasswordMatching) {
             throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
@@ -65,7 +73,7 @@ export class AuthService {
 
         return user;
     }
-    // Đăng ký tài khoản mới
+
     async register(registerDto: RegisterDto) {
         const existingUser = await this.usersService.getUserByEmail(registerDto.email);
         if (existingUser) {
@@ -74,53 +82,80 @@ export class AuthService {
 
         return this.usersService.createUser(registerDto);
     }
-    // đăng ký bằng mạng xã hội (Google, Apple)
+
     async login(loginDto: LoginDto): Promise<AuthResult> {
         const user = await this.validateUser(loginDto.email, loginDto.password);
-        return this.createSession(user);
+        return this.createSession(user, false);
     }
-    // Tạo phiên đăng nhập mới và trả về thông tin người dùng cùng token
-    async createSession(user: any): Promise<AuthResult> {
-        // Kiểm tra trạng thái tài khoản trước khi tạo phiên đăng nhập
+
+    async createSession(user: any, isNewUser = false): Promise<AuthResult> {
         this.assertAccountCanAuthenticate(user);
-        // Tạo token mới và lưu thông tin phiên đăng nhập vào database
+        const userWithAccountCode = await this.usersService.ensureAccountCode(user.id);
+
         const refreshToken = this.generateRefreshToken();
         const refreshTokenExp = this.getRefreshTokenExpiry();
-        const tokenVersion = await this.usersService.replaceSession(user.id, refreshToken, refreshTokenExp);
+        const tokenVersion = await this.usersService.replaceSession(
+            userWithAccountCode.id,
+            refreshToken,
+            refreshTokenExp
+        );
 
         return {
-            user: this.buildAuthUser(user),
-            tokens: this.buildTokens(user, tokenVersion, refreshToken)
+            user: this.buildAuthUser(userWithAccountCode),
+            tokens: this.buildTokens(userWithAccountCode, tokenVersion, refreshToken),
+            meta: this.buildAuthMeta(userWithAccountCode, isNewUser)
         };
     }
 
     async validateSocialUser(socialUser: any): Promise<AuthResult> {
-        if (!socialUser?.email) {
+        const provider = socialUser?.provider as AuthProvider | undefined;
+        const socialId =
+            typeof socialUser?.socialId === "string" ? socialUser.socialId.trim() : undefined;
+        const normalizedEmail = this.normalizeEmail(socialUser?.email);
+
+        if (!provider || !socialId || !normalizedEmail) {
             throw new UnauthorizedException("Social account email is required");
         }
 
-        let user = await this.usersService.getUserByEmail(socialUser.email);
+        let user = await this.usersService.getUserByProviderAndSocialId(provider, socialId);
 
-        if (!user) {
-            user = await this.usersService.createUser({
-                email: socialUser.email,
-                fullName: socialUser.fullName,
-                avatar: socialUser.avatar,
-                socialId: socialUser.socialId,
-                provider: socialUser.provider,
-                password: undefined
-            });
-        } else {
+        if (user) {
             this.assertAccountCanAuthenticate(user);
             user = await this.usersService.updateUser(user.id, {
-                socialId: socialUser.socialId,
-                provider: socialUser.provider,
+                email: normalizedEmail,
                 fullName: user.fullName || socialUser.fullName,
                 avatar: user.avatar || socialUser.avatar
             });
+            return this.createSession(user, false);
         }
 
-        return this.createSession(user);
+        user = await this.usersService.getUserByEmail(normalizedEmail);
+
+        if (!user) {
+            user = await this.usersService.createUser({
+                email: normalizedEmail,
+                fullName: socialUser.fullName,
+                avatar: socialUser.avatar,
+                socialId,
+                provider,
+                password: undefined
+            });
+            return this.createSession(user, true);
+        }
+
+        this.assertAccountCanAuthenticate(user);
+        if (user.socialId && user.provider === provider && user.socialId !== socialId) {
+            throw new UnauthorizedException("Social account mismatch");
+        }
+
+        user = await this.usersService.updateUser(user.id, {
+            socialId,
+            provider,
+            fullName: user.fullName || socialUser.fullName,
+            avatar: user.avatar || socialUser.avatar
+        });
+
+        return this.createSession(user, false);
     }
 
     async loginWithGoogle(idToken: string): Promise<AuthResult> {
@@ -207,9 +242,12 @@ export class AuthService {
             throw new UnauthorizedException("Session expired. Please log in again.");
         }
 
+        const userWithAccountCode = await this.usersService.ensureAccountCode(user.id);
+
         return {
-            user: this.buildAuthUser(user),
-            tokens: this.buildTokens(user, this.getTokenVersion(user), refreshToken)
+            user: this.buildAuthUser(userWithAccountCode),
+            tokens: this.buildTokens(userWithAccountCode, this.getTokenVersion(userWithAccountCode), refreshToken),
+            meta: this.buildAuthMeta(userWithAccountCode, false)
         };
     }
 
@@ -221,7 +259,8 @@ export class AuthService {
     generateTokens(user: any, tokenVersion = this.getTokenVersion(user)): AuthResult {
         return {
             user: this.buildAuthUser(user),
-            tokens: this.buildTokens(user, tokenVersion, this.generateRefreshToken())
+            tokens: this.buildTokens(user, tokenVersion, this.generateRefreshToken()),
+            meta: this.buildAuthMeta(user, false)
         };
     }
 
@@ -254,14 +293,27 @@ export class AuthService {
         }
     }
 
+    async checkAccountCodeExists(accountCode: string): Promise<boolean> {
+        return this.usersService.accountCodeExists(accountCode);
+    }
+
     private buildAuthUser(user: any): AuthUser {
         return {
             id: user.id,
             email: user.email,
+            accountCode: user.accountCode ?? null,
             fullName: user.fullName ?? null,
             gender: user.gender ?? null,
             avatar: user.avatar ?? null,
+            birthDate: this.normalizeBirthDate(user.birthDate),
             role: user.role
+        };
+    }
+
+    private buildAuthMeta(user: any, isNewUser: boolean): AuthMeta {
+        return {
+            isNewUser,
+            needsProfileSetup: !this.hasCompletedProfile(user)
         };
     }
 
@@ -299,5 +351,31 @@ export class AuthService {
         if (user.isActive === false) {
             throw new UnauthorizedException("Account is inactive");
         }
+    }
+
+    private normalizeEmail(email: unknown): string | undefined {
+        if (typeof email !== "string") {
+            return undefined;
+        }
+        const normalized = email.trim().toLowerCase();
+        return normalized || undefined;
+    }
+
+    private normalizeBirthDate(value: unknown): string | null {
+        if (!value) {
+            return null;
+        }
+        if (value instanceof Date) {
+            return value.toISOString().slice(0, 10);
+        }
+        if (typeof value === "string") {
+            const normalized = value.trim();
+            return normalized || null;
+        }
+        return null;
+    }
+
+    private hasCompletedProfile(user: any): boolean {
+        return Boolean(user?.gender && user?.avatar && this.normalizeBirthDate(user?.birthDate));
     }
 }
