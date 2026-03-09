@@ -6,9 +6,10 @@ import { CoupleService } from "./application/couple.service";
 import { CoupleRepository } from "./infrastructure/persistence/couple.repository";
 import { CoupleController } from "./presentation/couple.controller";
 import { InvitesModule } from "../invites/invites.module";
+import { NotificationsModule } from "../../common-user/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Couple]), InvitesModule],
+    imports: [TypeOrmModule.forFeature([Couple]), InvitesModule, NotificationsModule],
     controllers: [CoupleController],
     providers: [CoupleService, CoupleRepository],
     exports: [CoupleService, CoupleRepository]

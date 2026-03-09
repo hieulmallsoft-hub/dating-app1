@@ -85,6 +85,16 @@ export async function updateMediaStatus(id: string, status: MediaStatus) {
   return data;
 }
 
+export async function getMediaById(id: string) {
+  const { data } = await http.get<MediaItem>(`/media/${id}`);
+  return data;
+}
+
+export async function getMediaDownloadUrl(id: string) {
+  const { data } = await http.get<{ downloadUrl?: string | null }>(`/media/${id}/download`);
+  return data;
+}
+
 export async function waitAlbumChange(params?: {
   since?: number;
   timeoutMs?: number;

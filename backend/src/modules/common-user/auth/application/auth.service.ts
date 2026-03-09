@@ -47,7 +47,7 @@ export class AuthService {
             throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
         }
         this.assertAccountCanAuthenticate(user);
-
+        // so sánh mật khẩu đã hash trong database với mật khẩu người dùng nhập vào
         const isPasswordMatching = await comparePassword(password, user.password);
         if (!isPasswordMatching) {
             throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
@@ -55,7 +55,7 @@ export class AuthService {
 
         return user;
     }
-
+    // Đăng ký tài khoản mới
     async register(registerDto: RegisterDto) {
         const existingUser = await this.usersService.getUserByEmail(registerDto.email);
         if (existingUser) {
@@ -64,14 +64,16 @@ export class AuthService {
 
         return this.usersService.createUser(registerDto);
     }
-
+    // đăng ký bằng mạng xã hội (Google, Apple)
     async login(loginDto: LoginDto): Promise<AuthResult> {
         const user = await this.validateUser(loginDto.email, loginDto.password);
         return this.createSession(user);
     }
-
+    // Tạo phiên đăng nhập mới và trả về thông tin người dùng cùng token
     async createSession(user: any): Promise<AuthResult> {
+        // Kiểm tra trạng thái tài khoản trước khi tạo phiên đăng nhập
         this.assertAccountCanAuthenticate(user);
+        // Tạo token mới và lưu thông tin phiên đăng nhập vào database
         const refreshToken = this.generateRefreshToken();
         const refreshTokenExp = this.getRefreshTokenExpiry();
         const tokenVersion = await this.usersService.replaceSession(user.id, refreshToken, refreshTokenExp);

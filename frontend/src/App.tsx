@@ -2,9 +2,15 @@ import React, { useEffect, useState } from "react";
 import "./App.css";
 import Home from "./components/Home";
 import AuthScreen from "./components/AuthScreen";
+import GoogleIdTokenLab from "./components/GoogleIdTokenLab";
 import { clearTokens, hasAuthTokens, setTokens } from "./lib/authStorage";
 
 const App: React.FC = () => {
+  const pathname = window.location.pathname.toLowerCase();
+  if (pathname === "/google-idtoken-lab" || pathname === "/google-idtoken-lab/") {
+    return <GoogleIdTokenLab />;
+  }
+
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("access_token");

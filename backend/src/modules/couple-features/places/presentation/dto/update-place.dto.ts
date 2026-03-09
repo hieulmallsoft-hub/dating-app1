@@ -1,4 +1,5 @@
 import { Type } from "class-transformer";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
     IsBoolean,
     IsEnum,
@@ -13,15 +14,29 @@ import {
 import { PlaceType } from "../../domain/entities/place.entity";
 
 export class UpdatePlaceDto {
+    @ApiPropertyOptional({
+        description: "Place name",
+        example: "Our New Home"
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     name?: string;
 
+    @ApiPropertyOptional({
+        description: "Address text",
+        example: "456 Le Loi, District 1"
+    })
     @IsOptional()
     @IsString()
     address?: string;
 
+    @ApiPropertyOptional({
+        description: "Latitude",
+        example: 10.772,
+        minimum: -90,
+        maximum: 90
+    })
     @IsOptional()
     @Type(() => Number)
     @IsNumber()
@@ -29,6 +44,12 @@ export class UpdatePlaceDto {
     @Max(90)
     latitude?: number;
 
+    @ApiPropertyOptional({
+        description: "Longitude",
+        example: 106.67,
+        minimum: -180,
+        maximum: 180
+    })
     @IsOptional()
     @Type(() => Number)
     @IsNumber()
@@ -36,10 +57,21 @@ export class UpdatePlaceDto {
     @Max(180)
     longitude?: number;
 
+    @ApiPropertyOptional({
+        description: "Place type",
+        enum: PlaceType,
+        example: PlaceType.CAFE
+    })
     @IsOptional()
     @IsEnum(PlaceType)
     placeType?: PlaceType;
 
+    @ApiPropertyOptional({
+        description: "Geofence radius in meters",
+        example: 300,
+        minimum: 50,
+        maximum: 2000
+    })
     @IsOptional()
     @Type(() => Number)
     @IsInt()
@@ -47,19 +79,35 @@ export class UpdatePlaceDto {
     @Max(2000)
     radius?: number;
 
+    @ApiPropertyOptional({
+        description: "Custom icon resource name",
+        example: "ic_place_cafe"
+    })
     @IsOptional()
     @IsString()
     iconResName?: string;
 
+    @ApiPropertyOptional({
+        description: "Sync flag from client",
+        example: true
+    })
     @IsOptional()
     @IsBoolean()
     isSynced?: boolean;
 
+    @ApiPropertyOptional({
+        description: "Soft-delete flag from client sync",
+        example: false
+    })
     @IsOptional()
     @IsBoolean()
     isDeleted?: boolean;
 
 
+    @ApiPropertyOptional({
+        description: "Updated timestamp",
+        example: "2026-03-09T08:00:00.000Z"
+    })
     @IsOptional()
     @Type(() => Date)
     updatedAt: Date;

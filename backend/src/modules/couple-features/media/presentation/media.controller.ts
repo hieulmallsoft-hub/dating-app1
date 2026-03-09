@@ -11,7 +11,19 @@ import {
     UnauthorizedException,
     UseGuards
 } from "@nestjs/common";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+    ApiBadRequestResponse,
+    ApiBearerAuth,
+    ApiCreatedResponse,
+    ApiForbiddenResponse,
+    ApiNotFoundResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { MediaService } from "../application/media.service";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { CreateMediaDto } from "./dto/create-media.dto";
@@ -19,6 +31,7 @@ import { UpdateMediaDto } from "./dto/update-media.dto";
 import { UpdateMediaStatusDto } from "./dto/update-media-status.dto";
 
 
+@ApiTags("media")
 @ApiBearerAuth("JWT-auth")
 @Controller("media")
 @UseGuards(JwtAuthGuard)
@@ -26,6 +39,38 @@ export class MediaController {
     constructor(private readonly mediaService: MediaService) {}
 
     @Get()
+    @ApiOperation({
+        summary: "Get media album",
+        description: "Returns paginated media of current couple with filter + cursor."
+    })
+    @ApiQuery({
+        name: "filter",
+        required: false,
+        description: "Filter media owner scope",
+        enum: ["all", "me", "partner"],
+        example: "all"
+    })
+    @ApiQuery({
+        name: "limit",
+        required: false,
+        description: "Page size (clamped by service)",
+        example: 20
+    })
+    @ApiQuery({
+        name: "cursor",
+        required: false,
+        description: "Pagination cursor: ISO_DATE or ISO_DATE|MEDIA_ID",
+        example: "2026-03-09T08:00:00.000Z|7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Album page returned"
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid filter/cursor"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async getMedia(
         @Req() req,
         @Query("filter") filter: "all" | "me" | "partner" = "all",
@@ -37,6 +82,28 @@ export class MediaController {
     }
 
     @Get("changes")
+    @ApiOperation({
+        summary: "Long-poll media changes",
+        description: "Waits for album changes since a given version."
+    })
+    @ApiQuery({
+        name: "since",
+        required: false,
+        description: "Version number",
+        example: 0
+    })
+    @ApiQuery({
+        name: "timeoutMs",
+        required: false,
+        description: "Long-poll timeout in milliseconds",
+        example: 25000
+    })
+    @ApiOkResponse({
+        description: "Change event or timeout response returned"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async getMediaChanges(
         @Req() req,
         @Query("since") since?: string,
@@ -48,32 +115,155 @@ export class MediaController {
     }
 
     @Post()
+    @ApiOperation({
+        summary: "Create media record",
+        description: "Creates a media item in current couple album."
+    })
+    @ApiCreatedResponse({
+        description: "Media created"
+    })
+    @ApiBadRequestResponse({
+        description: "Validation failed (url/type/visibility...)"
+    })
+    @ApiNotFoundResponse({
+        description: "Current user is not in a couple"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     createMedia(@Req() req, @Body() body: CreateMediaDto) {
         return this.mediaService.createForMyCouple(this.getCurrentUserId(req), body);
     }
 
     @Get(":id")
+    @ApiOperation({
+        summary: "Get media detail by id",
+        description: "Returns one media item detail."
+    })
+    @ApiParam({
+        name: "id",
+        description: "Media id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Media detail returned"
+    })
+    @ApiNotFoundResponse({
+        description: "Media not found"
+    })
+    @ApiForbiddenResponse({
+        description: "Media does not belong to current user's couple"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     getById(@Req() req, @Param("id") id: string) {
         return this.mediaService.getMediaById(this.getCurrentUserId(req), id);
     }
     
     @Get(":id/download")
+    @ApiOperation({
+        summary: "Get media download URL",
+        description: "Returns secure download URL of a media item."
+    })
+    @ApiParam({
+        name: "id",
+        description: "Media id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Download URL returned",
+        schema: {
+            type: "object",
+            properties: { downloadUrl: { type: "string", example: "https://cdn.example.com/file.jpg" } }
+        }
+    })
+    @ApiNotFoundResponse({
+        description: "Media not found"
+    })
+    @ApiForbiddenResponse({
+        description: "Media does not belong to current user's couple"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async getDownloadUrl(@Req() req, @Param("id") id: string) {
         const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id);
         return { downloadUrl: media.downloadUrl };
     }
 
     @Patch(":id")
+    @ApiOperation({
+        summary: "Update media",
+        description: "Updates caption/visibility/thumbUrl of media item."
+    })
+    @ApiParam({
+        name: "id",
+        description: "Media id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Media updated"
+    })
+    @ApiBadRequestResponse({
+        description: "Validation failed"
+    })
+    @ApiNotFoundResponse({
+        description: "Media not found"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     update(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaDto) {
         return this.mediaService.updateMedia(this.getCurrentUserId(req), id, body);
     }
 
     @Patch(":id/status")
+    @ApiOperation({
+        summary: "Update media status",
+        description: "Updates processing status of media item."
+    })
+    @ApiParam({
+        name: "id",
+        description: "Media id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Status updated"
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid status"
+    })
+    @ApiNotFoundResponse({
+        description: "Media not found"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     updateStatus(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaStatusDto) {
         return this.mediaService.updateMediaStatus(this.getCurrentUserId(req), id, body.status);
     }
 
     @Delete(":id")
+    @ApiOperation({
+        summary: "Delete media",
+        description: "Soft-deletes media item by id."
+    })
+    @ApiParam({
+        name: "id",
+        description: "Media id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "Media deleted",
+        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+    })
+    @ApiNotFoundResponse({
+        description: "Media not found"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     remove(@Req() req, @Param("id") id: string) {
         return this.mediaService.deleteMedia(this.getCurrentUserId(req), id);
     }

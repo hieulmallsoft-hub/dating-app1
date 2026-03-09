@@ -1,5 +1,14 @@
 import { Controller, Get, Put, Delete, Body, Req, Param, UnauthorizedException } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import {
+    ApiBadRequestResponse,
+    ApiBearerAuth,
+    ApiNotFoundResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiParam,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { UsersService } from "../application/user.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
@@ -13,32 +22,105 @@ export class UsersController {
 
     @Get()
     @Public()
+    @ApiOperation({
+        summary: "List users",
+        description: "Public endpoint for listing users."
+    })
+    @ApiOkResponse({
+        description: "User list returned"
+    })
     async getAllUsers() {
         return this.usersService.getAllUsers();
     }
 
     @Get("me")
+    @ApiOperation({
+        summary: "Get current user profile",
+        description: "Requires JWT access token."
+    })
+    @ApiOkResponse({
+        description: "Current user profile returned"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async getMe(@Req() req) {
         return this.usersService.getUserById(this.getCurrentUserId(req));
     }
 
     @Get("email/:email")
     @Public()
+    @ApiOperation({
+        summary: "Get user by email",
+        description: "Public endpoint. Returns user info or null."
+    })
+    @ApiParam({
+        name: "email",
+        description: "User email",
+        example: "user@example.com"
+    })
+    @ApiOkResponse({
+        description: "User found or null"
+    })
     async getUserByEmail(@Param("email") email: string) {
         return this.usersService.getUserByEmail(email);
     }
 
     @Get(":id")
+    @ApiOperation({
+        summary: "Get user by id",
+        description: "Requires JWT."
+    })
+    @ApiParam({
+        name: "id",
+        description: "User id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "User detail returned"
+    })
+    @ApiNotFoundResponse({
+        description: "User not found"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async getUserById(@Param("id") id: string) {
         return this.usersService.getUserById(id);
     }
 
     @Put("me")
+    @ApiOperation({
+        summary: "Update current user profile",
+        description: "Update editable profile fields of current user."
+    })
+    @ApiOkResponse({
+        description: "Profile updated"
+    })
+    @ApiBadRequestResponse({
+        description: "Validation failed or protected fields provided"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
         return this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
     }
 
     @Put("me/location")
+    @ApiOperation({
+        summary: "Update current user location",
+        description: "Sends latest GPS location and device status for couple tracking."
+    })
+    @ApiOkResponse({
+        description: "Location updated"
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid lat/lng or optional metrics out of range"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async updateMyLocation(@Req() req, @Body() dto: UpdateUserLocationDto) {
         return this.usersService.updateMyLocation(
             this.getCurrentUserId(req),
@@ -52,6 +134,28 @@ export class UsersController {
     }
 
     @Delete(":id")
+    @ApiOperation({
+        summary: "Delete user by id",
+        description: "Deletes a user record by id."
+    })
+    @ApiParam({
+        name: "id",
+        description: "User id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @ApiOkResponse({
+        description: "User deleted",
+        schema: {
+            type: "object",
+            properties: { message: { type: "string", example: "User deleted successfully" } }
+        }
+    })
+    @ApiNotFoundResponse({
+        description: "User not found"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async deleteUser(@Param("id") id: string) {
         return this.usersService.deleteUser(id);
     }

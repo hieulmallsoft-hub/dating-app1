@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { MessageRepository } from "../infrastructure/persistence/message.repository";
 import { CoupleService } from "../../couple/application/couple.service";
 import { SendMessageDto } from "../presentation/dto/send-message.dto";
-import { Message } from "../domain/entities/message.entity";
+import { MessageType } from "../domain/entities/message.entity";
+import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 
 @Injectable()
 export class ChatService {
+    private readonly logger = new Logger(ChatService.name);
+
     constructor(
         private readonly messageRepository: MessageRepository,
-        private readonly coupleService: CoupleService
+        private readonly coupleService: CoupleService,
+        private readonly notificationsService: NotificationsService
     ) {}
 
     async getMessages(userId: string, limit: number = 50, offset: number = 0) {
@@ -32,7 +36,9 @@ export class ChatService {
             senderId: userId
         });
 
-        return this.messageRepository.save(message);
+        const saved = await this.messageRepository.save(message);
+        await this.notifyPartnerForMessage(couple, userId, dto);
+        return saved;
     }
 
     async markAsRead(userId: string) {
@@ -51,5 +57,34 @@ export class ChatService {
         const couple = await this.coupleService.getMyCouple(userId);
         await this.messageRepository.delete({ coupleId: couple.id });
         return { success: true };
+    }
+
+    private async notifyPartnerForMessage(
+        couple: { user1Id: string; user2Id: string | null },
+        senderId: string,
+        dto: SendMessageDto
+    ) {
+        const partnerId = couple.user1Id === senderId ? couple.user2Id : couple.user1Id;
+        if (!partnerId) return;
+
+        const preview = this.buildMessagePreview(dto);
+        try {
+            await this.notificationsService.createNotification(partnerId, "Tin nhan moi", preview, "chat");
+        } catch (error) {
+            this.logger.warn(`Create chat notification failed: ${(error as Error)?.message || "unknown"}`);
+        }
+    }
+
+    private buildMessagePreview(dto: SendMessageDto) {
+        if (dto.type !== MessageType.TEXT) {
+            if (dto.type === MessageType.IMAGE) return "Doi cua ban vua gui mot anh";
+            if (dto.type === MessageType.VOICE) return "Doi cua ban vua gui mot tin nhan voice";
+            if (dto.type === MessageType.LOCATION) return "Doi cua ban vua chia se vi tri";
+            return "Ban vua nhan tin nhan moi";
+        }
+
+        const trimmed = dto.content.trim();
+        if (!trimmed) return "Ban vua nhan tin nhan moi";
+        return trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed;
     }
 }

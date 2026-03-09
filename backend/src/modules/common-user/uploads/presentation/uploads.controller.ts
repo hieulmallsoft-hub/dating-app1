@@ -1,11 +1,21 @@
 import { BadRequestException, Controller, Post, Body, UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from "@nestjs/common";
-import { ApiBearerAuth, ApiBody, ApiConsumes } from "@nestjs/swagger";
+import {
+    ApiBadRequestResponse,
+    ApiBearerAuth,
+    ApiBody,
+    ApiConsumes,
+    ApiOkResponse,
+    ApiOperation,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { UploadsService } from "../application/uploads.service";
 import { PresignDto } from "./dto/presign.dto";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
 
+@ApiTags("uploads")
 @ApiBearerAuth("JWT-auth")
 @Controller("uploads")
 @UseGuards(JwtAuthGuard)
@@ -14,12 +24,30 @@ export class UploadsController {
 
     @Post("presign")
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Create presigned upload URL (legacy)",
+        description: "Backward-compatible endpoint for cloud upload pre-signing."
+    })
+    @ApiOkResponse({
+        description: "Presigned payload returned"
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid fileName/type or feature disabled"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
     async presign(@Body() presignDto: PresignDto) {
         return this.uploadsService.generatePresignedUrl(presignDto.fileName, presignDto.type);
     }
 
     @Post("file")
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Upload file directly",
+        description:
+            "Upload a single file using multipart/form-data. Allowed mime types include image/audio/video, max size 50MB."
+    })
     @ApiConsumes("multipart/form-data")
     @ApiBody({
         schema: {
@@ -29,6 +57,15 @@ export class UploadsController {
             },
             required: ["file"]
         }
+    })
+    @ApiOkResponse({
+        description: "Upload success with file URL and metadata"
+    })
+    @ApiBadRequestResponse({
+        description: "Missing file, unsupported type, or file too large"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
     })
     @UseInterceptors(
         FileInterceptor("file", {

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { CoupleService } from "../../couple/application/couple.service";
@@ -13,6 +14,7 @@ import type {
 import { MediaRepository } from "../infrastructure/persistence/media.repository";
 import { MediaRealtimeService } from "./media-realtime.service";
 import { MediaGateway } from "../presentation/media.gateway";
+import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 
 type AlbumFilter = "all" | "me" | "partner";
 type MediaType = "image" | "video";
@@ -33,11 +35,14 @@ type UpdateMediaPayload = {
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
+
   constructor(
     private readonly mediaRepository: MediaRepository,
     private readonly coupleService: CoupleService,
     private readonly mediaRealtimeService: MediaRealtimeService,
-    private readonly mediaGateway: MediaGateway
+    private readonly mediaGateway: MediaGateway,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async getAlbum(
@@ -133,6 +138,7 @@ export class MediaService {
       mediaId: saved.id,
       actorId: userId,
     });
+    await this.notifyPartnerForNewMedia(myCouple, userId, saved.type, saved.caption);
     return saved;
   }
 
@@ -172,6 +178,7 @@ export class MediaService {
       mediaId: saved.id,
       actorId: userId,
     });
+    await this.notifyPartnerForNewMedia(couple, userId, saved.type, saved.caption);
     return saved;
   }
 
@@ -278,5 +285,32 @@ export class MediaService {
   }) {
     const event = this.mediaRealtimeService.notify(change);
     this.mediaGateway.emitAlbumChanged(event);
+  }
+
+  private async notifyPartnerForNewMedia(
+    couple: { user1Id: string; user2Id: string | null },
+    uploaderId: string,
+    mediaType: MediaType,
+    caption?: string
+  ) {
+    const partnerId = couple.user1Id === uploaderId ? couple.user2Id : couple.user1Id;
+    if (!partnerId) return;
+
+    const title = mediaType === "video" ? "Video moi trong album" : "Anh moi trong album";
+    const trimmedCaption = caption?.trim() || "";
+    const content =
+      trimmedCaption.length > 0
+        ? trimmedCaption.length > 160
+          ? `${trimmedCaption.slice(0, 157)}...`
+          : trimmedCaption
+        : mediaType === "video"
+          ? "Doi cua ban vua dang mot video moi"
+          : "Doi cua ban vua dang mot anh moi";
+
+    try {
+      await this.notificationsService.createNotification(partnerId, title, content, "media");
+    } catch (error) {
+      this.logger.warn(`Create media notification failed: ${(error as Error)?.message || "unknown"}`);
+    }
   }
 }

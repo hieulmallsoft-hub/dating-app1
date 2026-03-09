@@ -20,6 +20,11 @@ export type UserMe = {
   longitude?: number | null;
 };
 
+export type PublicUser = UserMe & {
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type UpdateMePayload = Partial<{
   fullName: string;
   gender: Gender;
@@ -40,5 +45,25 @@ export async function getMe() {
 
 export async function updateMe(payload: UpdateMePayload) {
   const { data } = await http.put<UserMe>("/users/me", payload);
+  return data;
+}
+
+export async function getAllUsers() {
+  const { data } = await http.get<PublicUser[]>("/users");
+  return data;
+}
+
+export async function getUserByEmail(email: string) {
+  const { data } = await http.get<PublicUser | null>(`/users/email/${encodeURIComponent(email)}`);
+  return data;
+}
+
+export async function getUserById(id: string) {
+  const { data } = await http.get<PublicUser>(`/users/${id}`);
+  return data;
+}
+
+export async function deleteUser(id: string) {
+  const { data } = await http.delete<{ message: string }>(`/users/${id}`);
   return data;
 }

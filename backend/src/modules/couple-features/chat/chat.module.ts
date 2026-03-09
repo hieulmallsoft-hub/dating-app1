@@ -8,9 +8,10 @@ import { ChatController } from "./presentation/chat.controller";
 import { ChatGateway } from "./presentation/chat.gateway";
 import { CoupleModule } from "../couple/couple.module";
 import { AuthModule } from "../../common-user/auth/auth.module";
+import { NotificationsModule } from "../../common-user/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Message]), CoupleModule, AuthModule],
+    imports: [TypeOrmModule.forFeature([Message]), CoupleModule, AuthModule, NotificationsModule],
     controllers: [ChatController],
     providers: [ChatService, MessageRepository, ChatGateway],
     exports: [ChatService]

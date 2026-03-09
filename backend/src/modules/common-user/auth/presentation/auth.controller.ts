@@ -11,18 +11,34 @@ import {
     Res,
     UnauthorizedException
 } from "@nestjs/common";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+    ApiBadRequestResponse,
+    ApiBearerAuth,
+    ApiBody,
+    ApiConflictResponse,
+    ApiCreatedResponse,
+    ApiExcludeEndpoint,
+    ApiOkResponse,
+    ApiOperation,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { AuthGuard } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "../application/auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
-import { SocialLoginDto, RefreshTokenDto } from "./dto/auth-ops.dto";
-import { JwtAuthGuard } from "../infrastructure/strategies/jwt-auth-guard";
+import {
+    SocialLoginDto,
+    RefreshTokenDto,
+    AuthSessionResponseDto,
+    LogoutResponseDto
+} from "./dto/auth-ops.dto";
 import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
 
+@ApiTags("auth-mobile")
 @Controller("auth")
 export class AuthController {
     private readonly logger = new Logger(AuthController.name);
@@ -35,6 +51,21 @@ export class AuthController {
     // register
     @Post("register")
     @Public()
+    @ApiOperation({
+        summary: "Register account",
+        description:
+            "Create a new account. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
+    })
+    @ApiCreatedResponse({
+        description: "Register success",
+        type: AuthSessionResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid request body (email format, password length...)"
+    })
+    @ApiConflictResponse({
+        description: "Email already exists"
+    })
     async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
         this.logger.log(`Register request for email: ${registerDto.email}`);
         try {
@@ -54,6 +85,21 @@ export class AuthController {
     @Post("login")
     @Public()
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Login with email/password",
+        description:
+            "Mobile/local login. Requires email + password. Returns user + tokens and sets token cookies."
+    })
+    @ApiOkResponse({
+        description: "Login success",
+        type: AuthSessionResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Wrong credentials, banned account, or inactive account"
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid request body"
+    })
     async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.login(loginDto);
         this.setTokensCookie(res, result.tokens);
@@ -63,16 +109,39 @@ export class AuthController {
     // @UseGuards(JwtAuthGuard)
     @ApiBearerAuth("JWT-auth")
     @Get("profile")
+    @ApiOperation({
+        summary: "Get current authenticated user payload",
+        description: "Send access token in Authorization header: Bearer <access_token>."
+    })
+    @ApiOkResponse({
+        description: "Token payload/user info",
+        schema: {
+            type: "object",
+            properties: {
+                sub: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
+                id: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
+                user_Id: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
+                email: { type: "string", example: "mobile.user@example.com" },
+                fullName: { type: "string", example: "Mobile User" },
+                role: { type: "string", example: "USER" }
+            }
+        }
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/expired/invalid access token"
+    })
     getProfile(@Req() req: Request & { user: any }) {
         return req.user;
     }
 
     // Google Auth
+    @ApiExcludeEndpoint()
     @Public()
     @Get("google")
     @UseGuards(GoogleAuthGuard)
     async googleAuth(@Req() req) {}
 
+    @ApiExcludeEndpoint()
     @Public()
     @Get("google/callback")
     @UseGuards(GoogleAuthGuard)
@@ -87,11 +156,13 @@ export class AuthController {
     }
 
     // Apple Auth
+    @ApiExcludeEndpoint()
     @Public()
     @Get("apple")
     @UseGuards(AuthGuard("apple"))
     async appleAuth(@Req() req) {}
 
+    @ApiExcludeEndpoint()
     @Public()
     @Post("apple/callback")
     @UseGuards(AuthGuard("apple"))
@@ -106,15 +177,42 @@ export class AuthController {
     }
 
     // Social Login POST (for Mobile/Android/iOS)
+    @ApiOperation({
+        summary: "Google login for mobile using idToken",
+        description:
+            "Use this endpoint for mobile auth. FE must first get Google idToken from native/web Google Sign-In SDK, then send { idToken }."
+    })
     @Public()
     @Post("google")
     @HttpCode(HttpStatus.OK)
+    @ApiBody({
+        type: SocialLoginDto,
+        examples: {
+            mobileGoogleLogin: {
+                summary: "Google login payload",
+                value: {
+                    idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>"
+                }
+            }
+        }
+    })
+    @ApiOkResponse({
+        description: "Google login success",
+        type: AuthSessionResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Invalid or expired Google idToken, or audience mismatch"
+    })
+    @ApiBadRequestResponse({
+        description: "Missing idToken"
+    })
     async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
         return { user: result.user, tokens: result.tokens };
     }
 
+    @ApiExcludeEndpoint()
     @Public()
     @Post("apple")
     @HttpCode(HttpStatus.OK)
@@ -127,6 +225,32 @@ export class AuthController {
     @Public()
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Refresh access token",
+        description:
+            "Provide refreshToken in body OR rely on refresh_token cookie. Returns new tokens and rotates refresh token."
+    })
+    @ApiBody({
+        type: RefreshTokenDto,
+        required: false,
+        examples: {
+            fromBody: {
+                summary: "Send refresh token in body",
+                value: { refreshToken: "8cc2c3f0f6496f1910d6fe3f2c0de9f4..." }
+            },
+            fromCookie: {
+                summary: "Use cookie only",
+                value: {}
+            }
+        }
+    })
+    @ApiOkResponse({
+        description: "Token refresh success",
+        type: AuthSessionResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid/expired refresh token"
+    })
     async refreshToken(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: Request & { cookies?: Record<string, string> },
@@ -141,6 +265,17 @@ export class AuthController {
     @ApiBearerAuth("JWT-auth")
     @Post("logout")
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Logout current user",
+        description: "Requires access token. Clears access_token + refresh_token cookies and invalidates session."
+    })
+    @ApiOkResponse({
+        description: "Logout success",
+        type: LogoutResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Invalid access token"
+    })
     async logout(@Req() req, @Res({ passthrough: true }) res: Response) {
         res.clearCookie("access_token");
         res.clearCookie("refresh_token");

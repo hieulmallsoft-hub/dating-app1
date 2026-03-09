@@ -78,7 +78,16 @@ async function bootstrap() {
     // Setup Swagger
     const config = new DocumentBuilder()
         .setTitle("Dating App API")
-        .setDescription("The dating app API description")
+        .setDescription(
+            [
+                "Mobile quick start (Auth):",
+                "1) Use POST /auth/google with a real Google idToken from mobile SDK.",
+                "2) Copy tokens.access_token and click Authorize with: Bearer <access_token>.",
+                "3) Call GET /auth/profile to verify auth.",
+                "4) Use POST /auth/refresh when access token expires.",
+                "5) Use POST /auth/logout to end session."
+            ].join("\n")
+        )
         .setVersion("1.0")
         .addBearerAuth(
             {

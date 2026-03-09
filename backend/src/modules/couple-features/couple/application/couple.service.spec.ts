@@ -9,6 +9,7 @@ describe("CoupleService", () => {
     let service: CoupleService;
     let coupleRepository: { findOne: jest.Mock };
     let dataSource: { transaction: jest.Mock; getRepository: jest.Mock };
+    let notificationsService: { createNotification: jest.Mock };
 
     beforeEach(() => {
         coupleRepository = {
@@ -20,7 +21,11 @@ describe("CoupleService", () => {
             getRepository: jest.fn()
         };
 
-        service = new CoupleService(coupleRepository as never, dataSource as never);
+        notificationsService = {
+            createNotification: jest.fn().mockResolvedValue(undefined)
+        };
+
+        service = new CoupleService(coupleRepository as never, dataSource as never, notificationsService as never);
     });
 
     afterEach(() => {

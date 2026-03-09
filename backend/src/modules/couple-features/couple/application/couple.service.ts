@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import * as crypto from "crypto";
 import { DataSource, IsNull, Not, Repository } from "typeorm";
 import { CoupleRepository } from "../infrastructure/persistence/couple.repository";
@@ -7,12 +7,16 @@ import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entit
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
 import { User } from "../../../common-user/user/domain/entities/users.enity";
 import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
+import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 
 @Injectable()
 export class CoupleService {
+    private readonly logger = new Logger(CoupleService.name);
+
     constructor(
         private readonly coupleRepository: CoupleRepository,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly notificationsService: NotificationsService
     ) {}
 
     async getMyCouple(userId: string): Promise<Couple> {
@@ -149,7 +153,7 @@ export class CoupleService {
     }
 
     private async joinCoupleInternal(userId: string, inviteCode: string, disconnectCurrent: boolean) {
-        return this.dataSource.transaction(async (manager) => {
+        const result = await this.dataSource.transaction(async (manager) => {
             const coupleRepo = manager.getRepository(Couple);
             const inviteRepo = manager.getRepository(Invite);
             const userRepo = manager.getRepository(User);
@@ -221,8 +225,14 @@ export class CoupleService {
                 .andWhere("inviterId IN (:...userIds)", { userIds: [invite.inviterId, userId] })
                 .execute();
 
-            return couple;
+            return {
+                couple,
+                inviterId: invite.inviterId
+            };
         });
+
+        await this.notifyPairingSuccess(result.inviterId, userId);
+        return result.couple;
     }
 
     private normalizeInviteCode(inviteCode: string) {
@@ -325,6 +335,35 @@ export class CoupleService {
             return 120;
         }
         return Math.max(1, Math.min(500, Math.floor(limitInput)));
+    }
+
+    private async notifyPairingSuccess(inviterId: string, partnerId: string) {
+        const tasks: Promise<unknown>[] = [];
+        tasks.push(
+            this.notificationsService.createNotification(
+                inviterId,
+                "Ghep doi thanh cong",
+                "Ban va doi cua ban da ket noi thanh cong",
+                "couple"
+            )
+        );
+        tasks.push(
+            this.notificationsService.createNotification(
+                partnerId,
+                "Ghep doi thanh cong",
+                "Ban va doi cua ban da ket noi thanh cong",
+                "couple"
+            )
+        );
+
+        const results = await Promise.allSettled(tasks);
+        for (const result of results) {
+            if (result.status === "rejected") {
+                this.logger.warn(
+                    `Create couple notification failed: ${(result.reason as Error)?.message || "unknown"}`
+                );
+            }
+        }
     }
 
     private findActiveCoupleByUserId(
