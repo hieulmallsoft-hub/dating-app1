@@ -8,10 +8,16 @@ import {
   ValueTransformer
 } from "typeorm";
 
-export enum Gender { MALE="MALE", FEMALE="FEMALE", OTHER="OTHER" }
+export enum Gender { MALE=0, FEMALE=1, OTHER=2 }
 export enum GenderPreference { MALE=0, FEMALE=1, BOTH=2 }
 export enum AuthProvider { LOCAL="LOCAL", GOOGLE="GOOGLE", APPLE="APPLE" }
 export enum UserRole { USER="USER", ADMIN="ADMIN" }
+
+enum GenderDb {
+  MALE = "MALE",
+  FEMALE = "FEMALE",
+  OTHER = "OTHER"
+}
 
 enum GenderPreferenceDb {
   MALE = "MALE",
@@ -31,6 +37,18 @@ const GENDER_PREFERENCE_FROM_DB: Record<GenderPreferenceDb, GenderPreference> = 
   [GenderPreferenceDb.BOTH]: GenderPreference.BOTH
 };
 
+const GENDER_TO_DB: Record<Gender, GenderDb> = {
+  [Gender.MALE]: GenderDb.MALE,
+  [Gender.FEMALE]: GenderDb.FEMALE,
+  [Gender.OTHER]: GenderDb.OTHER
+};
+
+const GENDER_FROM_DB: Record<GenderDb, Gender> = {
+  [GenderDb.MALE]: Gender.MALE,
+  [GenderDb.FEMALE]: Gender.FEMALE,
+  [GenderDb.OTHER]: Gender.OTHER
+};
+
 const genderPreferenceTransformer: ValueTransformer = {
   to(value: GenderPreference | null | undefined) {
     if (value === null || value === undefined) {
@@ -43,6 +61,21 @@ const genderPreferenceTransformer: ValueTransformer = {
       return GenderPreference.BOTH;
     }
     return GENDER_PREFERENCE_FROM_DB[value] ?? GenderPreference.BOTH;
+  }
+};
+
+const genderTransformer: ValueTransformer = {
+  to(value: Gender | null | undefined) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return GENDER_TO_DB[value] ?? null;
+  },
+  from(value: GenderDb | null | undefined) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return GENDER_FROM_DB[value] ?? null;
   }
 };
 
@@ -83,7 +116,12 @@ export class User {
   @Column({ nullable: true, type: "date" })
   birthDate: Date | null;
 
-  @Column({ type: "enum", enum: Gender, nullable: true })
+  @Column({
+    type: "enum",
+    enum: GenderDb,
+    nullable: true,
+    transformer: genderTransformer
+  })
   gender: Gender | null;
 
   @Column({

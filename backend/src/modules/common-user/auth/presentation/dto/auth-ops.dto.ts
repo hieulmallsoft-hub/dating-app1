@@ -57,11 +57,13 @@ export class AuthUserResponseDto {
     fullName: string | null;
 
     @ApiProperty({
-        description: "User gender",
-        example: "FEMALE",
+        description: "User gender code: 0=MALE, 1=FEMALE, 2=OTHER",
+        type: Number,
+        enum: [0, 1, 2],
+        example: 1,
         nullable: true
     })
-    gender: string | null;
+    gender: 0 | 1 | 2 | null;
 
     @ApiProperty({
         description: "Avatar URL",

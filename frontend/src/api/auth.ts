@@ -7,7 +7,7 @@ export type AuthUser = {
   email: string;
   accountCode: string | null;
   fullName: string | null;
-  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  gender: 0 | 1 | 2 | null;
   avatar: string | null;
   birthDate: string | null;
   role: string;
@@ -30,7 +30,7 @@ export async function login(payload: { email: string; password: string }) {
 export async function register(payload: {
   email: string;
   fullName?: string;
-  gender: "MALE" | "FEMALE" | "OTHER";
+  gender: 0 | 1 | 2;
   birthDate: string;
   avatar?: string;
 }) {

@@ -1,15 +1,16 @@
 import {
     IsDate,
     IsEmail,
-    IsEnum,
+    IsIn,
     IsNotEmpty,
     IsOptional,
     IsString,
     IsUrl
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Gender } from "../../../user/domain/entities/user.entity";
+import { toGenderEnum } from "../../../user/presentation/mappers/gender.mapper";
 
 export class RegisterDto {
     @ApiProperty({
@@ -29,11 +30,13 @@ export class RegisterDto {
     fullName?: string;
 
     @ApiProperty({
-        description: "User gender",
-        enum: Gender,
-        example: Gender.FEMALE
+        description: "User gender code: 0=MALE, 1=FEMALE, 2=OTHER",
+        type: Number,
+        enum: [0, 1, 2],
+        example: 1
     })
-    @IsEnum(Gender)
+    @Transform(({ value }) => toGenderEnum(value))
+    @IsIn([Gender.MALE, Gender.FEMALE, Gender.OTHER])
     @IsNotEmpty()
     gender: Gender;
 

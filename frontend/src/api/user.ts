@@ -1,6 +1,6 @@
 import { http } from "./http";
 
-export type Gender = "MALE" | "FEMALE" | "OTHER";
+export type Gender = 0 | 1 | 2;
 export type GenderPreference = 0 | 1 | 2;
 
 export type UserMe = {

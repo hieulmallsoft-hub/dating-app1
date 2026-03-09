@@ -11,6 +11,7 @@ import {
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { Gender, GenderPreference } from "../../domain/entities/user.entity";
+import { toGenderEnum } from "../mappers/gender.mapper";
 import { toGenderPreferenceEnum } from "../mappers/gender-preference.mapper";
 
 export class CreateUserDto {
@@ -35,6 +36,8 @@ export class CreateUserDto {
     @Type(() => Date)
     birthDate?: Date;
 
+    @Transform(({ value }) => toGenderEnum(value))
+    @IsIn([Gender.MALE, Gender.FEMALE, Gender.OTHER])
     @IsEnum(Gender)
     @IsOptional()
     gender?: Gender;

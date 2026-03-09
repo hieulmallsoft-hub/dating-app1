@@ -22,7 +22,7 @@ type AuthUser = {
     email: string;
     accountCode: string | null;
     fullName: string | null;
-    gender: string | null;
+    gender: 0 | 1 | 2 | null;
     avatar: string | null;
     birthDate: string | null;
     role: string;
@@ -310,7 +310,7 @@ export class AuthService {
             email: user.email,
             accountCode: user.accountCode ?? null,
             fullName: user.fullName ?? null,
-            gender: user.gender ?? null,
+            gender: this.normalizeGenderCode(user.gender),
             avatar: user.avatar ?? null,
             birthDate: this.normalizeBirthDate(user.birthDate),
             role: user.role
@@ -383,6 +383,35 @@ export class AuthService {
     }
 
     private hasCompletedProfile(user: any): boolean {
-        return Boolean(user?.gender && user?.avatar && this.normalizeBirthDate(user?.birthDate));
+        const hasGender = this.normalizeGenderCode(user?.gender) !== null;
+        return Boolean(hasGender && user?.avatar && this.normalizeBirthDate(user?.birthDate));
+    }
+
+    private normalizeGenderCode(value: unknown): 0 | 1 | 2 | null {
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2) {
+            return value as 0 | 1 | 2;
+        }
+
+        if (typeof value === "string") {
+            const normalized = value.trim().toUpperCase();
+            if (normalized === "0" || normalized === "1" || normalized === "2") {
+                return Number(normalized) as 0 | 1 | 2;
+            }
+            if (normalized === "MALE") {
+                return 0;
+            }
+            if (normalized === "FEMALE") {
+                return 1;
+            }
+            if (normalized === "OTHER") {
+                return 2;
+            }
+        }
+
+        return null;
     }
 }

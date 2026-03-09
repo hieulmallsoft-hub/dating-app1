@@ -42,7 +42,7 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         const data = await userApi.getMe();
         setMe(data);
         setFullName(data.fullName || "");
-        setGender(data.gender || "");
+        setGender(data.gender ?? "");
         setGenderPreference(data.genderPreference ?? "");
         setBirthDate(data.birthDate || "");
         setAvatar(data.avatar || "");
@@ -150,7 +150,7 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
     try {
       const payload: userApi.UpdateMePayload = {
         fullName: fullName.trim() || undefined,
-        gender: gender || undefined,
+        gender: gender === "" ? undefined : gender,
         genderPreference: genderPreference === "" ? undefined : genderPreference,
         birthDate: birthDate || undefined,
         avatar: avatar.trim() || undefined,
@@ -225,14 +225,17 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         <label className="auth-field">
           <span>Gender</span>
           <select
-            value={gender}
-            onChange={(e) => setGender(e.target.value as userApi.Gender | "")}
+            value={gender === "" ? "" : String(gender)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setGender(value === "" ? "" : (Number(value) as userApi.Gender));
+            }}
             className="select"
           >
             <option value="">-</option>
-            <option value="MALE">MALE</option>
-            <option value="FEMALE">FEMALE</option>
-            <option value="OTHER">OTHER</option>
+            <option value="0">0 - MALE</option>
+            <option value="1">1 - FEMALE</option>
+            <option value="2">2 - OTHER</option>
           </select>
         </label>
 

@@ -14,7 +14,7 @@ function normalizeEmail(value: string) {
 }
 
 export default function AuthScreen({ onAuthSuccess }: Props) {
-  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
+  const [gender, setGender] = useState<0 | 1 | 2 | "">("");
   const [birthDate, setBirthDate] = useState("");
   const [avatar, setAvatar] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -29,7 +29,7 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
     if (mode === "login") {
       return emailOk && password.length >= 6 && !isSubmitting;
     }
-    return emailOk && gender.length > 0 && birthDate.trim().length > 0 && !isSubmitting;
+    return emailOk && gender !== "" && birthDate.trim().length > 0 && !isSubmitting;
   }, [email, password, mode, gender, birthDate, isSubmitting]);
 
   const handleGoogleLogin = () => {
@@ -54,7 +54,7 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
           : await authApi.register({
               email: payloadEmail,
               fullName: fullName.trim() || undefined,
-              gender: gender as "MALE" | "FEMALE" | "OTHER",
+              gender: gender as 0 | 1 | 2,
               birthDate: birthDate.trim(),
               avatar: avatar.trim() || undefined
             });
@@ -110,17 +110,19 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
             </label>
             <label className="auth-field">
               <span>Gioi tinh</span>
-              <select
-                className="select"
-                value={gender}
-                onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "OTHER" | "")}
-              >
-                <option value="">Chon gioi tinh</option>
-                <option value="MALE">MALE</option>
-                <option value="FEMALE">FEMALE</option>
-                <option value="OTHER">OTHER</option>
-              </select>
-            </label>
+                <select
+                  className="select"
+                  value={gender === "" ? "" : String(gender)}
+                  onChange={(e) =>
+                    setGender(e.target.value === "" ? "" : (Number(e.target.value) as 0 | 1 | 2))
+                  }
+                >
+                  <option value="">Chon gioi tinh</option>
+                  <option value="0">0 - MALE</option>
+                  <option value="1">1 - FEMALE</option>
+                  <option value="2">2 - OTHER</option>
+                </select>
+              </label>
             <label className="auth-field">
               <span>Ngay sinh</span>
               <input

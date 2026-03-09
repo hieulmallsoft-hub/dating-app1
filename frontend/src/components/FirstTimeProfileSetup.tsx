@@ -18,7 +18,7 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
   const [previewError, setPreviewError] = useState(false);
 
   const canSave = useMemo(() => {
-    return !isLoading && !isSaving && Boolean(gender) && avatar.trim().length > 0;
+    return !isLoading && !isSaving && gender !== "" && avatar.trim().length > 0;
   }, [isLoading, isSaving, gender, avatar]);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
       setError(null);
       try {
         const me = await userApi.getMe();
-        setGender(me.gender || "");
+        setGender(me.gender ?? "");
         setAvatar(me.avatar || "");
         setPreviewError(false);
       } catch (err: unknown) {
@@ -88,15 +88,18 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
           <label className="auth-field">
             <span>Gioi tinh</span>
             <select
-              value={gender}
-              onChange={(e) => setGender(e.target.value as userApi.Gender | "")}
+              value={gender === "" ? "" : String(gender)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setGender(value === "" ? "" : (Number(value) as userApi.Gender));
+              }}
               className="select"
               disabled={isLoading || isSaving}
             >
               <option value="">Chon gioi tinh</option>
-              <option value="MALE">MALE</option>
-              <option value="FEMALE">FEMALE</option>
-              <option value="OTHER">OTHER</option>
+              <option value="0">0 - MALE</option>
+              <option value="1">1 - FEMALE</option>
+              <option value="2">2 - OTHER</option>
             </select>
           </label>
 
