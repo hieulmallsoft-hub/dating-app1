@@ -3,6 +3,7 @@ import type { AuthTokens } from "../lib/authStorage";
 
 export type AuthUser = {
   id: string;
+  sub: string | null;
   email: string;
   accountCode: string | null;
   fullName: string | null;
@@ -28,10 +29,10 @@ export async function login(payload: { email: string; password: string }) {
 
 export async function register(payload: {
   email: string;
-  password: string;
   fullName?: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   birthDate: string;
+  avatar?: string;
 }) {
   const { data } = await http.post<AuthResult>("/auth/register", payload);
   return data;

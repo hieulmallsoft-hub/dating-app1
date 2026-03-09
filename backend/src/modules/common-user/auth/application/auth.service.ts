@@ -12,12 +12,13 @@ import * as crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { comparePassword } from "../../../../common/utils/utils";
 import { UsersService } from "../../user/application/user.service";
-import { AuthProvider } from "../../user/domain/entities/users.enity";
+import { AuthProvider } from "../../user/domain/entities/user.entity";
 import { LoginDto } from "../presentation/dto/login.dto";
 import { RegisterDto } from "../presentation/dto/register.dto";
 
 type AuthUser = {
     id: string;
+    sub: string | null;
     email: string;
     accountCode: string | null;
     fullName: string | null;
@@ -123,6 +124,8 @@ export class AuthService {
             this.assertAccountCanAuthenticate(user);
             user = await this.usersService.updateUser(user.id, {
                 email: normalizedEmail,
+                socialId,
+                sub: socialId,
                 fullName: user.fullName || socialUser.fullName,
                 avatar: user.avatar || socialUser.avatar
             });
@@ -137,6 +140,7 @@ export class AuthService {
                 fullName: socialUser.fullName,
                 avatar: socialUser.avatar,
                 socialId,
+                sub: socialId,
                 provider,
                 password: undefined
             });
@@ -144,12 +148,14 @@ export class AuthService {
         }
 
         this.assertAccountCanAuthenticate(user);
-        if (user.socialId && user.provider === provider && user.socialId !== socialId) {
+        const currentSocialSub = user.sub || user.socialId;
+        if (currentSocialSub && user.provider === provider && currentSocialSub !== socialId) {
             throw new UnauthorizedException("Social account mismatch");
         }
 
         user = await this.usersService.updateUser(user.id, {
             socialId,
+            sub: socialId,
             provider,
             fullName: user.fullName || socialUser.fullName,
             avatar: user.avatar || socialUser.avatar
@@ -300,6 +306,7 @@ export class AuthService {
     private buildAuthUser(user: any): AuthUser {
         return {
             id: user.id,
+            sub: user.sub ?? user.socialId ?? null,
             email: user.email,
             accountCode: user.accountCode ?? null,
             fullName: user.fullName ?? null,

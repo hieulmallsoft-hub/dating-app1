@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./users.enity";
+import { User } from "./user.entity";
 
 export enum LocationSource {
   REALTIME = "REALTIME",

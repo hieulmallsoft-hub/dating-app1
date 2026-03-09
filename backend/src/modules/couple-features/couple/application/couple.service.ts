@@ -5,7 +5,7 @@ import { CoupleRepository } from "../infrastructure/persistence/couple.repositor
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
-import { User } from "../../../common-user/user/domain/entities/users.enity";
+import { User } from "../../../common-user/user/domain/entities/user.entity";
 import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 

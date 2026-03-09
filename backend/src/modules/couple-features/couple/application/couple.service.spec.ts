@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import { CoupleService } from "./couple.service";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
-import { User } from "../../../common-user/user/domain/entities/users.enity";
+import { User } from "../../../common-user/user/domain/entities/user.entity";
 
 describe("CoupleService", () => {
     let service: CoupleService;

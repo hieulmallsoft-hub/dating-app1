@@ -13,6 +13,7 @@ import {
 import { UsersService } from "../application/user.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
+import { toApiUser } from "./mappers/user-response.mapper";
 import { Public } from "src/common/decorators/customize";
 
 @ApiTags("users")
@@ -33,7 +34,8 @@ export class UsersController {
         description: "Missing/invalid access token"
     })
     async getMe(@Req() req) {
-        return this.usersService.getUserById(this.getCurrentUserId(req));
+        const user = await this.usersService.getUserById(this.getCurrentUserId(req));
+        return toApiUser(user);
     }
 
     @Get("email/:email")
@@ -52,7 +54,8 @@ export class UsersController {
         description: "User found or null"
     })
     async getUserByEmail(@Param("email") email: string) {
-        return this.usersService.getUserByEmail(email);
+        const user = await this.usersService.getUserByEmail(email);
+        return toApiUser(user);
     }
 
     @Put("me")
@@ -70,7 +73,8 @@ export class UsersController {
         description: "Missing/invalid access token"
     })
     async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-        return this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
+        const user = await this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
+        return toApiUser(user);
     }
 
     @Put("me/location")
@@ -134,4 +138,5 @@ export class UsersController {
         }
         return userId;
     }
+
 }

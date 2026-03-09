@@ -8,7 +8,7 @@ import {
     JoinColumn,
     Index
 } from "typeorm";
-import { User } from "../../../../common-user/user/domain/entities/users.enity";
+import { User } from "../../../../common-user/user/domain/entities/user.entity";
 import { Couple } from "../../../couple/domain/entities/couple.entity";
 
 

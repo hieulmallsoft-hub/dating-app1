@@ -20,6 +20,9 @@ export class User {
   @Column({ nullable: true })
   socialId: string | null;
 
+  @Column({ nullable: true })
+  sub: string | null;
+
   @Index()
   @Column({ unique: true })
   email: string;

@@ -31,6 +31,13 @@ export class AuthUserResponseDto {
     id: string;
 
     @ApiProperty({
+        description: "Social subject id (Google/Apple sub). Null for local account.",
+        example: "103394857349857349857",
+        nullable: true
+    })
+    sub: string | null;
+
+    @ApiProperty({
         description: "User email",
         example: "mobile.user@example.com"
     })

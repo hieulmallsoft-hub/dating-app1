@@ -1,15 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { DataSource, Repository } from "typeorm";
-import { AuthProvider, User } from "../../domain/entities/users.enity";
+import { AuthProvider, User } from "../../domain/entities/user.entity";
 
 @Injectable()
 export class UserRepository extends Repository<User> {
     constructor(private readonly dataSource: DataSource) {
         super(User, dataSource.createEntityManager());
-    }
-
-    findAll(): Promise<User[]> {
-        return this.find();
     }
 
     findById(id: string): Promise<User | null> {
@@ -21,11 +17,12 @@ export class UserRepository extends Repository<User> {
     }
 
     findByProviderAndSocialId(provider: AuthProvider, socialId: string): Promise<User | null> {
-        return this.findOne({ where: { provider, socialId } });
-    }
-
-    findByAccountCode(accountCode: string): Promise<User | null> {
-        return this.findOne({ where: { accountCode } });
+        return this.findOne({
+            where: [
+                { provider, sub: socialId },
+                { provider, socialId }
+            ]
+        });
     }
 
     async existsByAccountCode(accountCode: string): Promise<boolean> {

@@ -4,13 +4,12 @@ import {
     IsDate,
     IsEnum,
     IsArray,
-    IsNumber,
     IsBoolean,
     IsNotEmpty,
     IsOptional
 } from "class-validator";
 import { Type } from "class-transformer";
-import { Gender, GenderPreference } from "../../domain/entities/users.enity";
+import { Gender, GenderPreference } from "../../domain/entities/user.entity";
 
 export class CreateUserDto {
     @IsString()

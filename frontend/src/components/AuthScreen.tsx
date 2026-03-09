@@ -16,6 +16,7 @@ function normalizeEmail(value: string) {
 export default function AuthScreen({ onAuthSuccess }: Props) {
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
   const [birthDate, setBirthDate] = useState("");
+  const [avatar, setAvatar] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,10 +26,10 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
 
   const canSubmit = useMemo(() => {
     const emailOk = normalizeEmail(email).length > 0;
-    const passwordOk = password.length >= 6;
-    const registerExtraOk =
-      mode === "login" || (gender.length > 0 && birthDate.trim().length > 0);
-    return emailOk && passwordOk && registerExtraOk && !isSubmitting;
+    if (mode === "login") {
+      return emailOk && password.length >= 6 && !isSubmitting;
+    }
+    return emailOk && gender.length > 0 && birthDate.trim().length > 0 && !isSubmitting;
   }, [email, password, mode, gender, birthDate, isSubmitting]);
 
   const handleGoogleLogin = () => {
@@ -52,10 +53,10 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
           ? await authApi.login({ email: payloadEmail, password })
           : await authApi.register({
               email: payloadEmail,
-              password,
               fullName: fullName.trim() || undefined,
               gender: gender as "MALE" | "FEMALE" | "OTHER",
               birthDate: birthDate.trim(),
+              avatar: avatar.trim() || undefined
             });
 
       setTokens(result.tokens);
@@ -129,6 +130,15 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
                 max="2099-12-31"
               />
             </label>
+            <label className="auth-field">
+              <span>Avatar URL (tuy chon)</span>
+              <input
+                value={avatar}
+                onChange={(e) => setAvatar(e.target.value)}
+                placeholder="https://cdn.example.com/avatar.jpg"
+                inputMode="url"
+              />
+            </label>
           </>
         ) : null}
 
@@ -143,16 +153,18 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
           />
         </label>
 
-        <label className="auth-field">
-          <span>Mat khau</span>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Toi thieu 6 ky tu"
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            type="password"
-          />
-        </label>
+        {mode === "login" ? (
+          <label className="auth-field">
+            <span>Mat khau</span>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Toi thieu 6 ky tu"
+              autoComplete="current-password"
+              type="password"
+            />
+          </label>
+        ) : null}
 
         {error ? <div className="auth-error">{error}</div> : null}
 

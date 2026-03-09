@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, OneToOne, JoinColumn } from "typeorm";
-import { User } from "../../../user/domain/entities/users.enity";
+import { User } from "../../../user/domain/entities/user.entity";
 
 @Entity("security_settings")
 export class SecuritySetting {

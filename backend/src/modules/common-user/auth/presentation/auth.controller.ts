@@ -58,14 +58,14 @@ export class AuthController {
     @ApiOperation({
         summary: "Register account",
         description:
-            "Create a new account. Required fields: email, gender, birthDate. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
+            "Create a new account. Required fields: email, gender, birthDate. Optional fields: fullName, avatar. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
     })
     @ApiCreatedResponse({
         description: "Register success",
         type: AuthSessionResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid request body (email format, password length, missing gender/birthDate...)"
+        description: "Invalid request body (email format, missing gender/birthDate, invalid avatar URL...)"
     })
     @ApiConflictResponse({
         description: "Email already exists"

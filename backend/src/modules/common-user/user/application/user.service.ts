@@ -6,12 +6,13 @@ import { CreateUserDto } from "../presentation/dto/create-user.dto";
 import { UpdateUserDto } from "../presentation/dto/update-user.dto";
 import { UserRepository } from "../infrastructure/persistence/user.repository";
 import { LocationHistoryRepository } from "../infrastructure/persistence/location-history.repository";
-import { AuthProvider } from "../domain/entities/users.enity";
+import { AuthProvider } from "../domain/entities/user.entity";
 import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
 import { LocationSource } from "../domain/entities/location-history.entity";
 
 type CreateUserPayload = CreateUserDto & {
     socialId?: string;
+    sub?: string;
     provider?: AuthProvider;
 };
 
@@ -19,6 +20,7 @@ type UpdateUserPayload = UpdateUserDto & {
     email?: string;
     password?: string;
     socialId?: string;
+    sub?: string;
     provider?: AuthProvider;
 };
 
@@ -33,10 +35,6 @@ export class UsersService {
         private readonly dataSource: DataSource
     ) {}
 
-    getAllUsers() {
-        return this.userRepository.findAll();
-    }
-
     async getUserById(id: string) {
         const user = await this.userRepository.findById(id);
         if (!user) throw new NotFoundException("User not found");
@@ -49,10 +47,6 @@ export class UsersService {
 
     async getUserByProviderAndSocialId(provider: AuthProvider, socialId: string) {
         return this.userRepository.findByProviderAndSocialId(provider, socialId);
-    }
-
-    async getUserByAccountCode(accountCode: string) {
-        return this.userRepository.findByAccountCode(accountCode);
     }
 
     async accountCodeExists(accountCode: string) {
@@ -88,6 +82,7 @@ export class UsersService {
             photos: dto.photos,
             avatar: dto.avatar,
             socialId: dto.socialId,
+            sub: dto.sub ?? dto.socialId,
             provider: dto.provider
         });
     }

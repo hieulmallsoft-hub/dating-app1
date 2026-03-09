@@ -43,7 +43,7 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         setMe(data);
         setFullName(data.fullName || "");
         setGender(data.gender || "");
-        setGenderPreference(data.genderPreference || "");
+        setGenderPreference(data.genderPreference ?? "");
         setBirthDate(data.birthDate || "");
         setAvatar(data.avatar || "");
         setAvatarLoadError(false);
@@ -151,7 +151,7 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
       const payload: userApi.UpdateMePayload = {
         fullName: fullName.trim() || undefined,
         gender: gender || undefined,
-        genderPreference: genderPreference || undefined,
+        genderPreference: genderPreference === "" ? undefined : genderPreference,
         birthDate: birthDate || undefined,
         avatar: avatar.trim() || undefined,
         bio: bio.trim() || undefined,
@@ -239,16 +239,17 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         <label className="auth-field">
           <span>Gender preference</span>
           <select
-            value={genderPreference}
-            onChange={(e) =>
-              setGenderPreference(e.target.value as userApi.GenderPreference | "")
-            }
+            value={genderPreference === "" ? "" : String(genderPreference)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setGenderPreference(value === "" ? "" : (Number(value) as userApi.GenderPreference));
+            }}
             className="select"
           >
             <option value="">-</option>
-            <option value="MALE">MALE</option>
-            <option value="FEMALE">FEMALE</option>
-            <option value="BOTH">BOTH</option>
+            <option value="0">0 - MALE</option>
+            <option value="1">1 - FEMALE</option>
+            <option value="2">2 - BOTH</option>
           </select>
         </label>
 

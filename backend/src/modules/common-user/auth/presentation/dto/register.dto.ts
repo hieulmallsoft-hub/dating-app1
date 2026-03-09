@@ -5,11 +5,11 @@ import {
     IsNotEmpty,
     IsOptional,
     IsString,
-    MinLength
+    IsUrl
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Gender } from "../../../user/domain/entities/users.enity";
+import { Gender } from "../../../user/domain/entities/user.entity";
 
 export class RegisterDto {
     @ApiProperty({
@@ -19,15 +19,6 @@ export class RegisterDto {
     @IsEmail()
     @IsNotEmpty()
     email: string;
-
-    @ApiPropertyOptional({
-        description: "Password for local login (min 6 chars). Optional for social-first accounts.",
-        example: "123456"
-    })
-    @IsString()
-    @IsOptional()
-    @MinLength(6)
-    password?: string;
 
     @ApiPropertyOptional({
         description: "Display name",
@@ -54,4 +45,13 @@ export class RegisterDto {
     @IsDate()
     @IsNotEmpty()
     birthDate: Date;
+
+    @ApiPropertyOptional({
+        description: "Avatar URL",
+        example: "https://cdn.example.com/avatars/me.jpg"
+    })
+    @IsOptional()
+    @IsString()
+    @IsUrl()
+    avatar?: string;
 }

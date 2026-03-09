@@ -1,7 +1,8 @@
 import { IsString, IsOptional, IsEnum, IsDate, MaxLength, IsArray, IsUrl } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Gender, GenderPreference } from "../../domain/entities/users.enity";
+import { Gender, GenderPreference } from "../../domain/entities/user.entity";
+import { toGenderPreferenceEnum } from "../mappers/gender-preference.mapper";
 
 export class UpdateUserDto {
     @ApiPropertyOptional({
@@ -50,10 +51,12 @@ export class UpdateUserDto {
     photos?: string[];
 
     @ApiPropertyOptional({
-        description: "Gender preference",
-        enum: GenderPreference,
-        example: GenderPreference.BOTH
+        description: "Gender preference code: 0=MALE, 1=FEMALE, 2=BOTH",
+        type: Number,
+        enum: [0, 1, 2],
+        example: 2
     })
+    @Transform(({ value }) => toGenderPreferenceEnum(value))
     @IsEnum(GenderPreference)
     @IsOptional()
     genderPreference?: GenderPreference;

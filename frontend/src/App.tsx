@@ -48,9 +48,10 @@ const App: React.FC = () => {
         const me = await userApi.getMe();
         const missingGender = !me.gender;
         const missingAvatar = !(me.avatar || "").trim();
+        const missingBirthDate = !(me.birthDate || "").trim();
 
         if (!cancelled) {
-          setStage(missingGender || missingAvatar ? "needs_profile" : "ready");
+          setStage(missingGender || missingAvatar || missingBirthDate ? "needs_profile" : "ready");
         }
       } catch (err: unknown) {
         if (!cancelled) {
