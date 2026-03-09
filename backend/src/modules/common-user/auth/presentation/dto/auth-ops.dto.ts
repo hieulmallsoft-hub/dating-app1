@@ -40,7 +40,21 @@ export class AuthUserResponseDto {
         description: "Display name",
         example: "Mobile User"
     })
-    fullName: string;
+    fullName: string | null;
+
+    @ApiProperty({
+        description: "User gender",
+        example: "FEMALE",
+        nullable: true
+    })
+    gender: string | null;
+
+    @ApiProperty({
+        description: "Avatar URL",
+        example: "https://cdn.example.com/avatars/me.jpg",
+        nullable: true
+    })
+    avatar: string | null;
 
     @ApiProperty({
         description: "User role",

@@ -5,6 +5,8 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName: string | null;
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  avatar: string | null;
   role: string;
 };
 
@@ -43,4 +45,3 @@ export async function getMe() {
   const { data } = await http.get<MeUser>("/users/me");
   return data;
 }
-

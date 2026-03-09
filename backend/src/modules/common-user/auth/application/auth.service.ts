@@ -19,7 +19,9 @@ import { RegisterDto } from "../presentation/dto/register.dto";
 type AuthUser = {
     id: string;
     email: string;
-    fullName: string;
+    fullName: string | null;
+    gender: string | null;
+    avatar: string | null;
     role: string;
 };
 
@@ -256,7 +258,9 @@ export class AuthService {
         return {
             id: user.id,
             email: user.email,
-            fullName: user.fullName,
+            fullName: user.fullName ?? null,
+            gender: user.gender ?? null,
+            avatar: user.avatar ?? null,
             role: user.role
         };
     }
