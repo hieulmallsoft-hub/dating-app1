@@ -34,6 +34,7 @@ import {
     SocialLoginDto,
     RefreshTokenDto,
     AuthSessionResponseDto,
+    MobileGoogleAuthResponseDto,
     LogoutResponseDto,
     CheckAccountCodeQueryDto,
     CheckAccountCodeResponseDto
@@ -57,14 +58,14 @@ export class AuthController {
     @ApiOperation({
         summary: "Register account",
         description:
-            "Create a new account. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
+            "Create a new account. Required fields: email, gender, birthDate. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
     })
     @ApiCreatedResponse({
         description: "Register success",
         type: AuthSessionResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid request body (email format, password length...)"
+        description: "Invalid request body (email format, password length, missing gender/birthDate...)"
     })
     @ApiConflictResponse({
         description: "Email already exists"
@@ -202,7 +203,7 @@ export class AuthController {
     @ApiOperation({
         summary: "Google login for mobile using idToken",
         description:
-            "Use this endpoint for mobile auth. FE must first get Google idToken from native/web Google Sign-In SDK, then send { idToken }."
+            "Use this endpoint for mobile auth. FE must first get Google idToken from native/web Google Sign-In SDK, then send { idToken }. Response returns user+meta only; tokens are set in httpOnly cookies."
     })
     @Public()
     @Post("google")
@@ -220,7 +221,7 @@ export class AuthController {
     })
     @ApiOkResponse({
         description: "Google login success",
-        type: AuthSessionResponseDto
+        type: MobileGoogleAuthResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Invalid or expired Google idToken, or audience mismatch"
@@ -231,7 +232,10 @@ export class AuthController {
     async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
-        return result;
+        return {
+            user: result.user,
+            meta: result.meta
+        };
     }
 
     @ApiExcludeEndpoint()

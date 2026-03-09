@@ -117,6 +117,14 @@ export class AuthSessionResponseDto {
     meta: AuthSessionMetaResponseDto;
 }
 
+export class MobileGoogleAuthResponseDto {
+    @ApiProperty({ type: AuthUserResponseDto })
+    user: AuthUserResponseDto;
+
+    @ApiProperty({ type: () => AuthSessionMetaResponseDto })
+    meta: AuthSessionMetaResponseDto;
+}
+
 export class LogoutResponseDto {
     @ApiProperty({
         description: "Logout result",

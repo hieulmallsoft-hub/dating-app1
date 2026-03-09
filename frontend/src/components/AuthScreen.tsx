@@ -14,6 +14,8 @@ function normalizeEmail(value: string) {
 }
 
 export default function AuthScreen({ onAuthSuccess }: Props) {
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
+  const [birthDate, setBirthDate] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,8 +26,10 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
   const canSubmit = useMemo(() => {
     const emailOk = normalizeEmail(email).length > 0;
     const passwordOk = password.length >= 6;
-    return emailOk && passwordOk && !isSubmitting;
-  }, [email, password, isSubmitting]);
+    const registerExtraOk =
+      mode === "login" || (gender.length > 0 && birthDate.trim().length > 0);
+    return emailOk && passwordOk && registerExtraOk && !isSubmitting;
+  }, [email, password, mode, gender, birthDate, isSubmitting]);
 
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_URL}/auth/google`;
@@ -50,6 +54,8 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
               email: payloadEmail,
               password,
               fullName: fullName.trim() || undefined,
+              gender: gender as "MALE" | "FEMALE" | "OTHER",
+              birthDate: birthDate.trim(),
             });
 
       setTokens(result.tokens);
@@ -91,15 +97,39 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
 
       <form className="auth-form" onSubmit={submit}>
         {mode === "register" ? (
-          <label className="auth-field">
-            <span>Ho ten (tuy chon)</span>
-            <input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nguyen Van A"
-              autoComplete="name"
-            />
-          </label>
+          <>
+            <label className="auth-field">
+              <span>Ho ten (tuy chon)</span>
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nguyen Van A"
+                autoComplete="name"
+              />
+            </label>
+            <label className="auth-field">
+              <span>Gioi tinh</span>
+              <select
+                className="select"
+                value={gender}
+                onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "OTHER" | "")}
+              >
+                <option value="">Chon gioi tinh</option>
+                <option value="MALE">MALE</option>
+                <option value="FEMALE">FEMALE</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </label>
+            <label className="auth-field">
+              <span>Ngay sinh</span>
+              <input
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                type="date"
+                max="2099-12-31"
+              />
+            </label>
+          </>
         ) : null}
 
         <label className="auth-field">

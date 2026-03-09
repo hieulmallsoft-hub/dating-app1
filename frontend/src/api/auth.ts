@@ -30,6 +30,8 @@ export async function register(payload: {
   email: string;
   password: string;
   fullName?: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  birthDate: string;
 }) {
   const { data } = await http.post<AuthResult>("/auth/register", payload);
   return data;
