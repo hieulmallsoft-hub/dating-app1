@@ -13,7 +13,7 @@ import {
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { TripsService } from "../application/trips.service";
-import { TripSyncDto } from "./dto/trip.dto";
+import { TripListResponseDto, TripResponseDto, TripSyncDto, TripSyncResponseDto } from "./dto/trip.dto";
 
 @ApiTags("trips")
 @ApiBearerAuth("JWT-auth")
@@ -36,17 +36,20 @@ export class TripsController {
     @ApiQuery({
         name: "page",
         required: false,
+        type: Number,
         description: "Page number",
         example: 1
     })
     @ApiQuery({
         name: "limit",
         required: false,
+        type: Number,
         description: "Items per page",
         example: 20
     })
     @ApiOkResponse({
-        description: "Trips list returned"
+        description: "Trips list returned",
+        type: TripListResponseDto
     })
     @ApiNotFoundResponse({
         description: "Requested userId is not in current couple"
@@ -79,7 +82,8 @@ export class TripsController {
         example: "trip_20260309_001"
     })
     @ApiOkResponse({
-        description: "Trip detail returned"
+        description: "Trip detail returned",
+        type: TripResponseDto
     })
     @ApiNotFoundResponse({
         description: "Trip not found or not in current couple"
@@ -98,13 +102,7 @@ export class TripsController {
     })
     @ApiCreatedResponse({
         description: "Trips synced",
-        schema: {
-            type: "object",
-            properties: {
-                success: { type: "boolean", example: true },
-                count: { type: "number", example: 2 }
-            }
-        }
+        type: TripSyncResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid payload (e.g., routePoints empty)"

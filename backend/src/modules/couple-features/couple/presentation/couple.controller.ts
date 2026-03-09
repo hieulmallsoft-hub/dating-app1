@@ -23,7 +23,14 @@ import {
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 import { CoupleService } from "../application/couple.service";
-import { JoinCoupleDto, UpdateCoupleDto } from "./dto/couple-ops.dto";
+import {
+    CoupleLocationHistoryResponseDto,
+    CoupleLocationsResponseDto,
+    CoupleResponseDto,
+    InviteResponseDto,
+    JoinCoupleDto,
+    UpdateCoupleDto
+} from "./dto/couple-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 
 @ApiTags("couple")
@@ -39,7 +46,8 @@ export class CoupleController {
         description: "Returns couple data and partner info for current user."
     })
     @ApiOkResponse({
-        description: "Couple info returned"
+        description: "Couple info returned",
+        type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -57,7 +65,8 @@ export class CoupleController {
         description: "Returns latest location for me and partner."
     })
     @ApiOkResponse({
-        description: "Location pair returned"
+        description: "Location pair returned",
+        type: CoupleLocationsResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -77,11 +86,13 @@ export class CoupleController {
     @ApiQuery({
         name: "limit",
         required: false,
+        type: Number,
         description: "History item limit",
         example: 120
     })
     @ApiOkResponse({
-        description: "Location history returned"
+        description: "Location history returned",
+        type: CoupleLocationHistoryResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -101,7 +112,8 @@ export class CoupleController {
         description: "Creates a pending invite code for current user."
     })
     @ApiOkResponse({
-        description: "Invite created"
+        description: "Invite created",
+        type: InviteResponseDto
     })
     @ApiConflictResponse({
         description: "Current user is already in a couple"
@@ -120,7 +132,8 @@ export class CoupleController {
         description: "Join an existing invite code and create couple relation."
     })
     @ApiOkResponse({
-        description: "Join success"
+        description: "Join success",
+        type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid invite code format, expired code, or code already used"
@@ -145,7 +158,8 @@ export class CoupleController {
         description: "Disconnects current couple relation."
     })
     @ApiOkResponse({
-        description: "Disconnected"
+        description: "Disconnected",
+        type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -164,7 +178,8 @@ export class CoupleController {
         description: "Disconnect old couple (if any) then connect to new invite code."
     })
     @ApiOkResponse({
-        description: "Connected to new couple"
+        description: "Connected to new couple",
+        type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid/expired/used invite code"
@@ -185,7 +200,8 @@ export class CoupleController {
         description: "Sets relationship start date."
     })
     @ApiOkResponse({
-        description: "Start date updated"
+        description: "Start date updated",
+        type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid date format"
@@ -206,7 +222,8 @@ export class CoupleController {
         description: "Sets current couple theme."
     })
     @ApiOkResponse({
-        description: "Theme updated"
+        description: "Theme updated",
+        type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"

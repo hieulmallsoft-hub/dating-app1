@@ -115,6 +115,45 @@ export class AuthSessionMetaResponseDto {
     needsProfileSetup: boolean;
 }
 
+export class AuthProfilePayloadResponseDto {
+    @ApiProperty({
+        description: "JWT subject (user id)",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    sub: string;
+
+    @ApiProperty({
+        description: "User id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    id: string;
+
+    @ApiProperty({
+        description: "Backward-compatible user id field",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    user_Id: string;
+
+    @ApiProperty({
+        description: "User email",
+        example: "mobile.user@example.com"
+    })
+    email: string;
+
+    @ApiProperty({
+        description: "Display name",
+        example: "Mobile User",
+        nullable: true
+    })
+    fullName: string | null;
+
+    @ApiProperty({
+        description: "User role",
+        example: "USER"
+    })
+    role: string;
+}
+
 export class AuthSessionResponseDto {
     @ApiProperty({ type: AuthUserResponseDto })
     user: AuthUserResponseDto;

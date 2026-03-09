@@ -58,11 +58,8 @@ async function refreshTokens() {
 function shouldSkipRefresh(url?: string) {
   if (!url) return false;
   return (
-    url.includes("/auth/login") ||
-    url.includes("/auth/register") ||
     url.includes("/auth/refresh") ||
-    url.includes("/auth/google") ||
-    url.includes("/auth/apple")
+    url.includes("/auth/google")
   );
 }
 

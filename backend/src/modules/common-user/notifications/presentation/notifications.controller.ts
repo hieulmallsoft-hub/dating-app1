@@ -11,6 +11,10 @@ import {
 } from "@nestjs/swagger";
 import { NotificationsService } from "../application/notifications.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
+import {
+    CreateTestNotificationDto,
+    NotificationResponseDto
+} from "./dto/notification-ops.dto";
 
 @ApiTags("notifications")
 @ApiBearerAuth("JWT-auth")
@@ -25,7 +29,9 @@ export class NotificationsController {
         description: "Returns notifications of current user."
     })
     @ApiOkResponse({
-        description: "Notifications returned"
+        description: "Notifications returned",
+        type: NotificationResponseDto,
+        isArray: true
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
@@ -45,7 +51,8 @@ export class NotificationsController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Notification updated"
+        description: "Notification updated",
+        type: NotificationResponseDto
     })
     @ApiNotFoundResponse({
         description: "Notification not found or does not belong to current user"
@@ -64,36 +71,28 @@ export class NotificationsController {
         description: "Creates a test notification for current user. title/content/type are optional."
     })
     @ApiBody({
-        required: false,
-        schema: {
-            type: "object",
-            properties: {
-                title: { type: "string", example: "Test notification" },
-                content: { type: "string", example: "Created from Swagger" },
-                type: { type: "string", example: "test" }
-            }
-        }
+        type: CreateTestNotificationDto,
+        required: false
     })
     @ApiOkResponse({
-        description: "Test notification created"
+        description: "Test notification created",
+        type: NotificationResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
     async createTestNotification(
         @Req() req,
-        @Body("title") title?: string,
-        @Body("content") content?: string,
-        @Body("type") type?: string
+        @Body() dto: CreateTestNotificationDto
     ) {
         const userId = this.getCurrentUserId(req);
         const fallbackTitle = "Test notification";
         const fallbackContent = `Created at ${new Date().toISOString()}`;
         return this.notificationsService.createNotification(
             userId,
-            title?.trim() || fallbackTitle,
-            content?.trim() || fallbackContent,
-            type?.trim() || "test"
+            dto.title?.trim() || fallbackTitle,
+            dto.content?.trim() || fallbackContent,
+            dto.type?.trim() || "test"
         );
     }
 

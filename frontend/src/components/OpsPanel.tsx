@@ -49,12 +49,8 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
   const [geofencePlaceId, setGeofencePlaceId] = useState("");
   const [geofenceTransition, setGeofenceTransition] = useState<"ENTER" | "EXIT">("ENTER");
 
-  const [users, setUsers] = useState<userApi.PublicUser[]>([]);
   const [userEmailQuery, setUserEmailQuery] = useState("");
   const [userByEmail, setUserByEmail] = useState<userApi.PublicUser | null>(null);
-  const [userIdQuery, setUserIdQuery] = useState("");
-  const [userById, setUserById] = useState<userApi.PublicUser | null>(null);
-  const [deleteUserId, setDeleteUserId] = useState("");
 
   const [mediaId, setMediaId] = useState("");
   const [mediaItem, setMediaItem] = useState<mediaApi.MediaItem | null>(null);
@@ -110,20 +106,10 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
     }
   }, [handleFailure]);
 
-  const loadUsers = useCallback(async () => {
-    try {
-      const data = await userApi.getAllUsers();
-      setUsers(data);
-    } catch (err: unknown) {
-      handleFailure(err, "Failed to load users");
-    }
-  }, [handleFailure]);
-
   useEffect(() => {
     void loadSettings();
     void loadPlaces();
-    void loadUsers();
-  }, [loadPlaces, loadSettings, loadUsers]);
+  }, [loadPlaces, loadSettings]);
 
   const placeCount = useMemo(() => places.filter((item) => !item.isDeleted).length, [places]);
 
@@ -279,28 +265,13 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
     });
   };
 
-  const findUserById = async () => {
-    if (!userIdQuery.trim()) return;
-    await runAction(async () => {
-      try {
-        const data = await userApi.getUserById(userIdQuery.trim());
-        setUserById(data);
-        setSuccess("Tim thay user theo id");
-      } catch (err: unknown) {
-        handleFailure(err, "Find user by id failed");
-      }
-    });
-  };
-
   const removeUser = async () => {
-    if (!deleteUserId.trim()) return;
-    if (!window.confirm(`Xoa user ${deleteUserId.trim()}?`)) return;
+    if (!window.confirm("Xoa tai khoan hien tai? Hanh dong nay khong the hoan tac.")) return;
     await runAction(async () => {
       try {
-        await userApi.deleteUser(deleteUserId.trim());
-        setDeleteUserId("");
-        await loadUsers();
-        setSuccess("Da xoa user");
+        await userApi.deleteMe();
+        setSuccess("Tai khoan da duoc xoa");
+        onAuthInvalid();
       } catch (err: unknown) {
         handleFailure(err, "Delete user failed");
       }
@@ -580,11 +551,6 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
 
       {tab === "users" ? (
         <div className="events-form">
-          <button className="btn btn-outline" type="button" disabled={isWorking} onClick={() => void loadUsers()}>
-            Reload users
-          </button>
-          <div className="hint">Tong user: {users.length}</div>
-
           <label className="auth-field">
             <span>Find by email</span>
             <div className="join-row">
@@ -597,39 +563,13 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
           {userByEmail ? <div className="hint">Email result: {userByEmail.id} - {userByEmail.email}</div> : null}
 
           <label className="auth-field">
-            <span>Find by id</span>
+            <span>Delete current account</span>
             <div className="join-row">
-              <input value={userIdQuery} onChange={(e) => setUserIdQuery(e.target.value)} className="join-input" />
-              <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void findUserById()}>
-                Find
-              </button>
-            </div>
-          </label>
-          {userById ? <div className="hint">Id result: {userById.email}</div> : null}
-
-          <label className="auth-field">
-            <span>Delete user by id</span>
-            <div className="join-row">
-              <input value={deleteUserId} onChange={(e) => setDeleteUserId(e.target.value)} className="join-input" />
               <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void removeUser()}>
-                Delete
+                Delete account
               </button>
             </div>
           </label>
-
-          {users.length ? (
-            <div className="events-list">
-              {users.slice(0, 30).map((user) => (
-                <div className="event-item" key={user.id}>
-                  <div className="event-head">
-                    <div className="event-title">{user.fullName || user.email}</div>
-                    <span className="event-badge">{user.id.slice(0, 8)}</span>
-                  </div>
-                  <div className="event-desc">{user.email}</div>
-                </div>
-              ))}
-            </div>
-          ) : null}
         </div>
       ) : null}
 

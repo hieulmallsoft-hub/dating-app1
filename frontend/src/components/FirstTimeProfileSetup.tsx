@@ -11,6 +11,7 @@ type Props = {
 
 export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInvalid }: Props) {
   const [gender, setGender] = useState<userApi.Gender | "">("");
+  const [birthDate, setBirthDate] = useState("");
   const [avatar, setAvatar] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,8 +19,8 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
   const [previewError, setPreviewError] = useState(false);
 
   const canSave = useMemo(() => {
-    return !isLoading && !isSaving && gender !== "" && avatar.trim().length > 0;
-  }, [isLoading, isSaving, gender, avatar]);
+    return !isLoading && !isSaving && gender !== "" && birthDate.trim().length > 0 && avatar.trim().length > 0;
+  }, [isLoading, isSaving, gender, birthDate, avatar]);
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +29,7 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
       try {
         const me = await userApi.getMe();
         setGender(me.gender ?? "");
+        setBirthDate((me.birthDate || "").slice(0, 10));
         setAvatar(me.avatar || "");
         setPreviewError(false);
       } catch (err: unknown) {
@@ -50,7 +52,8 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
     setError(null);
     try {
       await userApi.updateMe({
-        gender: gender || undefined,
+        gender: gender === "" ? undefined : gender,
+        birthDate: birthDate.trim() || undefined,
         avatar: avatar.trim() || undefined
       });
       onCompleted();
@@ -80,7 +83,7 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
     <div className="screen onboarding-screen">
       <div className="onboarding-card">
         <h2>Hoan thien profile lan dau</h2>
-        <p>Vui long chon gioi tinh va nhap link avatar de tiep tuc vao trang chu</p>
+        <p>Vui long chon gioi tinh, ngay sinh va nhap link avatar de tiep tuc vao trang chu</p>
 
         {error ? <div className="panel-error">{error}</div> : null}
 
@@ -101,6 +104,17 @@ export default function FirstTimeProfileSetup({ onCompleted, onLogout, onAuthInv
               <option value="1">1 - FEMALE</option>
               <option value="2">2 - OTHER</option>
             </select>
+          </label>
+
+          <label className="auth-field">
+            <span>Ngay sinh</span>
+            <input
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              type="date"
+              max="2099-12-31"
+              disabled={isLoading || isSaving}
+            />
           </label>
 
           <label className="auth-field">

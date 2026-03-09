@@ -10,6 +10,7 @@ import {
 } from "@nestjs/swagger";
 import { ChatService } from "../application/chat.service";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { ChatActionResponseDto, ChatMessageResponseDto } from "./dto/chat-ops.dto";
 
 @ApiTags("chat")
 @ApiBearerAuth("JWT-auth")
@@ -26,17 +27,21 @@ export class ChatController {
     @ApiQuery({
         name: "limit",
         required: false,
+        type: Number,
         description: "Number of messages to return",
         example: 50
     })
     @ApiQuery({
         name: "offset",
         required: false,
+        type: Number,
         description: "Number of messages to skip",
         example: 0
     })
     @ApiOkResponse({
-        description: "Chat messages returned"
+        description: "Chat messages returned",
+        type: ChatMessageResponseDto,
+        isArray: true
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -56,7 +61,7 @@ export class ChatController {
     })
     @ApiOkResponse({
         description: "Chat cleared",
-        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+        type: ChatActionResponseDto
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"

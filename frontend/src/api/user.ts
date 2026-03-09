@@ -63,7 +63,7 @@ export async function getUserById(id: string) {
   return data;
 }
 
-export async function deleteUser(id: string) {
-  const { data } = await http.delete<{ message: string }>(`/users/${id}`);
+export async function deleteMe() {
+  const { data } = await http.delete<{ message: string }>("/users/me");
   return data;
 }

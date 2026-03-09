@@ -46,7 +46,7 @@ const App: React.FC = () => {
     const checkProfile = async () => {
       try {
         const me = await userApi.getMe();
-        const missingGender = !me.gender;
+        const missingGender = me.gender === null || me.gender === undefined;
         const missingAvatar = !(me.avatar || "").trim();
         const missingBirthDate = !(me.birthDate || "").trim();
 

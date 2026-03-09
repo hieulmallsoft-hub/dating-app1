@@ -1,43 +1,33 @@
 import {
-    Controller,
-    Post,
     Body,
+    Controller,
+    Get,
     HttpCode,
     HttpStatus,
-    UseGuards,
-    Get,
+    Post,
     Req,
-    Logger,
     Res,
-    Query,
-    UnauthorizedException
+    UseGuards
 } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
-    ApiConflictResponse,
-    ApiCreatedResponse,
     ApiExcludeEndpoint,
     ApiOkResponse,
     ApiOperation,
     ApiTags,
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
-import { Request, Response } from "express";
-import { AuthGuard } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
+import { Request, Response } from "express";
 import { AuthService } from "../application/auth.service";
-import { RegisterDto } from "./dto/register.dto";
-import { LoginDto } from "./dto/login.dto";
 import {
-    SocialLoginDto,
-    RefreshTokenDto,
+    AuthProfilePayloadResponseDto,
     AuthSessionResponseDto,
     MobileGoogleAuthResponseDto,
-    LogoutResponseDto,
-    CheckAccountCodeQueryDto,
-    CheckAccountCodeResponseDto
+    RefreshTokenDto,
+    SocialLoginDto
 } from "./dto/auth-ops.dto";
 import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
@@ -45,72 +35,11 @@ import { Public } from "src/common/decorators/customize";
 @ApiTags("auth-mobile")
 @Controller("auth")
 export class AuthController {
-    private readonly logger = new Logger(AuthController.name);
-
     constructor(
-        private authService: AuthService,
-        private configService: ConfigService
+        private readonly authService: AuthService,
+        private readonly configService: ConfigService
     ) {}
 
-    // register
-    @Post("register")
-    @Public()
-    @ApiOperation({
-        summary: "Register account",
-        description:
-            "Create a new account. Required fields: email, gender, birthDate. Optional fields: fullName, avatar. On success, returns user + tokens and also sets httpOnly cookies: access_token and refresh_token."
-    })
-    @ApiCreatedResponse({
-        description: "Register success",
-        type: AuthSessionResponseDto
-    })
-    @ApiBadRequestResponse({
-        description: "Invalid request body (email format, missing gender/birthDate, invalid avatar URL...)"
-    })
-    @ApiConflictResponse({
-        description: "Email already exists"
-    })
-    async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-        this.logger.log(`Register request for email: ${registerDto.email}`);
-        try {
-            const user = await this.authService.register(registerDto);
-            this.logger.log(`Đăng ký thành công: ${registerDto.email}`);
-
-            const result = await this.authService.createSession(user, true);
-            this.setTokensCookie(res, result.tokens);
-
-            return result;
-        } catch (error) {
-            this.logger.error(`Lỗi khi đăng ký: ${error.message}`, error.stack);
-            throw error;
-        }
-    }
-    //login
-    @Post("login")
-    @Public()
-    @HttpCode(HttpStatus.OK)
-    @ApiOperation({
-        summary: "Login with email/password",
-        description:
-            "Mobile/local login. Requires email + password. Returns user + tokens and sets token cookies."
-    })
-    @ApiOkResponse({
-        description: "Login success",
-        type: AuthSessionResponseDto
-    })
-    @ApiUnauthorizedResponse({
-        description: "Wrong credentials, banned account, or inactive account"
-    })
-    @ApiBadRequestResponse({
-        description: "Invalid request body"
-    })
-    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const result = await this.authService.login(loginDto);
-        this.setTokensCookie(res, result.tokens);
-        return result;
-    }
-
-    // @UseGuards(JwtAuthGuard)
     @ApiBearerAuth("JWT-auth")
     @Get("profile")
     @ApiOperation({
@@ -119,17 +48,7 @@ export class AuthController {
     })
     @ApiOkResponse({
         description: "Token payload/user info",
-        schema: {
-            type: "object",
-            properties: {
-                sub: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
-                id: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
-                user_Id: { type: "string", example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8" },
-                email: { type: "string", example: "mobile.user@example.com" },
-                fullName: { type: "string", example: "Mobile User" },
-                role: { type: "string", example: "USER" }
-            }
-        }
+        type: AuthProfilePayloadResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Missing/expired/invalid access token"
@@ -138,37 +57,17 @@ export class AuthController {
         return req.user;
     }
 
-    @Public()
-    @Get("account-code/exists")
-    @ApiOperation({
-        summary: "Check account code exists",
-        description:
-            "Returns true/false for a stable accountCode. Useful when mobile needs to check account availability by code."
-    })
-    @ApiOkResponse({
-        description: "Check result",
-        type: CheckAccountCodeResponseDto
-    })
-    @ApiBadRequestResponse({
-        description: "Missing or invalid code query"
-    })
-    async checkAccountCodeExists(@Query() query: CheckAccountCodeQueryDto) {
-        const exists = await this.authService.checkAccountCodeExists(query.code);
-        return { exists };
-    }
-
-    // Google Auth
     @ApiExcludeEndpoint()
     @Public()
     @Get("google")
     @UseGuards(GoogleAuthGuard)
-    async googleAuth(@Req() req) {}
+    async googleAuth(@Req() _req: Request) {}
 
     @ApiExcludeEndpoint()
     @Public()
     @Get("google/callback")
     @UseGuards(GoogleAuthGuard)
-    async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    async googleAuthRedirect(@Req() req: Request & { user: any }, @Res() res: Response) {
         const result = await this.authService.validateSocialUser(req.user);
         this.setTokensCookie(res, result.tokens);
 
@@ -178,32 +77,10 @@ export class AuthController {
         );
     }
 
-    // Apple Auth
-    @ApiExcludeEndpoint()
-    @Public()
-    @Get("apple")
-    @UseGuards(AuthGuard("apple"))
-    async appleAuth(@Req() req) {}
-
-    @ApiExcludeEndpoint()
-    @Public()
-    @Post("apple/callback")
-    @UseGuards(AuthGuard("apple"))
-    async appleAuthRedirect(@Req() req, @Res() res: Response) {
-        const result = await this.authService.validateSocialUser(req.user);
-        this.setTokensCookie(res, result.tokens);
-
-        const frontendUrl = this.configService.get("CORS_ORIGIN") || "http://localhost:5173";
-        return res.redirect(
-            `${frontendUrl}?access_token=${result.tokens.access_token}&refresh_token=${result.tokens.refresh_token}`
-        );
-    }
-
-    // Social Login POST (for Mobile/Android/iOS)
     @ApiOperation({
         summary: "Google login for mobile using idToken",
         description:
-            "Use this endpoint for mobile auth. FE must first get Google idToken from native/web Google Sign-In SDK, then send { idToken }. Response returns user+meta only; tokens are set in httpOnly cookies."
+            "Use this endpoint for Google-only auth. FE gets Google idToken from SDK, then sends { idToken }. Backend creates account on first login and returns user+meta."
     })
     @Public()
     @Post("google")
@@ -236,16 +113,6 @@ export class AuthController {
             user: result.user,
             meta: result.meta
         };
-    }
-
-    @ApiExcludeEndpoint()
-    @Public()
-    @Post("apple")
-    @HttpCode(HttpStatus.OK)
-    async appleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
-        const result = await this.authService.loginWithApple(socialLoginDto.idToken);
-        this.setTokensCookie(res, result.tokens);
-        return result;
     }
 
     @Public()
@@ -288,29 +155,7 @@ export class AuthController {
         return result;
     }
 
-    @ApiBearerAuth("JWT-auth")
-    @Post("logout")
-    @HttpCode(HttpStatus.OK)
-    @ApiOperation({
-        summary: "Logout current user",
-        description: "Requires access token. Clears access_token + refresh_token cookies and invalidates session."
-    })
-    @ApiOkResponse({
-        description: "Logout success",
-        type: LogoutResponseDto
-    })
-    @ApiUnauthorizedResponse({
-        description: "Invalid access token"
-    })
-    async logout(@Req() req, @Res({ passthrough: true }) res: Response) {
-        res.clearCookie("access_token");
-        res.clearCookie("refresh_token");
-        const userId = req.user?.id || req.user?.sub || req.user?.user_Id;
-        if (!userId) {
-            throw new UnauthorizedException("Invalid access token payload");
-        }
-        return this.authService.logout(userId);
-    }
+
 
     private setTokensCookie(res: Response, tokens: { access_token: string; refresh_token: string }) {
         res.cookie("access_token", tokens.access_token, {

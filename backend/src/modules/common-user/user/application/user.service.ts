@@ -1,14 +1,24 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
-import { DataSource, IsNull, Not } from "typeorm";
+import { DataSource, In, IsNull, Not } from "typeorm";
 import { CreateUserDto } from "../presentation/dto/create-user.dto";
 import { UpdateUserDto } from "../presentation/dto/update-user.dto";
 import { UserRepository } from "../infrastructure/persistence/user.repository";
 import { LocationHistoryRepository } from "../infrastructure/persistence/location-history.repository";
-import { AuthProvider } from "../domain/entities/user.entity";
+import { AuthProvider, User } from "../domain/entities/user.entity";
 import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
 import { LocationSource } from "../domain/entities/location-history.entity";
+import { Event } from "../../../couple-features/events/domain/entities/event.entity";
+import { Moment } from "../../../couple-features/moments/domain/entities/moment.entity";
+import { Place } from "../../../couple-features/places/domain/entities/place.entity";
+import { Message } from "../../../couple-features/chat/domain/entities/message.entity";
+import { Media } from "../../../couple-features/media/domain/entities/media.entity";
+import { Trip } from "../../../couple-features/trips/domain/entities/trip.entity";
+import { Invite } from "../../../couple-features/invites/domain/entities/invite.entity";
+import { Notification } from "../../notifications/domain/entities/notification.entity";
+import { Setting } from "../../settings/domain/entities/setting.entity";
+import { SecuritySetting } from "../../security/domain/entities/security.entity";
 
 type CreateUserPayload = CreateUserDto & {
     socialId?: string;
@@ -211,14 +221,6 @@ export class UsersService {
         };
     }
 
-    async deleteUser(id: string) {
-        const existed = await this.userRepository.findById(id);
-        if (!existed) throw new NotFoundException("User not found");
-
-        await this.userRepository.deleteById(id);
-        return { message: "User deleted successfully" };
-    }
-
     async updateRefreshToken(id: string, refreshToken: string | null, refreshTokenExp: Date | null) {
         await this.userRepository.updateById(id, {
             refreshToken,
@@ -322,5 +324,42 @@ export class UsersService {
             select: ["id"]
         });
         return couple?.id || null;
+    }
+
+    async deleteUser(userId: string) {
+        const existed = await this.userRepository.findById(userId);
+        if (!existed) throw new NotFoundException("User not found");
+
+        await this.dataSource.transaction(async (manager) => {
+            const couples = await manager.getRepository(Couple).find({
+                where: [{ user1Id: userId }, { user2Id: userId }],
+                select: ["id"]
+            });
+            const coupleIds = couples.map((couple) => couple.id);
+
+            if (coupleIds.length > 0) {
+                await manager.getRepository(Message).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Event).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Moment).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Place).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Media).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Trip).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Couple).delete({ id: In(coupleIds) });
+            }
+
+            await manager.getRepository(Message).delete({ senderId: userId });
+            await manager.getRepository(Event).delete({ creatorId: userId });
+            await manager.getRepository(Moment).delete({ creatorId: userId });
+            await manager.getRepository(Place).delete({ sharedBy: userId });
+            await manager.getRepository(Media).delete({ uploaderId: userId });
+            await manager.getRepository(Trip).delete({ userId });
+            await manager.getRepository(Invite).delete({ inviterId: userId });
+            await manager.getRepository(Notification).delete({ userId });
+            await manager.getRepository(Setting).delete({ userId });
+            await manager.getRepository(SecuritySetting).delete({ userId });
+            await manager.getRepository(User).delete({ id: userId });
+        });
+
+        return { message: "User deleted successfully" };
     }
 }

@@ -1,5 +1,4 @@
 import {
-    ConflictException,
     Injectable,
     Logger,
     ServiceUnavailableException,
@@ -7,14 +6,10 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import * as appleSignin from "apple-signin-auth";
 import * as crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
-import { comparePassword } from "../../../../common/utils/utils";
 import { UsersService } from "../../user/application/user.service";
 import { AuthProvider } from "../../user/domain/entities/user.entity";
-import { LoginDto } from "../presentation/dto/login.dto";
-import { RegisterDto } from "../presentation/dto/register.dto";
 
 type AuthUser = {
     id: string;
@@ -58,35 +53,6 @@ export class AuthService {
     ) {
         this.googleClientId = this.configService.get<string>("auth.google.clientId")?.trim();
         this.googleClient = new OAuth2Client(this.googleClientId);
-    }
-
-    async validateUser(email: string, password: string) {
-        const user = await this.usersService.getUserWithPassword(email);
-        if (!user) {
-            throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
-        }
-        this.assertAccountCanAuthenticate(user);
-
-        const isPasswordMatching = await comparePassword(password, user.password);
-        if (!isPasswordMatching) {
-            throw new UnauthorizedException("Thong tin dang nhap khong chinh xac");
-        }
-
-        return user;
-    }
-
-    async register(registerDto: RegisterDto) {
-        const existingUser = await this.usersService.getUserByEmail(registerDto.email);
-        if (existingUser) {
-            throw new ConflictException("Email da ton tai");
-        }
-
-        return this.usersService.createUser(registerDto);
-    }
-
-    async login(loginDto: LoginDto): Promise<AuthResult> {
-        const user = await this.validateUser(loginDto.email, loginDto.password);
-        return this.createSession(user, false);
     }
 
     async createSession(user: any, isNewUser = false): Promise<AuthResult> {
@@ -203,27 +169,6 @@ export class AuthService {
         }
     }
 
-    async loginWithApple(idToken: string): Promise<AuthResult> {
-        try {
-            const appleId = this.configService.get<string>("auth.apple.clientId");
-            const decoded = await appleSignin.verifyIdToken(idToken, {
-                audience: appleId
-            });
-
-            return this.validateSocialUser({
-                email: decoded.email,
-                fullName: (decoded as any).name
-                    ? `${(decoded as any).name.firstName} ${(decoded as any).name.lastName}`
-                    : decoded.email.split("@")[0],
-                socialId: decoded.sub,
-                provider: AuthProvider.APPLE
-            });
-        } catch (error) {
-            this.logger.error(`Apple token verification failed: ${error.message}`);
-            throw new UnauthorizedException("Invalid Apple token");
-        }
-    }
-
     async refreshToken(token: string): Promise<AuthResult> {
         if (!token) {
             throw new UnauthorizedException("Refresh token is required");
@@ -257,10 +202,7 @@ export class AuthService {
         };
     }
 
-    async logout(userId: string) {
-        await this.usersService.clearSession(userId);
-        return { success: true };
-    }
+
 
     generateTokens(user: any, tokenVersion = this.getTokenVersion(user)): AuthResult {
         return {

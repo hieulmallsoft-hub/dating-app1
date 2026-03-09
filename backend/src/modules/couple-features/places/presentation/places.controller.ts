@@ -24,7 +24,11 @@ import {
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 import { PlacesService } from "../application/places.service";
-import { CreatePlaceDto } from "./dto/place-ops.dto";
+import {
+    CreatePlaceDto,
+    PlaceResponseDto,
+    PlaceSearchResultResponseDto
+} from "./dto/place-ops.dto";
 import { UpdatePlaceDto } from "./dto/update-place.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 
@@ -44,11 +48,14 @@ export class PlacesController {
     @ApiQuery({
         name: "since",
         required: false,
+        type: Number,
         description: "Epoch milliseconds for incremental sync",
         example: 1762677600000
     })
     @ApiOkResponse({
-        description: "Places returned"
+        description: "Places returned",
+        type: PlaceResponseDto,
+        isArray: true
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
@@ -64,7 +71,8 @@ export class PlacesController {
         description: "Creates a place for current couple."
     })
     @ApiCreatedResponse({
-        description: "Place created"
+        description: "Place created",
+        type: PlaceResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed (lat/lng/radius/type...)"
@@ -87,7 +95,8 @@ export class PlacesController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Place updated"
+        description: "Place updated",
+        type: PlaceResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed"
@@ -113,7 +122,8 @@ export class PlacesController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Place deleted"
+        description: "Place deleted",
+        type: PlaceResponseDto
     })
     @ApiNotFoundResponse({
         description: "Place not found"
@@ -137,7 +147,9 @@ export class PlacesController {
         example: "coffee"
     })
     @ApiOkResponse({
-        description: "Search results. Returns [] when query is too short or provider fails."
+        description: "Search results. Returns [] when query is too short or provider fails.",
+        type: PlaceSearchResultResponseDto,
+        isArray: true
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"

@@ -10,6 +10,7 @@ import {
 import { SettingsService } from "../application/settings.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
 import { UpdateSettingsDto } from "./dto/update-settings.dto";
+import { SettingsResponseDto } from "./dto/settings-ops.dto";
 
 @ApiTags("settings")
 @ApiBearerAuth("JWT-auth")
@@ -24,7 +25,8 @@ export class SettingsController {
         description: "Returns current settings, auto-creates default settings if missing."
     })
     @ApiOkResponse({
-        description: "Settings returned"
+        description: "Settings returned",
+        type: SettingsResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
@@ -39,7 +41,8 @@ export class SettingsController {
         description: "Update notification, theme, and privacy options."
     })
     @ApiOkResponse({
-        description: "Settings updated"
+        description: "Settings updated",
+        type: SettingsResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed (invalid enum or type)"

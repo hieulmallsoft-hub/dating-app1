@@ -19,6 +19,7 @@ import {
 } from "@nestjs/swagger";
 import { SecurityService } from "../application/security.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
+import { PinBodyDto, SetPinResponseDto, VerifyPinResponseDto } from "./dto/security-ops.dto";
 
 @ApiTags("security")
 @ApiBearerAuth("JWT-auth")
@@ -34,16 +35,11 @@ export class SecurityController {
         description: "Set or update 4-digit PIN for current user."
     })
     @ApiBody({
-        schema: {
-            type: "object",
-            properties: {
-                pin: { type: "string", example: "1234", description: "Exactly 4 digits" }
-            },
-            required: ["pin"]
-        }
+        type: PinBodyDto
     })
     @ApiOkResponse({
-        description: "PIN set successfully"
+        description: "PIN set successfully",
+        type: SetPinResponseDto
     })
     @ApiBadRequestResponse({
         description: "PIN invalid format (must be 4 digits)"
@@ -51,8 +47,13 @@ export class SecurityController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async setPin(@Req() req, @Body("pin") pin: string) {
-        return this.securityService.setPin(this.getCurrentUserId(req), pin);
+    async setPin(@Req() req, @Body() dto: PinBodyDto) {
+        const security = await this.securityService.setPin(this.getCurrentUserId(req), dto.pin);
+        return {
+            id: security.id,
+            userId: security.userId,
+            updatedAt: security.updatedAt
+        };
     }
 
     @Post("verify-pin")
@@ -62,17 +63,11 @@ export class SecurityController {
         description: "Validate entered PIN of current user."
     })
     @ApiBody({
-        schema: {
-            type: "object",
-            properties: {
-                pin: { type: "string", example: "1234" }
-            },
-            required: ["pin"]
-        }
+        type: PinBodyDto
     })
     @ApiOkResponse({
         description: "PIN verified",
-        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+        type: VerifyPinResponseDto
     })
     @ApiBadRequestResponse({
         description: "PIN not set or PIN mismatch"
@@ -80,8 +75,8 @@ export class SecurityController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async verifyPin(@Req() req, @Body("pin") pin: string) {
-        return this.securityService.verifyPin(this.getCurrentUserId(req), pin);
+    async verifyPin(@Req() req, @Body() dto: PinBodyDto) {
+        return this.securityService.verifyPin(this.getCurrentUserId(req), dto.pin);
     }
 
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {

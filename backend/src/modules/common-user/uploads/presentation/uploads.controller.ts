@@ -14,6 +14,7 @@ import { memoryStorage } from "multer";
 import { UploadsService } from "../application/uploads.service";
 import { PresignDto } from "./dto/presign.dto";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
+import { PresignedUploadResponseDto, UploadFileResponseDto } from "./dto/upload-ops.dto";
 
 @ApiTags("uploads")
 @ApiBearerAuth("JWT-auth")
@@ -29,7 +30,8 @@ export class UploadsController {
         description: "Backward-compatible endpoint for cloud upload pre-signing."
     })
     @ApiOkResponse({
-        description: "Presigned payload returned"
+        description: "Presigned payload returned",
+        type: PresignedUploadResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid fileName/type or feature disabled"
@@ -59,7 +61,8 @@ export class UploadsController {
         }
     })
     @ApiOkResponse({
-        description: "Upload success with file URL and metadata"
+        description: "Upload success with file URL and metadata",
+        type: UploadFileResponseDto
     })
     @ApiBadRequestResponse({
         description: "Missing file, unsupported type, or file too large"

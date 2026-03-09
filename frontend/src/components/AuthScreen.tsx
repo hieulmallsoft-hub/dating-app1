@@ -1,71 +1,13 @@
-import React, { useMemo, useState } from "react";
-import { Apple, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { BACKEND_URL } from "../api/http";
-import * as authApi from "../api/auth";
-import { getHttpMessage } from "../api/error";
-import { setTokens } from "../lib/authStorage";
 
 type Props = {
   onAuthSuccess: () => void;
 };
 
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
-}
-
-export default function AuthScreen({ onAuthSuccess }: Props) {
-  const [gender, setGender] = useState<0 | 1 | 2 | "">("");
-  const [birthDate, setBirthDate] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const canSubmit = useMemo(() => {
-    const emailOk = normalizeEmail(email).length > 0;
-    if (mode === "login") {
-      return emailOk && password.length >= 6 && !isSubmitting;
-    }
-    return emailOk && gender !== "" && birthDate.trim().length > 0 && !isSubmitting;
-  }, [email, password, mode, gender, birthDate, isSubmitting]);
-
+export default function AuthScreen({ onAuthSuccess: _onAuthSuccess }: Props) {
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_URL}/auth/google`;
-  };
-
-  const handleAppleLogin = () => {
-    window.location.href = `${BACKEND_URL}/auth/apple`;
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const payloadEmail = normalizeEmail(email);
-      const result =
-        mode === "login"
-          ? await authApi.login({ email: payloadEmail, password })
-          : await authApi.register({
-              email: payloadEmail,
-              fullName: fullName.trim() || undefined,
-              gender: gender as 0 | 1 | 2,
-              birthDate: birthDate.trim(),
-              avatar: avatar.trim() || undefined
-            });
-
-      setTokens(result.tokens);
-      onAuthSuccess();
-    } catch (err: unknown) {
-      setError(getHttpMessage(err, "Request failed"));
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -75,120 +17,9 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
       </div>
 
       <h1>Fozi</h1>
-      <p>
-        {mode === "login" ? "Dang nhap de tiep tuc" : "Tao tai khoan moi"}
-      </p>
-
-      <div className="auth-tabs">
-        <button
-          className={`auth-tab ${mode === "login" ? "active" : ""}`}
-          onClick={() => setMode("login")}
-          type="button"
-        >
-          Dang nhap
-        </button>
-        <button
-          className={`auth-tab ${mode === "register" ? "active" : ""}`}
-          onClick={() => setMode("register")}
-          type="button"
-        >
-          Dang ky
-        </button>
-      </div>
-
-      <form className="auth-form" onSubmit={submit}>
-        {mode === "register" ? (
-          <>
-            <label className="auth-field">
-              <span>Ho ten (tuy chon)</span>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Nguyen Van A"
-                autoComplete="name"
-              />
-            </label>
-            <label className="auth-field">
-              <span>Gioi tinh</span>
-                <select
-                  className="select"
-                  value={gender === "" ? "" : String(gender)}
-                  onChange={(e) =>
-                    setGender(e.target.value === "" ? "" : (Number(e.target.value) as 0 | 1 | 2))
-                  }
-                >
-                  <option value="">Chon gioi tinh</option>
-                  <option value="0">0 - MALE</option>
-                  <option value="1">1 - FEMALE</option>
-                  <option value="2">2 - OTHER</option>
-                </select>
-              </label>
-            <label className="auth-field">
-              <span>Ngay sinh</span>
-              <input
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                type="date"
-                max="2099-12-31"
-              />
-            </label>
-            <label className="auth-field">
-              <span>Avatar URL (tuy chon)</span>
-              <input
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://cdn.example.com/avatar.jpg"
-                inputMode="url"
-              />
-            </label>
-          </>
-        ) : null}
-
-        <label className="auth-field">
-          <span>Email</span>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            inputMode="email"
-          />
-        </label>
-
-        {mode === "login" ? (
-          <label className="auth-field">
-            <span>Mat khau</span>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Toi thieu 6 ky tu"
-              autoComplete="current-password"
-              type="password"
-            />
-          </label>
-        ) : null}
-
-        {error ? <div className="auth-error">{error}</div> : null}
-
-        <button className="btn btn-primary" type="submit" disabled={!canSubmit}>
-          {isSubmitting
-            ? "Dang xu ly..."
-            : mode === "login"
-              ? "Dang nhap"
-              : "Dang ky"}
-        </button>
-      </form>
-
-      <div className="auth-divider">
-        <span>Hoac</span>
-      </div>
+      <p>Dang nhap / dang ky bang Google</p>
 
       <div className="button-group" style={{ maxWidth: 360 }}>
-        <button className="btn btn-apple" onClick={handleAppleLogin} type="button">
-          <Apple className="btn-icon" />
-          Tiep tuc voi Apple
-        </button>
-
         <button className="btn btn-google" onClick={handleGoogleLogin} type="button">
           <svg className="btn-icon" viewBox="0 0 24 24">
             <path

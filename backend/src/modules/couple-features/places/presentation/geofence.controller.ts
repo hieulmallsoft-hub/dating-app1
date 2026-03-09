@@ -10,7 +10,7 @@ import {
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { PlacesService } from "../application/places.service";
-import { GeofenceEventDto } from "./dto/geofence.dto";
+import { GeofenceEventDto, GeofenceEventResponseDto } from "./dto/geofence.dto";
 
 @ApiTags("geofence")
 @ApiBearerAuth("JWT-auth")
@@ -25,7 +25,8 @@ export class GeofenceController {
         description: "Sends ENTER/EXIT event of a place from mobile client."
     })
     @ApiCreatedResponse({
-        description: "Geofence event processed"
+        description: "Geofence event processed",
+        type: GeofenceEventResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid transition payload or user has no partner"

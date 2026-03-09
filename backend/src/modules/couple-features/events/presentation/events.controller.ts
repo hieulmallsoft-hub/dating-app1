@@ -12,7 +12,12 @@ import {
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 import { EventsService } from "../application/events.service";
-import { CreateEventDto, UpdateEventDto } from "./dto/event-ops.dto";
+import {
+    CreateEventDto,
+    EventActionResponseDto,
+    EventResponseDto,
+    UpdateEventDto
+} from "./dto/event-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 
 @ApiTags("events")
@@ -28,7 +33,9 @@ export class EventsController {
         description: "Returns event list of current user's couple (sorted by date ascending)."
     })
     @ApiOkResponse({
-        description: "Events returned"
+        description: "Events returned",
+        type: EventResponseDto,
+        isArray: true
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -46,7 +53,8 @@ export class EventsController {
         description: "Creates a new event for current couple."
     })
     @ApiCreatedResponse({
-        description: "Event created"
+        description: "Event created",
+        type: EventResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed (missing title/date or invalid date)"
@@ -72,7 +80,8 @@ export class EventsController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Event updated"
+        description: "Event updated",
+        type: EventResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed"
@@ -102,7 +111,7 @@ export class EventsController {
     })
     @ApiOkResponse({
         description: "Event deleted",
-        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+        type: EventActionResponseDto
     })
     @ApiNotFoundResponse({
         description: "Event not found"

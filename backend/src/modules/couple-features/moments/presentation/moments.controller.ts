@@ -23,7 +23,12 @@ import {
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 import { MomentsService } from "../application/moments.service";
-import { CreateMomentDto, UpdateMomentDto } from "./dto/moment-ops.dto";
+import {
+    CreateMomentDto,
+    MomentActionResponseDto,
+    MomentResponseDto,
+    UpdateMomentDto
+} from "./dto/moment-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 
 @ApiTags("moments")
@@ -39,7 +44,9 @@ export class MomentsController {
         description: "Returns moments feed for current couple."
     })
     @ApiOkResponse({
-        description: "Moments feed returned"
+        description: "Moments feed returned",
+        type: MomentResponseDto,
+        isArray: true
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -57,7 +64,8 @@ export class MomentsController {
         description: "Creates a moment. If photos provided, media album is synced automatically."
     })
     @ApiCreatedResponse({
-        description: "Moment created"
+        description: "Moment created",
+        type: MomentResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed (invalid privacy or payload)"
@@ -83,7 +91,8 @@ export class MomentsController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Moment updated"
+        description: "Moment updated",
+        type: MomentResponseDto
     })
     @ApiNotFoundResponse({
         description: "Moment not found"
@@ -113,7 +122,7 @@ export class MomentsController {
     })
     @ApiOkResponse({
         description: "Moment deleted",
-        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+        type: MomentActionResponseDto
     })
     @ApiNotFoundResponse({
         description: "Moment not found"

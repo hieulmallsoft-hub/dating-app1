@@ -27,6 +27,13 @@ import {
 import { MediaService } from "../application/media.service";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { CreateMediaDto } from "./dto/create-media.dto";
+import {
+    MediaActionResponseDto,
+    MediaAlbumResponseDto,
+    MediaChangesResponseDto,
+    MediaDownloadResponseDto,
+    MediaItemResponseDto
+} from "./dto/media-ops.dto";
 import { UpdateMediaDto } from "./dto/update-media.dto";
 import { UpdateMediaStatusDto } from "./dto/update-media-status.dto";
 
@@ -53,6 +60,7 @@ export class MediaController {
     @ApiQuery({
         name: "limit",
         required: false,
+        type: Number,
         description: "Page size (clamped by service)",
         example: 20
     })
@@ -63,7 +71,8 @@ export class MediaController {
         example: "2026-03-09T08:00:00.000Z|7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Album page returned"
+        description: "Album page returned",
+        type: MediaAlbumResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid filter/cursor"
@@ -89,17 +98,20 @@ export class MediaController {
     @ApiQuery({
         name: "since",
         required: false,
+        type: Number,
         description: "Version number",
         example: 0
     })
     @ApiQuery({
         name: "timeoutMs",
         required: false,
+        type: Number,
         description: "Long-poll timeout in milliseconds",
         example: 25000
     })
     @ApiOkResponse({
-        description: "Change event or timeout response returned"
+        description: "Change event or timeout response returned",
+        type: MediaChangesResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
@@ -120,7 +132,8 @@ export class MediaController {
         description: "Creates a media item in current couple album."
     })
     @ApiCreatedResponse({
-        description: "Media created"
+        description: "Media created",
+        type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed (url/type/visibility...)"
@@ -146,7 +159,8 @@ export class MediaController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Media detail returned"
+        description: "Media detail returned",
+        type: MediaItemResponseDto
     })
     @ApiNotFoundResponse({
         description: "Media not found"
@@ -173,10 +187,7 @@ export class MediaController {
     })
     @ApiOkResponse({
         description: "Download URL returned",
-        schema: {
-            type: "object",
-            properties: { downloadUrl: { type: "string", example: "https://cdn.example.com/file.jpg" } }
-        }
+        type: MediaDownloadResponseDto
     })
     @ApiNotFoundResponse({
         description: "Media not found"
@@ -203,7 +214,8 @@ export class MediaController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Media updated"
+        description: "Media updated",
+        type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
         description: "Validation failed"
@@ -229,7 +241,8 @@ export class MediaController {
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Status updated"
+        description: "Status updated",
+        type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
         description: "Invalid status"
@@ -256,7 +269,7 @@ export class MediaController {
     })
     @ApiOkResponse({
         description: "Media deleted",
-        schema: { type: "object", properties: { success: { type: "boolean", example: true } } }
+        type: MediaActionResponseDto
     })
     @ApiNotFoundResponse({
         description: "Media not found"
