@@ -29,19 +29,19 @@ export class EventsController {
 
     @Get()
     @ApiOperation({
-        summary: "Get couple events",
-        description: "Returns event list of current user's couple (sorted by date ascending)."
+        summary: "L?y danh sách s? ki?n c?a c?p dôi",
+        description: "Tr? v? danh sách s? ki?n c?a c?p dôi hi?n t?i (s?p x?p theo ngày tang d?n)."
     })
     @ApiOkResponse({
-        description: "Events returned",
+        description: "Ðã tr? v? danh sách s? ki?n",
         type: EventResponseDto,
         isArray: true
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getEvents(@Req() req) {
         return this.eventsService.getEvents(this.getCurrentUserId(req));
@@ -49,21 +49,21 @@ export class EventsController {
 
     @Post()
     @ApiOperation({
-        summary: "Create event",
-        description: "Creates a new event for current couple."
+        summary: "T?o s? ki?n",
+        description: "T?o s? ki?n m?i cho c?p dôi hi?n t?i."
     })
     @ApiCreatedResponse({
-        description: "Event created",
+        description: "Ðã t?o s? ki?n",
         type: EventResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Validation failed (missing title/date or invalid date)"
+        description: "D? li?u không h?p l? (thi?u title/date ho?c date sai d?nh d?ng)"
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async createEvent(@Req() req, @Body() dto: CreateEventDto) {
         return this.eventsService.createEvent(this.getCurrentUserId(req), dto);
@@ -71,29 +71,29 @@ export class EventsController {
 
     @Put(":id")
     @ApiOperation({
-        summary: "Update event",
-        description: "Updates an existing event by id."
+        summary: "C?p nh?t s? ki?n",
+        description: "C?p nh?t s? ki?n theo id."
     })
     @ApiParam({
         name: "id",
-        description: "Event id",
+        description: "ID s? ki?n",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Event updated",
+        description: "Ðã c?p nh?t s? ki?n",
         type: EventResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Validation failed"
+        description: "D? li?u không h?p l?"
     })
     @ApiNotFoundResponse({
-        description: "Event not found"
+        description: "Không tìm th?y s? ki?n"
     })
     @ApiForbiddenResponse({
-        description: "Event does not belong to current user's couple"
+        description: "S? ki?n không thu?c c?p dôi c?a ngu?i dùng hi?n t?i"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async updateEvent(@Req() req, @Param("id") id: string, @Body() dto: UpdateEventDto) {
         return this.eventsService.updateEvent(this.getCurrentUserId(req), id, dto);
@@ -101,26 +101,26 @@ export class EventsController {
 
     @Delete(":id")
     @ApiOperation({
-        summary: "Delete event",
-        description: "Deletes event by id."
+        summary: "Xóa s? ki?n",
+        description: "Xóa s? ki?n theo id."
     })
     @ApiParam({
         name: "id",
-        description: "Event id",
+        description: "ID s? ki?n",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Event deleted",
+        description: "Ðã xóa s? ki?n",
         type: EventActionResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Event not found"
+        description: "Không tìm th?y s? ki?n"
     })
     @ApiForbiddenResponse({
-        description: "Event does not belong to current user's couple"
+        description: "S? ki?n không thu?c c?p dôi c?a ngu?i dùng hi?n t?i"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async deleteEvent(@Req() req, @Param("id") id: string) {
         return this.eventsService.deleteEvent(this.getCurrentUserId(req), id);
@@ -134,6 +134,7 @@ export class EventsController {
         return userId;
     }
 }
+
 
 
 

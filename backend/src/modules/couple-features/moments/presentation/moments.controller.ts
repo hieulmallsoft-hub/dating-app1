@@ -40,19 +40,19 @@ export class MomentsController {
 
     @Get()
     @ApiOperation({
-        summary: "Get moments feed",
-        description: "Returns moments feed for current couple."
+        summary: "L?y b?ng tin kho?nh kh?c",
+        description: "Tr? v? b?ng tin kho?nh kh?c c?a c?p dôi hi?n t?i."
     })
     @ApiOkResponse({
-        description: "Moments feed returned",
+        description: "Ðã tr? v? b?ng tin kho?nh kh?c",
         type: MomentResponseDto,
         isArray: true
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getFeed(@Req() req) {
         return this.momentsService.getFeed(this.getCurrentUserId(req));
@@ -60,21 +60,21 @@ export class MomentsController {
 
     @Post()
     @ApiOperation({
-        summary: "Create moment",
-        description: "Creates a moment. If photos provided, media album is synced automatically."
+        summary: "T?o kho?nh kh?c",
+        description: "T?o kho?nh kh?c. N?u có photos, album media s? du?c d?ng b? t? d?ng."
     })
     @ApiCreatedResponse({
-        description: "Moment created",
+        description: "Ðã t?o kho?nh kh?c",
         type: MomentResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Validation failed (invalid privacy or payload)"
+        description: "D? li?u không h?p l? (privacy ho?c payload sai)"
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async createMoment(@Req() req, @Body() dto: CreateMomentDto) {
         return this.momentsService.createMoment(this.getCurrentUserId(req), dto);
@@ -82,29 +82,29 @@ export class MomentsController {
 
     @Put(":id")
     @ApiOperation({
-        summary: "Update moment",
-        description: "Updates a moment by id."
+        summary: "C?p nh?t kho?nh kh?c",
+        description: "C?p nh?t kho?nh kh?c theo id."
     })
     @ApiParam({
         name: "id",
-        description: "Moment id",
+        description: "ID kho?nh kh?c",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Moment updated",
+        description: "Ðã c?p nh?t kho?nh kh?c",
         type: MomentResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Moment not found"
+        description: "Không tìm th?y kho?nh kh?c"
     })
     @ApiForbiddenResponse({
-        description: "Current user is not the creator of this moment"
+        description: "Ngu?i dùng hi?n t?i không ph?i ngu?i t?o kho?nh kh?c này"
     })
     @ApiBadRequestResponse({
-        description: "Validation failed"
+        description: "D? li?u không h?p l?"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async updateMoment(@Req() req, @Param("id") id: string, @Body() dto: UpdateMomentDto) {
         return this.momentsService.updateMoment(this.getCurrentUserId(req), id, dto);
@@ -112,26 +112,26 @@ export class MomentsController {
 
     @Delete(":id")
     @ApiOperation({
-        summary: "Delete moment",
-        description: "Deletes a moment by id."
+        summary: "Xóa kho?nh kh?c",
+        description: "Xóa kho?nh kh?c theo id."
     })
     @ApiParam({
         name: "id",
-        description: "Moment id",
+        description: "ID kho?nh kh?c",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Moment deleted",
+        description: "Ðã xóa kho?nh kh?c",
         type: MomentActionResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Moment not found"
+        description: "Không tìm th?y kho?nh kh?c"
     })
     @ApiForbiddenResponse({
-        description: "Current user is not the creator of this moment"
+        description: "Ngu?i dùng hi?n t?i không ph?i ngu?i t?o kho?nh kh?c này"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async deleteMoment(@Req() req, @Param("id") id: string) {
         return this.momentsService.deleteMoment(this.getCurrentUserId(req), id);
@@ -145,6 +145,7 @@ export class MomentsController {
         return userId;
     }
 }
+
 
 
 

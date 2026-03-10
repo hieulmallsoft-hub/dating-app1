@@ -1,6 +1,11 @@
 import { registerAs } from "@nestjs/config";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+const splitCsv = (value?: string) =>
+    (value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
 export const resolveAuthBaseUrl = () => {
     const explicitBaseUrl = process.env.AUTH_BASE_URL || process.env.APP_URL;
@@ -24,6 +29,12 @@ export const resolveOAuthCallbackUrl = (provider: "google" | "apple") => {
 export default registerAs("auth", () => ({
     google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
+        clientIds: Array.from(
+            new Set([
+                ...splitCsv(process.env.GOOGLE_CLIENT_IDS),
+                ...splitCsv(process.env.GOOGLE_CLIENT_ID)
+            ])
+        ),
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackUrl: resolveOAuthCallbackUrl("google")
     },

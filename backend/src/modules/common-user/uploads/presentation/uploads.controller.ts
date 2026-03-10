@@ -26,18 +26,18 @@ export class UploadsController {
     @Post("presign")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Create presigned upload URL (legacy)",
-        description: "Backward-compatible endpoint for cloud upload pre-signing."
+        summary: "T?o URL presigned d? upload (legacy)",
+        description: "Endpoint tuong thích ngu?c cho co ch? presign upload trên cloud."
     })
     @ApiOkResponse({
-        description: "Presigned payload returned",
+        description: "Tr? v? payload presigned",
         type: PresignedUploadResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid fileName/type or feature disabled"
+        description: "fileName/type không h?p l? ho?c tính nang b? t?t"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async presign(@Body() presignDto: PresignDto) {
         return this.uploadsService.generatePresignedUrl(presignDto.fileName, presignDto.type);
@@ -46,9 +46,9 @@ export class UploadsController {
     @Post("file")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Upload file directly",
+        summary: "T?i file tr?c ti?p",
         description:
-            "Upload a single file using multipart/form-data. Allowed mime types include image/audio/video, max size 50MB."
+            "T?i lên m?t file b?ng multipart/form-data. MIME du?c phép g?m image/audio/video, dung lu?ng t?i da 50MB."
     })
     @ApiConsumes("multipart/form-data")
     @ApiBody({
@@ -61,14 +61,14 @@ export class UploadsController {
         }
     })
     @ApiOkResponse({
-        description: "Upload success with file URL and metadata",
+        description: "T?i file thành công, tr? v? URL và metadata",
         type: UploadFileResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Missing file, unsupported type, or file too large"
+        description: "Thi?u file, d?nh d?ng không h? tr? ho?c file quá l?n"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     @UseInterceptors(
         FileInterceptor("file", {
@@ -102,3 +102,4 @@ export class UploadsController {
         return this.uploadsService.uploadFile(file);
     }
 }
+

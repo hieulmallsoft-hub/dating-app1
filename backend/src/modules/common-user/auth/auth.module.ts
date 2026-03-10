@@ -20,7 +20,10 @@ import { WsJwtGuard } from "./infrastructure/strategies/ws-jwt.guard";
             useFactory: async (configService: ConfigService) => ({
                 secret: configService.get<string>("JWT_SECRET") || "secretKey",
                 signOptions: {
-                    expiresIn: (configService.get<string>("JWT_EXPIRES_IN") || "1d") as any
+                    expiresIn:
+                        (configService.get<string>("JWT_EXPIRES_IN") ||
+                            configService.get<string>("JWT_EXPIRATION") ||
+                            "1d") as any
                 }
             })
         })

@@ -42,18 +42,18 @@ export class CoupleController {
 
     @Get()
     @ApiOperation({
-        summary: "Get current couple info",
-        description: "Returns couple data and partner info for current user."
+        summary: "L?y thông tin c?p dôi hi?n t?i",
+        description: "Tr? v? d? li?u c?p dôi và thông tin d?i phuong c?a ngu?i dùng hi?n t?i."
     })
     @ApiOkResponse({
-        description: "Couple info returned",
+        description: "Ðã tr? v? thông tin c?p dôi",
         type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getCouple(@Req() req) {
         return this.coupleService.getMyCoupleWithPartner(this.getCurrentUserId(req));
@@ -61,18 +61,18 @@ export class CoupleController {
 
     @Get("locations")
     @ApiOperation({
-        summary: "Get couple live locations",
-        description: "Returns latest location for me and partner."
+        summary: "L?y v? trí live c?a c?p dôi",
+        description: "Tr? v? v? trí m?i nh?t c?a tôi và d?i phuong."
     })
     @ApiOkResponse({
-        description: "Location pair returned",
+        description: "Ðã tr? v? c?p v? trí",
         type: CoupleLocationsResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getCoupleLocations(@Req() req) {
         return this.coupleService.getCoupleLocations(this.getCurrentUserId(req));
@@ -80,25 +80,25 @@ export class CoupleController {
 
     @Get("location-history")
     @ApiOperation({
-        summary: "Get couple location history",
-        description: "Returns location history of both users. limit is clamped by service."
+        summary: "L?y l?ch s? v? trí c?p dôi",
+        description: "Tr? v? l?ch s? v? trí c?a c? hai ngu?i dùng. limit s? du?c gi?i h?n b?i service."
     })
     @ApiQuery({
         name: "limit",
         required: false,
         type: Number,
-        description: "History item limit",
+        description: "Gi?i h?n s? di?m l?ch s?",
         example: 120
     })
     @ApiOkResponse({
-        description: "Location history returned",
+        description: "Ðã tr? v? l?ch s? v? trí",
         type: CoupleLocationHistoryResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getCoupleLocationHistory(@Req() req, @Query("limit") limit?: string) {
         const parsedLimit = limit ? Number(limit) : undefined;
@@ -108,18 +108,18 @@ export class CoupleController {
     @Post("invite")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Create invite code",
-        description: "Creates a pending invite code for current user."
+        summary: "T?o mã m?i",
+        description: "T?o mã m?i dang ch? cho ngu?i dùng hi?n t?i."
     })
     @ApiOkResponse({
-        description: "Invite created",
+        description: "Ðã t?o mã m?i",
         type: InviteResponseDto
     })
     @ApiConflictResponse({
-        description: "Current user is already in a couple"
+        description: "Ngu?i dùng hi?n t?i dã có c?p dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async createInvite(@Req() req) {
         return this.coupleService.createInvite(this.getCurrentUserId(req));
@@ -128,24 +128,24 @@ export class CoupleController {
     @Post("join")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Join couple with invite code",
-        description: "Join an existing invite code and create couple relation."
+        summary: "Ghép dôi b?ng mã m?i",
+        description: "Dùng mã m?i h?p l? d? t?o quan h? c?p dôi."
     })
     @ApiOkResponse({
-        description: "Join success",
+        description: "Ghép dôi thành công",
         type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid invite code format, expired code, or code already used"
+        description: "Mã m?i sai d?nh d?ng, dã h?t h?n ho?c dã du?c s? d?ng"
     })
     @ApiNotFoundResponse({
-        description: "Invite code not found"
+        description: "Không tìm th?y mã m?i"
     })
     @ApiConflictResponse({
-        description: "Current user already has a couple"
+        description: "Ngu?i dùng hi?n t?i dã có c?p dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async joinCouple(@Req() req, @Body() joinCoupleDto: JoinCoupleDto) {
         return this.coupleService.joinCouple(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
@@ -154,18 +154,18 @@ export class CoupleController {
     @Post("disconnect")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Disconnect current couple",
-        description: "Disconnects current couple relation."
+        summary: "Ng?t k?t n?i c?p dôi hi?n t?i",
+        description: "Ng?t quan h? c?p dôi hi?n t?i."
     })
     @ApiOkResponse({
-        description: "Disconnected",
+        description: "Ðã ng?t k?t n?i",
         type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async disconnect(@Req() req) {
         return this.coupleService.disconnect(this.getCurrentUserId(req));
@@ -174,21 +174,21 @@ export class CoupleController {
     @Post("connect-new")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Connect to new couple via invite",
-        description: "Disconnect old couple (if any) then connect to new invite code."
+        summary: "K?t n?i c?p dôi m?i b?ng mã m?i",
+        description: "Ng?t c?p dôi cu (n?u có) r?i k?t n?i v?i mã m?i m?i."
     })
     @ApiOkResponse({
-        description: "Connected to new couple",
+        description: "Ðã k?t n?i v?i c?p dôi m?i",
         type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid/expired/used invite code"
+        description: "Mã m?i không h?p l?/dã h?t h?n/dã s? d?ng"
     })
     @ApiNotFoundResponse({
-        description: "Invite code not found"
+        description: "Không tìm th?y mã m?i"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async connectNew(@Req() req, @Body() joinCoupleDto: JoinCoupleDto) {
         return this.coupleService.connectNew(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
@@ -196,21 +196,21 @@ export class CoupleController {
 
     @Put("start-date")
     @ApiOperation({
-        summary: "Update couple start date",
-        description: "Sets relationship start date."
+        summary: "C?p nh?t ngày b?t d?u yêu nhau",
+        description: "Thi?t l?p ngày b?t d?u m?i quan h?."
     })
     @ApiOkResponse({
-        description: "Start date updated",
+        description: "Ðã c?p nh?t ngày b?t d?u",
         type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid date format"
+        description: "Sai d?nh d?ng ngày"
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async setStartDate(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
         return this.coupleService.updateCouple(this.getCurrentUserId(req), { startDate: updateCoupleDto.startDate });
@@ -218,18 +218,18 @@ export class CoupleController {
 
     @Put("theme")
     @ApiOperation({
-        summary: "Update couple theme",
-        description: "Sets current couple theme."
+        summary: "C?p nh?t giao di?n c?p dôi",
+        description: "Thi?t l?p giao di?n hi?n t?i c?a c?p dôi."
     })
     @ApiOkResponse({
-        description: "Theme updated",
+        description: "Ðã c?p nh?t giao di?n",
         type: CoupleResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async setTheme(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
         return this.coupleService.updateCouple(this.getCurrentUserId(req), { theme: updateCoupleDto.theme });
@@ -243,6 +243,7 @@ export class CoupleController {
         return userId;
     }
 }
+
 
 
 

@@ -2,11 +2,20 @@ import { ServiceUnavailableException, UnauthorizedException } from "@nestjs/comm
 import { AuthService } from "./auth.service";
 
 describe("AuthService Google login security", () => {
-    const createService = (googleClientId?: string) => {
-        const usersService = {} as any;
+    const validJwt = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln";
+
+    const createService = (googleClientId?: string, googleClientIds?: string[], usersServiceOverride?: any) => {
+        const usersService =
+            usersServiceOverride ||
+            ({
+                clearSession: jest.fn()
+            } as any);
         const jwtService = {} as any;
         const configService = {
             get: jest.fn((key: string) => {
+                if (key === "auth.google.clientIds") {
+                    return googleClientIds;
+                }
                 if (key === "auth.google.clientId") {
                     return googleClientId;
                 }
@@ -38,6 +47,15 @@ describe("AuthService Google login security", () => {
         expect(verifyIdToken).not.toHaveBeenCalled();
     });
 
+    it("rejects malformed JWT before calling Google verification", async () => {
+        const service = createService("google-client-id");
+        const verifyIdToken = jest.fn();
+        (service as any).googleClient = { verifyIdToken };
+
+        await expect(service.loginWithGoogle("a.b.c")).rejects.toThrow("Malformed Google idToken");
+        expect(verifyIdToken).not.toHaveBeenCalled();
+    });
+
     it("rejects token when email is not verified", async () => {
         const service = createService("google-client-id");
         mockGoogleVerifyPayload(service, {
@@ -47,7 +65,7 @@ describe("AuthService Google login security", () => {
             iss: "https://accounts.google.com"
         });
 
-        await expect(service.loginWithGoogle("id-token")).rejects.toBeInstanceOf(UnauthorizedException);
+        await expect(service.loginWithGoogle(validJwt)).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it("rejects token when issuer is invalid", async () => {
@@ -59,7 +77,7 @@ describe("AuthService Google login security", () => {
             iss: "https://evil.example"
         });
 
-        await expect(service.loginWithGoogle("id-token")).rejects.toBeInstanceOf(UnauthorizedException);
+        await expect(service.loginWithGoogle(validJwt)).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it("maps verified payload and delegates to social validation", async () => {
@@ -90,10 +108,10 @@ describe("AuthService Google login security", () => {
             .spyOn(service, "validateSocialUser")
             .mockResolvedValue(expected as any);
 
-        const result = await service.loginWithGoogle("id-token");
+        const result = await service.loginWithGoogle(`  ${validJwt}  `);
 
         expect(verifyIdToken).toHaveBeenCalledWith({
-            idToken: "id-token",
+            idToken: validJwt,
             audience: "google-client-id"
         });
         expect(validateSocialUserSpy).toHaveBeenCalledWith({
@@ -104,5 +122,61 @@ describe("AuthService Google login security", () => {
             provider: "GOOGLE"
         });
         expect(result).toEqual(expected);
+    });
+
+    it("accepts multiple configured Google audiences", async () => {
+        const service = createService(undefined, ["android-client-id", "ios-client-id"]);
+        const verifyIdToken = mockGoogleVerifyPayload(service, {
+            sub: "google-sub-abc",
+            email: "user@example.com",
+            name: "User One",
+            picture: "https://example.com/avatar.png",
+            email_verified: true,
+            iss: "https://accounts.google.com"
+        });
+
+        const validateSocialUserSpy = jest
+            .spyOn(service, "validateSocialUser")
+            .mockResolvedValue({ user: {}, tokens: {}, meta: {} } as any);
+
+        await service.loginWithGoogle(validJwt);
+
+        expect(verifyIdToken).toHaveBeenCalledWith({
+            idToken: validJwt,
+            audience: ["android-client-id", "ios-client-id"]
+        });
+        expect(validateSocialUserSpy).toHaveBeenCalled();
+    });
+
+    it("redacts JWT from verification error logs and returns signature error", async () => {
+        const service = createService("google-client-id");
+        const loggedErrors: string[] = [];
+        (service as any).logger = {
+            error: (message: string) => loggedErrors.push(message)
+        };
+
+        const rawJwt = "aaa.bbb.ccc";
+        (service as any).googleClient = {
+            verifyIdToken: jest
+                .fn()
+                .mockRejectedValue(new Error(`Invalid token signature: ${rawJwt}`))
+        };
+
+        await expect(service.loginWithGoogle(validJwt)).rejects.toThrow(
+            "Invalid Google token signature"
+        );
+        expect(loggedErrors[0]).toContain("[redacted-jwt]");
+        expect(loggedErrors[0]).not.toContain(rawJwt);
+    });
+
+    it("clears server-side session on logout", async () => {
+        const usersService = {
+            clearSession: jest.fn().mockResolvedValue(1)
+        } as any;
+        const service = createService("google-client-id", undefined, usersService);
+
+        await service.logout("user-id-1");
+
+        expect(usersService.clearSession).toHaveBeenCalledWith("user-id-1");
     });
 });

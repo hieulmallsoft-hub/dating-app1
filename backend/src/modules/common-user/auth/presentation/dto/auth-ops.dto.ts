@@ -1,5 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
 
 export class SocialLoginDto {
     @ApiProperty({
@@ -7,6 +8,7 @@ export class SocialLoginDto {
         example:
             "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij... (idToken from Google Sign-In SDK)"
     })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
     @IsString()
     @IsNotEmpty()
     idToken: string;

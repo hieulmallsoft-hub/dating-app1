@@ -31,21 +31,21 @@ export class SecurityController {
     @Post("pin")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Set security PIN",
-        description: "Set or update 4-digit PIN for current user."
+        summary: "Thi?t l?p PIN b?o m?t",
+        description: "Thi?t l?p ho?c c?p nh?t PIN 4 ch? s? cho ngu?i dùng hi?n t?i."
     })
     @ApiBody({
         type: PinBodyDto
     })
     @ApiOkResponse({
-        description: "PIN set successfully",
+        description: "Thi?t l?p PIN thành công",
         type: SetPinResponseDto
     })
     @ApiBadRequestResponse({
-        description: "PIN invalid format (must be 4 digits)"
+        description: "Ð?nh d?ng PIN không h?p l? (ph?i g?m 4 ch? s?)"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async setPin(@Req() req, @Body() dto: PinBodyDto) {
         const security = await this.securityService.setPin(this.getCurrentUserId(req), dto.pin);
@@ -59,21 +59,21 @@ export class SecurityController {
     @Post("verify-pin")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Verify security PIN",
-        description: "Validate entered PIN of current user."
+        summary: "Xác th?c PIN b?o m?t",
+        description: "Xác th?c mã PIN ngu?i dùng v?a nh?p."
     })
     @ApiBody({
         type: PinBodyDto
     })
     @ApiOkResponse({
-        description: "PIN verified",
+        description: "Xác th?c PIN thành công",
         type: VerifyPinResponseDto
     })
     @ApiBadRequestResponse({
-        description: "PIN not set or PIN mismatch"
+        description: "Chua thi?t l?p PIN ho?c PIN không kh?p"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async verifyPin(@Req() req, @Body() dto: PinBodyDto) {
         return this.securityService.verifyPin(this.getCurrentUserId(req), dto.pin);
@@ -87,3 +87,4 @@ export class SecurityController {
         return userId;
     }
 }
+

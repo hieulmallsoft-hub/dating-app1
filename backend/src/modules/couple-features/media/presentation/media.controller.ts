@@ -47,13 +47,13 @@ export class MediaController {
 
     @Get()
     @ApiOperation({
-        summary: "Get media album",
-        description: "Returns paginated media of current couple with filter + cursor."
+        summary: "L?y album media",
+        description: "Tr? v? danh sách media có phân trang c?a c?p dôi hi?n t?i v?i filter + cursor."
     })
     @ApiQuery({
         name: "filter",
         required: false,
-        description: "Filter media owner scope",
+        description: "B? l?c ph?m vi ch? s? h?u media",
         enum: ["all", "me", "partner"],
         example: "all"
     })
@@ -61,24 +61,24 @@ export class MediaController {
         name: "limit",
         required: false,
         type: Number,
-        description: "Page size (clamped by service)",
+        description: "Kích thu?c trang (du?c gi?i h?n b?i service)",
         example: 20
     })
     @ApiQuery({
         name: "cursor",
         required: false,
-        description: "Pagination cursor: ISO_DATE or ISO_DATE|MEDIA_ID",
+        description: "Cursor phân trang: ISO_DATE ho?c ISO_DATE|MEDIA_ID",
         example: "2026-03-09T08:00:00.000Z|7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Album page returned",
+        description: "Ðã tr? v? m?t trang album",
         type: MediaAlbumResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid filter/cursor"
+        description: "filter/cursor không h?p l?"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getMedia(
         @Req() req,
@@ -92,29 +92,29 @@ export class MediaController {
 
     @Get("changes")
     @ApiOperation({
-        summary: "Long-poll media changes",
-        description: "Waits for album changes since a given version."
+        summary: "Long-poll thay d?i media",
+        description: "Ch? thay d?i album k? t? m?t version cho tru?c."
     })
     @ApiQuery({
         name: "since",
         required: false,
         type: Number,
-        description: "Version number",
+        description: "S? version",
         example: 0
     })
     @ApiQuery({
         name: "timeoutMs",
         required: false,
         type: Number,
-        description: "Long-poll timeout in milliseconds",
+        description: "Th?i gian timeout long-poll (mili giây)",
         example: 25000
     })
     @ApiOkResponse({
-        description: "Change event or timeout response returned",
+        description: "Ðã tr? v? s? ki?n thay d?i ho?c ph?n h?i timeout",
         type: MediaChangesResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getMediaChanges(
         @Req() req,
@@ -128,21 +128,21 @@ export class MediaController {
 
     @Post()
     @ApiOperation({
-        summary: "Create media record",
-        description: "Creates a media item in current couple album."
+        summary: "T?o b?n ghi media",
+        description: "T?o m?t media trong album c?a c?p dôi hi?n t?i."
     })
     @ApiCreatedResponse({
-        description: "Media created",
+        description: "Ðã t?o media",
         type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Validation failed (url/type/visibility...)"
+        description: "D? li?u không h?p l? (url/type/visibility...)"
     })
     @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
+        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     createMedia(@Req() req, @Body() body: CreateMediaDto) {
         return this.mediaService.createForMyCouple(this.getCurrentUserId(req), body);
@@ -150,26 +150,26 @@ export class MediaController {
 
     @Get(":id")
     @ApiOperation({
-        summary: "Get media detail by id",
-        description: "Returns one media item detail."
+        summary: "L?y chi ti?t media theo id",
+        description: "Tr? v? chi ti?t m?t media."
     })
     @ApiParam({
         name: "id",
-        description: "Media id",
+        description: "ID media",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Media detail returned",
+        description: "Ðã tr? v? chi ti?t media",
         type: MediaItemResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Media not found"
+        description: "Không tìm th?y media"
     })
     @ApiForbiddenResponse({
-        description: "Media does not belong to current user's couple"
+        description: "Media không thu?c c?p dôi c?a ngu?i dùng hi?n t?i"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     getById(@Req() req, @Param("id") id: string) {
         return this.mediaService.getMediaById(this.getCurrentUserId(req), id);
@@ -177,26 +177,26 @@ export class MediaController {
     
     @Get(":id/download")
     @ApiOperation({
-        summary: "Get media download URL",
-        description: "Returns secure download URL of a media item."
+        summary: "L?y URL t?i xu?ng media",
+        description: "Tr? v? URL t?i xu?ng an toàn c?a media."
     })
     @ApiParam({
         name: "id",
-        description: "Media id",
+        description: "ID media",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Download URL returned",
+        description: "Ðã tr? v? URL t?i xu?ng",
         type: MediaDownloadResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Media not found"
+        description: "Không tìm th?y media"
     })
     @ApiForbiddenResponse({
-        description: "Media does not belong to current user's couple"
+        description: "Media không thu?c c?p dôi c?a ngu?i dùng hi?n t?i"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     async getDownloadUrl(@Req() req, @Param("id") id: string) {
         const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id);
@@ -205,26 +205,26 @@ export class MediaController {
 
     @Patch(":id")
     @ApiOperation({
-        summary: "Update media",
-        description: "Updates caption/visibility/thumbUrl of media item."
+        summary: "C?p nh?t media",
+        description: "C?p nh?t caption/visibility/thumbUrl c?a media."
     })
     @ApiParam({
         name: "id",
-        description: "Media id",
+        description: "ID media",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Media updated",
+        description: "Ðã c?p nh?t media",
         type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Validation failed"
+        description: "D? li?u không h?p l?"
     })
     @ApiNotFoundResponse({
-        description: "Media not found"
+        description: "Không tìm th?y media"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     update(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaDto) {
         return this.mediaService.updateMedia(this.getCurrentUserId(req), id, body);
@@ -232,26 +232,26 @@ export class MediaController {
 
     @Patch(":id/status")
     @ApiOperation({
-        summary: "Update media status",
-        description: "Updates processing status of media item."
+        summary: "C?p nh?t media status",
+        description: "C?p nh?t tr?ng thái x? lý c?a media."
     })
     @ApiParam({
         name: "id",
-        description: "Media id",
+        description: "ID media",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Status updated",
+        description: "Ðã c?p nh?t tr?ng thái",
         type: MediaItemResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid status"
+        description: "Tr?ng thái không h?p l?"
     })
     @ApiNotFoundResponse({
-        description: "Media not found"
+        description: "Không tìm th?y media"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     updateStatus(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaStatusDto) {
         return this.mediaService.updateMediaStatus(this.getCurrentUserId(req), id, body.status);
@@ -259,23 +259,23 @@ export class MediaController {
 
     @Delete(":id")
     @ApiOperation({
-        summary: "Delete media",
-        description: "Soft-deletes media item by id."
+        summary: "Xóa media",
+        description: "Xóa m?m media theo id."
     })
     @ApiParam({
         name: "id",
-        description: "Media id",
+        description: "ID media",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Media deleted",
+        description: "Ðã xóa media",
         type: MediaActionResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Media not found"
+        description: "Không tìm th?y media"
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
+        description: "Thi?u token truy c?p ho?c token không h?p l?"
     })
     remove(@Req() req, @Param("id") id: string) {
         return this.mediaService.deleteMedia(this.getCurrentUserId(req), id);
@@ -289,5 +289,6 @@ export class MediaController {
         return userId;
     }
 }
+
 
 

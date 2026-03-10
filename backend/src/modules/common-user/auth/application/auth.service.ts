@@ -44,6 +44,7 @@ export class AuthService {
     private readonly logger = new Logger(AuthService.name);
     private readonly refreshTokenTtlMs = 30 * 24 * 60 * 60 * 1000;
     private readonly googleClient: OAuth2Client;
+    private readonly googleClientIds: string[];
     private readonly googleClientId?: string;
 
     constructor(
@@ -51,8 +52,15 @@ export class AuthService {
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService
     ) {
-        this.googleClientId = this.configService.get<string>("auth.google.clientId")?.trim();
+        this.googleClientIds = this.resolveGoogleClientIds();
+        this.googleClientId = this.googleClientIds[0];
         this.googleClient = new OAuth2Client(this.googleClientId);
+
+        if (this.googleClientIds.length > 0) {
+            this.logger.log(`Google audiences loaded: ${this.googleClientIds.join(", ")}`);
+        } else {
+            this.logger.warn("No Google audience configured. Set GOOGLE_CLIENT_ID or GOOGLE_CLIENT_IDS.");
+        }
     }
 
     async createSession(user: any, isNewUser = false): Promise<AuthResult> {
@@ -131,15 +139,25 @@ export class AuthService {
     }
 
     async loginWithGoogle(idToken: string): Promise<AuthResult> {
-        if (!this.googleClientId) {
+        if (this.googleClientIds.length === 0) {
             this.logger.error("Google login is not configured: missing auth.google.clientId");
             throw new ServiceUnavailableException("Google login is not configured");
         }
 
+        const normalizedIdToken = this.normalizeGoogleIdToken(idToken);
+        if (!normalizedIdToken) {
+            throw new UnauthorizedException("Google idToken is required");
+        }
+        if (!this.isWellFormedJwt(normalizedIdToken)) {
+            throw new UnauthorizedException("Malformed Google idToken");
+        }
+
         try {
+            const audience: string | string[] =
+                this.googleClientIds.length === 1 ? this.googleClientIds[0] : this.googleClientIds;
             const ticket = await this.googleClient.verifyIdToken({
-                idToken,
-                audience: this.googleClientId
+                idToken: normalizedIdToken,
+                audience
             });
             const payload = ticket.getPayload();
             const allowedIssuers = new Set(["accounts.google.com", "https://accounts.google.com"]);
@@ -164,9 +182,24 @@ export class AuthService {
             if (error instanceof UnauthorizedException || error instanceof ServiceUnavailableException) {
                 throw error;
             }
-            this.logger.error(`Google token verification failed: ${error.message}`);
+
+            const reason = this.sanitizeGoogleVerifyErrorMessage(error);
+            this.logger.error(`Google token verification failed: ${reason}`);
+
+            const normalizedReason = reason.toLowerCase();
+            // if (normalizedReason.includes("wrong recipient") || normalizedReason.includes("audience")) {
+            //     throw new UnauthorizedException("Google token audience mismatch");
+            // }
+            if (normalizedReason.includes("invalid token signature")) {
+                throw new UnauthorizedException("Invalid Google token signature");
+            }
+
             throw new UnauthorizedException("Invalid Google token");
         }
+    }
+
+    async logout(userId: string): Promise<void> {
+        await this.usersService.clearSession(userId);
     }
 
     async refreshToken(token: string): Promise<AuthResult> {
@@ -308,6 +341,53 @@ export class AuthService {
         }
         const normalized = email.trim().toLowerCase();
         return normalized || undefined;
+    }
+
+    private resolveGoogleClientIds() {
+        const configuredClientIds = this.configService.get<string[] | string>("auth.google.clientIds");
+        const fallbackClientId = this.configService.get<string>("auth.google.clientId");
+
+        const fromConfig =
+            typeof configuredClientIds === "string"
+                ? configuredClientIds.split(",")
+                : Array.isArray(configuredClientIds)
+                  ? configuredClientIds
+                  : [];
+
+        const normalized = [...fromConfig, fallbackClientId]
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0);
+
+        return Array.from(new Set(normalized));
+    }
+
+    private normalizeGoogleIdToken(value: unknown): string {
+        if (typeof value !== "string") {
+            return "";
+        }
+
+        const trimmed = value.trim();
+        const unquoted = trimmed.replace(/^"(.*)"$/, "$1");
+        return unquoted.trim();
+    }
+
+    private sanitizeGoogleVerifyErrorMessage(error: unknown): string {
+        const rawMessage = error instanceof Error ? error.message : String(error ?? "unknown error");
+        const jwtPattern = /([A-Za-z0-9\-_]+\.){2}[A-Za-z0-9\-_]+/g;
+        return rawMessage.replace(jwtPattern, "[redacted-jwt]");
+    }
+
+    private isWellFormedJwt(token: string): boolean {
+        const parts = token.split(".");
+        if (parts.length !== 3) {
+            return false;
+        }
+
+        const base64UrlPattern = /^[A-Za-z0-9\-_]+$/;
+        return parts.every(
+            (part) => part.length > 0 && base64UrlPattern.test(part) && part.length % 4 !== 1
+        );
     }
 
     private normalizeBirthDate(value: unknown): string | null {

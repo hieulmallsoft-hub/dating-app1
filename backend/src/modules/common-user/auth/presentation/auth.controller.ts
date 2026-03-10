@@ -1,4 +1,4 @@
-import {
+﻿import {
     Body,
     Controller,
     Get,
@@ -7,6 +7,7 @@ import {
     Post,
     Req,
     Res,
+    UnauthorizedException,
     UseGuards
 } from "@nestjs/common";
 import {
@@ -25,7 +26,7 @@ import { AuthService } from "../application/auth.service";
 import {
     AuthProfilePayloadResponseDto,
     AuthSessionResponseDto,
-    MobileGoogleAuthResponseDto,
+    LogoutResponseDto,
     RefreshTokenDto,
     SocialLoginDto
 } from "./dto/auth-ops.dto";
@@ -43,15 +44,15 @@ export class AuthController {
     @ApiBearerAuth("JWT-auth")
     @Get("profile")
     @ApiOperation({
-        summary: "Get current authenticated user payload",
-        description: "Send access token in Authorization header: Bearer <access_token>."
+        summary: "Lay thong tin nguoi dung da xac thuc",
+        description: "Gui access token trong header Authorization: Bearer <access_token>."
     })
     @ApiOkResponse({
-        description: "Token payload/user info",
+        description: "Thong tin payload/token cua nguoi dung",
         type: AuthProfilePayloadResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/expired/invalid access token"
+        description: "Thieu token truy cap, token het han hoac khong hop le"
     })
     getProfile(@Req() req: Request & { user: any }) {
         return req.user;
@@ -78,9 +79,9 @@ export class AuthController {
     }
 
     @ApiOperation({
-        summary: "Google login for mobile using idToken",
+        summary: "Dang nhap Google cho mobile bang idToken",
         description:
-            "Use this endpoint for Google-only auth. FE gets Google idToken from SDK, then sends { idToken }. Backend creates account on first login and returns user+meta."
+            "Dung endpoint nay cho dang nhap Google. FE lay idToken tu SDK roi gui { idToken }. Backend tao tai khoan o lan dang nhap dau tien va tra ve user, tokens, meta."
     })
     @Public()
     @Post("google")
@@ -89,7 +90,7 @@ export class AuthController {
         type: SocialLoginDto,
         examples: {
             mobileGoogleLogin: {
-                summary: "Google login payload",
+                summary: "Payload dang nhap Google",
                 value: {
                     idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>"
                 }
@@ -97,52 +98,49 @@ export class AuthController {
         }
     })
     @ApiOkResponse({
-        description: "Google login success",
-        type: MobileGoogleAuthResponseDto
+        description: "Dang nhap Google thanh cong",
+        type: AuthSessionResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Invalid or expired Google idToken, or audience mismatch"
+        description: "idToken Google khong hop le hoac da het han, hoac audience khong khop"
     })
     @ApiBadRequestResponse({
-        description: "Missing idToken"
+        description: "Thieu idToken"
     })
     async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
-        return {
-            user: result.user,
-            meta: result.meta
-        };
+        return result;
     }
 
     @Public()
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Refresh access token",
+        summary: "Lam moi access token",
         description:
-            "Provide refreshToken in body OR rely on refresh_token cookie. Returns new tokens and rotates refresh token."
+            "Truyen refreshToken trong body HOAC dung cookie refresh_token. API tra ve token moi va xoay vong refresh token."
     })
     @ApiBody({
         type: RefreshTokenDto,
         required: false,
         examples: {
             fromBody: {
-                summary: "Send refresh token in body",
+                summary: "Gui refresh token trong body",
                 value: { refreshToken: "8cc2c3f0f6496f1910d6fe3f2c0de9f4..." }
             },
             fromCookie: {
-                summary: "Use cookie only",
+                summary: "Chi dung cookie",
                 value: {}
             }
         }
     })
     @ApiOkResponse({
-        description: "Token refresh success",
+        description: "Lam moi token thanh cong",
         type: AuthSessionResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Missing/invalid/expired refresh token"
+        description: "Thieu refresh token, refresh token khong hop le hoac da het han"
     })
     async refreshToken(
         @Body() refreshTokenDto: RefreshTokenDto,
@@ -155,20 +153,61 @@ export class AuthController {
         return result;
     }
 
-
+    @ApiBearerAuth("JWT-auth")
+    @Post("logout")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Dang xuat",
+        description: "Huy phien dang nhap hien tai va xoa cookie token."
+    })
+    @ApiOkResponse({
+        description: "Dang xuat thanh cong",
+        type: LogoutResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Thieu token truy cap hoac token khong hop le"
+    })
+    async logout(
+        @Req() req: Request & { user?: { sub?: string; id?: string; user_Id?: string } },
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const userId = this.getCurrentUserId(req);
+        await this.authService.logout(userId);
+        this.clearTokensCookie(res);
+        return { success: true };
+    }
 
     private setTokensCookie(res: Response, tokens: { access_token: string; refresh_token: string }) {
+        const cookieOptions = this.getTokenCookieOptions();
         res.cookie("access_token", tokens.access_token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            ...cookieOptions,
             maxAge: 3600000 // 1 hour
         });
         res.cookie("refresh_token", tokens.refresh_token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            ...cookieOptions,
             maxAge: 30 * 24 * 3600000 // 30 days
         });
+    }
+
+    private clearTokensCookie(res: Response) {
+        const cookieOptions = this.getTokenCookieOptions();
+        res.clearCookie("access_token", cookieOptions);
+        res.clearCookie("refresh_token", cookieOptions);
+    }
+
+    private getTokenCookieOptions() {
+        return {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax" as const
+        };
+    }
+
+    private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {
+        const userId = req.user?.sub || req.user?.id || req.user?.user_Id;
+        if (!userId) {
+            throw new UnauthorizedException("Invalid access token payload");
+        }
+        return userId;
     }
 }
