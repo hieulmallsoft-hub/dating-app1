@@ -1,9 +1,8 @@
-import { IsString, IsOptional, IsDate, MaxLength, IsArray, IsUrl, IsIn } from "class-validator";
+import { IsString, IsOptional, IsDate, MaxLength, IsUrl, IsIn } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Gender, GenderPreference } from "../../domain/entities/user.entity";
+import { Gender } from "../../domain/entities/user.entity";
 import { toGenderEnum } from "../mappers/gender.mapper";
-import { toGenderPreferenceEnum } from "../mappers/gender-preference.mapper";
 
 export class UpdateUserDto {
     @ApiPropertyOptional({
@@ -43,56 +42,4 @@ export class UpdateUserDto {
     @IsOptional()
     avatar?: string;
 
-    @ApiPropertyOptional({
-        description: "Profile photo URLs",
-        type: [String],
-        example: ["https://cdn.example.com/photos/1.jpg"]
-    })
-    @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    photos?: string[];
-
-    @ApiPropertyOptional({
-        description: "Gender preference code: 0=MALE, 1=FEMALE, 2=BOTH",
-        type: Number,
-        enum: [0, 1, 2],
-        example: 2
-    })
-    @Transform(({ value }) => toGenderPreferenceEnum(value))
-    @IsIn([GenderPreference.MALE, GenderPreference.FEMALE, GenderPreference.BOTH])
-    @IsOptional()
-    genderPreference?: GenderPreference;
-
-    @ApiPropertyOptional({
-        description: "User bio",
-        example: "Love traveling and coffee."
-    })
-    @IsString()
-    @IsOptional()
-    bio?: string;
-
-    @ApiPropertyOptional({
-        description: "Job title",
-        example: "Product Designer"
-    })
-    @IsString()
-    @IsOptional()
-    jobTitle?: string;
-
-    @ApiPropertyOptional({
-        description: "Company name",
-        example: "Acme Corp"
-    })
-    @IsString()
-    @IsOptional()
-    company?: string;
-
-    @ApiPropertyOptional({
-        description: "School name",
-        example: "HCMUT"
-    })
-    @IsString()
-    @IsOptional()
-    school?: string;
 }

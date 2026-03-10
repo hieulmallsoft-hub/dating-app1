@@ -142,7 +142,8 @@ export class UsersController {
                     "image/jpeg",
                     "image/png",
                     "image/webp",
-                    "image/gif"
+                    "image/gif",
+                    "image/jpg"
                 ]);
 
                 if (!allowedMimeTypes.has(file.mimetype)) {

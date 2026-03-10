@@ -44,51 +44,6 @@ export class UserProfileResponseDto {
     avatar?: string | null;
 
     @ApiPropertyOptional({
-        description: "Profile photos",
-        type: [String],
-        example: ["https://cdn.example.com/photos/1.jpg"],
-        nullable: true
-    })
-    photos?: string[] | null;
-
-    @ApiPropertyOptional({
-        description: "Gender preference code: 0=MALE, 1=FEMALE, 2=BOTH",
-        type: Number,
-        enum: [0, 1, 2],
-        example: 2,
-        nullable: true
-    })
-    genderPreference?: 0 | 1 | 2 | null;
-
-    @ApiPropertyOptional({
-        description: "User bio",
-        example: "Love traveling and coffee.",
-        nullable: true
-    })
-    bio?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Job title",
-        example: "Product Designer",
-        nullable: true
-    })
-    jobTitle?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Company",
-        example: "Acme Corp",
-        nullable: true
-    })
-    company?: string | null;
-
-    @ApiPropertyOptional({
-        description: "School",
-        example: "HCMUT",
-        nullable: true
-    })
-    school?: string | null;
-
-    @ApiPropertyOptional({
         description: "Latitude",
         type: Number,
         example: 10.762622,
@@ -198,4 +153,3 @@ export class DeleteUserResponseDto {
     })
     message: string;
 }
-

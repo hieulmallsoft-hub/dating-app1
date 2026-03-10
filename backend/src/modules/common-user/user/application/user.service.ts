@@ -89,7 +89,6 @@ export class UsersService {
             gender: dto.gender,
             genderPreference: dto.genderPreference,
             bio: dto.bio,
-            photos: dto.photos,
             avatar: dto.avatar,
             socialId: dto.socialId,
             sub: dto.sub ?? dto.socialId,

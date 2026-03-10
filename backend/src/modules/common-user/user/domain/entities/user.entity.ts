@@ -135,20 +135,8 @@ export class User {
   @Column({ type: "text", nullable: true })
   bio: string | null;
 
-  @Column({ type: "simple-json", nullable: true })
-  photos: string[] | null;
-
   @Column({ nullable: true })
   avatar: string | null;
-
-  @Column({ nullable: true })
-  jobTitle: string | null;
-
-  @Column({ nullable: true })
-  company: string | null;
-
-  @Column({ nullable: true })
-  school: string | null;
 
   @Column({ type: "simple-array", nullable: true })
   interests: string[] | null;
