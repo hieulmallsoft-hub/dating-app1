@@ -33,7 +33,6 @@ import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
 import {
     DeleteUserResponseDto,
-    UpdateAvatarResponseDto,
     UpdateUserLocationResponseDto,
     UserProfileResponseDto
 } from "./dto/user-ops.dto";
@@ -124,7 +123,7 @@ export class UsersController {
     })
     @ApiOkResponse({
         description: "Avatar updated",
-        type: UpdateAvatarResponseDto
+        type: UserProfileResponseDto
     })
     @ApiBadRequestResponse({
         description: "Missing file, unsupported file format, or invalid payload"
@@ -167,13 +166,7 @@ export class UsersController {
             avatar: uploaded.fileUrl
         });
 
-        return {
-            avatar: uploaded.fileUrl,
-            fileName: uploaded.fileName,
-            mimeType: uploaded.mimeType,
-            size: uploaded.size,
-            user: toApiUser(user)
-        };
+        return toApiUser(user);
     }
 
     @Put("me/location")

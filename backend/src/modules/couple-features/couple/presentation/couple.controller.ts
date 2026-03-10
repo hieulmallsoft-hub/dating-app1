@@ -43,7 +43,7 @@ export class CoupleController {
     @Get()
     @ApiOperation({
         summary: "Get current couple info",
-        description: "Returns partner profile with couple status for current user."
+        description: "Returns partner profile, location, and couple status for current user."
     })
     @ApiOkResponse({
         description: "Returns partner profile",
@@ -149,29 +149,6 @@ export class CoupleController {
     })
     async disconnect(@Req() req) {
         return this.coupleService.disconnect(this.getCurrentUserId(req));
-    }
-
-    @Post("connect-new")
-    @HttpCode(HttpStatus.OK)
-    @ApiOperation({
-        summary: "Connect new couple by account code",
-        description: "Disconnect old couple (if any) and connect using partner account code."
-    })
-    @ApiOkResponse({
-        description: "Connected to new couple",
-        type: CoupleResponseDto
-    })
-    @ApiBadRequestResponse({
-        description: "Account code format is invalid"
-    })
-    @ApiNotFoundResponse({
-        description: "Account code not found"
-    })
-    @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
-    })
-    async connectNew(@Req() req, @Body() joinCoupleDto: JoinCoupleDto) {
-        return this.coupleService.connectNew(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
     }
 
     @Put("start-date")

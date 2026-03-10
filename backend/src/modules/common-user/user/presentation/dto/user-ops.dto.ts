@@ -14,6 +14,13 @@ export class UserProfileResponseDto {
     email: string;
 
     @ApiPropertyOptional({
+        description: "User 6-digit account code",
+        example: "123456",
+        nullable: true
+    })
+    accountCode?: string | null;
+
+    @ApiPropertyOptional({
         description: "Display name",
         example: "Mobile User",
         nullable: true
@@ -67,6 +74,13 @@ export class UpdateUserLocationResponseDto {
     })
     userId: string;
 
+    @ApiPropertyOptional({
+        description: "User 6-digit account code",
+        example: "123456",
+        nullable: true
+    })
+    accountCode?: string | null;
+
     @ApiProperty({
         description: "Latitude",
         type: Number,
@@ -111,39 +125,6 @@ export class UpdateUserLocationResponseDto {
         nullable: true
     })
     speed?: number | null;
-}
-
-export class UpdateAvatarResponseDto {
-    @ApiProperty({
-        description: "Updated avatar URL",
-        example: "http://localhost:3000/uploads/image/1719999999-a1b2c3.jpg"
-    })
-    avatar: string;
-
-    @ApiProperty({
-        description: "Stored file path key",
-        example: "image/1719999999-a1b2c3.jpg"
-    })
-    fileName: string;
-
-    @ApiProperty({
-        description: "Mime type",
-        example: "image/jpeg"
-    })
-    mimeType: string;
-
-    @ApiProperty({
-        description: "File size in bytes",
-        type: Number,
-        example: 153244
-    })
-    size: number;
-
-    @ApiProperty({
-        description: "Updated user profile",
-        type: UserProfileResponseDto
-    })
-    user: UserProfileResponseDto;
 }
 
 export class DeleteUserResponseDto {

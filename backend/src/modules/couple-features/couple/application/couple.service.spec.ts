@@ -106,61 +106,6 @@ describe("CoupleService", () => {
         expect(notificationsService.createNotification).toHaveBeenCalledTimes(2);
     });
 
-    it("disconnects current couple before connecting by account code", async () => {
-        const partner = { id: "user-3", accountCode: "654321" };
-        const currentCouple = {
-            id: "couple-current",
-            user1Id: "user-2",
-            user2Id: "user-4",
-            status: CoupleStatus.ACTIVE
-        };
-
-        const userLockQueryBuilder = {
-            select: jest.fn().mockReturnThis(),
-            where: jest.fn().mockReturnThis(),
-            orderBy: jest.fn().mockReturnThis(),
-            setLock: jest.fn().mockReturnThis(),
-            getMany: jest.fn().mockResolvedValue([{ id: "user-2" }, { id: "user-3" }])
-        };
-
-        const coupleRepo = {
-            findOne: jest
-                .fn()
-                .mockResolvedValueOnce(null)
-                .mockResolvedValueOnce(currentCouple),
-            create: jest.fn().mockImplementation((value) => value),
-            save: jest.fn().mockImplementation(async (value) => value)
-        };
-
-        const userRepo = {
-            findOne: jest.fn().mockResolvedValue(partner),
-            createQueryBuilder: jest.fn().mockReturnValue(userLockQueryBuilder)
-        };
-
-        dataSource.transaction.mockImplementation(async (callback) =>
-            callback({
-                getRepository: (entity: unknown) => {
-                    if (entity === Couple) return coupleRepo;
-                    if (entity === User) return userRepo;
-                    throw new Error("Unexpected repository");
-                }
-            })
-        );
-
-        await service.connectNew("user-2", "654321");
-
-        expect(currentCouple.status).toBe(CoupleStatus.DISCONNECTED);
-        expect(coupleRepo.save).toHaveBeenNthCalledWith(1, currentCouple);
-        expect(coupleRepo.save).toHaveBeenNthCalledWith(
-            2,
-            expect.objectContaining({
-                user1Id: "user-3",
-                user2Id: "user-2",
-                status: CoupleStatus.ACTIVE
-            })
-        );
-    });
-
     it("returns location history for both me and partner", async () => {
         const now = new Date();
         const me = { id: "user-1", fullName: "Alice", email: "alice@test.dev" } as User;

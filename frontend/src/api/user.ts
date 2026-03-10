@@ -6,6 +6,7 @@ export type GenderPreference = 0 | 1 | 2;
 export type UserMe = {
   id: string;
   email: string;
+  accountCode: string | null;
   fullName: string | null;
   avatar: string | null;
   photos: string[] | null;

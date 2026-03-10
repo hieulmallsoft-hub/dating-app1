@@ -18,7 +18,6 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
   const [couple, setCouple] = useState<coupleApi.Couple | null>(null);
   const [invite, setInvite] = useState<coupleApi.Invite | null>(null);
   const [joinCode, setJoinCode] = useState("");
-  const [reconnectCode, setReconnectCode] = useState("");
   const [startDateDraft, setStartDateDraft] = useState("");
   const [themeDraft, setThemeDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -109,7 +108,6 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
       await coupleApi.disconnectCouple();
       setInvite(null);
       setJoinCode("");
-      setReconnectCode("");
       await loadCouple();
       setSuccess("Da ngat ket noi");
     } catch (err: unknown) {
@@ -130,46 +128,6 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
       await navigator.clipboard.writeText(invite.inviteCode);
     } catch {
       // ignore
-    }
-  };
-
-  const normalizedReconnectCode = useMemo(
-    () => normalizeInviteCode(reconnectCode),
-    [reconnectCode]
-  );
-  const canReconnect = useMemo(
-    () => isInviteCodeValid(normalizedReconnectCode) && !isWorking,
-    [normalizedReconnectCode, isWorking]
-  );
-
-  const connectNew = async () => {
-    if (!canReconnect) return;
-    if (
-      !window.confirm(
-        "Ket noi moi se tu dong ngat ket noi hien tai. Ban chac chan?"
-      )
-    ) {
-      return;
-    }
-
-    setIsWorking(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await coupleApi.connectNew(normalizedReconnectCode);
-      setInvite(null);
-      setReconnectCode("");
-      await loadCouple();
-      setSuccess("Da ket noi moi");
-    } catch (err: unknown) {
-      const status = getHttpStatus(err);
-      if (status === 401) {
-        onAuthInvalid();
-      } else {
-        setError(getHttpMessage(err, "Failed to connect new"));
-      }
-    } finally {
-      setIsWorking(false);
     }
   };
 
@@ -265,32 +223,6 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
           >
             {isWorking ? "Dang xu ly..." : "Cap nhat"}
           </button>
-
-          <div className="divider" />
-
-          <div className="action-card">
-            <div className="action-title">Ket noi moi</div>
-            <div className="action-desc">Nhap code moi de doi partner (tu dong ngat ket noi cu)</div>
-            <div className="join-row">
-              <input
-                value={reconnectCode}
-                onChange={(e) => setReconnectCode(e.target.value)}
-                placeholder="VD: 401CC2F1"
-                className="join-input"
-              />
-              <button
-                className="btn btn-primary"
-                onClick={connectNew}
-                disabled={!canReconnect}
-                type="button"
-              >
-                Connect
-              </button>
-            </div>
-            {!reconnectCode ? null : !isInviteCodeValid(normalizedReconnectCode) ? (
-              <div className="hint">Code phai dung 8 ky tu hex</div>
-            ) : null}
-          </div>
 
           <button className="btn btn-outline" onClick={disconnect} disabled={isWorking} type="button">
             {isWorking ? "Dang xu ly..." : "Ngat ket noi"}

@@ -38,6 +38,7 @@ export type PartnerRealtimeLocationResponse = {
 
 type UpdateUserLocationApiResponse = {
   userId: string;
+  accountCode: string | null;
   latitude: number;
   longitude: number;
   accuracy: number | null;

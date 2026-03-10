@@ -43,7 +43,15 @@ export class CoupleService {
             status: couple.status,
             birthDate: partner?.birthDate ? new Date(partner.birthDate).toISOString().slice(0, 10) : null,
             email: partner?.email ?? null,
-            fullName: partner?.fullName ?? null
+            fullName: partner?.fullName ?? null,
+            latitude:
+                partner?.latitude !== null && partner?.latitude !== undefined
+                    ? Number(partner.latitude)
+                    : null,
+            longitude:
+                partner?.longitude !== null && partner?.longitude !== undefined
+                    ? Number(partner.longitude)
+                    : null
         };
     }
 
@@ -89,11 +97,7 @@ export class CoupleService {
     }
 
     async joinCouple(userId: string, inviteCode: string) {
-        return this.joinCoupleInternal(userId, this.normalizePartnerAccountCode(inviteCode), false);
-    }
-
-    async connectNew(userId: string, inviteCode: string) {
-        return this.joinCoupleInternal(userId, this.normalizePartnerAccountCode(inviteCode), true);
+        return this.joinCoupleInternal(userId, this.normalizePartnerAccountCode(inviteCode));
     }
 
     async disconnect(userId: string) {
@@ -121,7 +125,7 @@ export class CoupleService {
         return this.coupleRepository.save(couple);
     }
 
-    private async joinCoupleInternal(userId: string, inviteCode: string, disconnectCurrent: boolean) {
+    private async joinCoupleInternal(userId: string, inviteCode: string) {
         const result = await this.dataSource.transaction(async (manager) => {
             const coupleRepo = manager.getRepository(Couple);
             const userRepo = manager.getRepository(User);
@@ -146,13 +150,8 @@ export class CoupleService {
             }
 
             const myCurrentCouple = await this.findActiveCoupleByUserId(userId, coupleRepo);
-            if (myCurrentCouple && !disconnectCurrent) {
+            if (myCurrentCouple) {
                 throw new ConflictException("You are already in a couple");
-            }
-
-            if (myCurrentCouple && disconnectCurrent) {
-                myCurrentCouple.status = CoupleStatus.DISCONNECTED;
-                await coupleRepo.save(myCurrentCouple);
             }
 
             const couple = coupleRepo.create({

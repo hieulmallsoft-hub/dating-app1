@@ -228,6 +228,10 @@ export class UsersService {
 
         return {
             userId: id,
+            accountCode:
+                typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
+                    ? existed.accountCode.trim()
+                    : null,
             latitude: nextLatitude,
             longitude: nextLongitude,
             accuracy: nextAccuracy,

@@ -102,6 +102,22 @@ export class CoupleProfileResponseDto {
         nullable: true
     })
     fullName?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner latitude",
+        type: Number,
+        example: 10.762622,
+        nullable: true
+    })
+    latitude?: number | null;
+
+    @ApiPropertyOptional({
+        description: "Partner longitude",
+        type: Number,
+        example: 106.660172,
+        nullable: true
+    })
+    longitude?: number | null;
 }
 
 export class CoupleResponseDto {

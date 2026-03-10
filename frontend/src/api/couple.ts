@@ -74,11 +74,6 @@ export async function joinCouple(inviteCode: string) {
   return data;
 }
 
-export async function connectNew(inviteCode: string) {
-  const { data } = await http.post<Couple>("/couple/connect-new", { inviteCode });
-  return data;
-}
-
 export async function setStartDate(startDate: string) {
   const { data } = await http.put<Couple>("/couple/start-date", { startDate });
   return data;
