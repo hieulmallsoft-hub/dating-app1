@@ -5,8 +5,8 @@ import { InviteStatus } from "../../../invites/domain/entities/invite.entity";
 
 export class JoinCoupleDto {
     @ApiProperty({
-        description: "Invite code from partner",
-        example: "A1B2C3D4"
+        description: "Partner 6-digit account code",
+        example: "123456"
     })
     @IsString()
     @IsNotEmpty()
@@ -23,12 +23,14 @@ export class UpdateCoupleDto {
     startDate?: string;
 
     @ApiPropertyOptional({
-        description: "Theme name for couple profile",
-        example: "sunset"
+        description: "Couple theme key",
+        example: "romantic-red",
+        nullable: true
     })
     @IsString()
     @IsOptional()
     theme?: string;
+
 }
 
 export class CouplePartnerResponseDto {
@@ -75,18 +77,44 @@ export class CouplePartnerResponseDto {
     birthDate?: string | null;
 }
 
-export class CoupleResponseDto {
-    @ApiProperty({
-        description: "Couple id",
-        example: "9fbc526f-9d1a-4141-b377-53e5fb6a0b69"
+export class CoupleProfileResponseDto {
+    @ApiPropertyOptional({
+        description: "Partner user id",
+        example: "cd0b85d4-56a9-4976-bc98-076f1967e172",
+        nullable: true
     })
-    id: string;
+    id?: string | null;
 
     @ApiProperty({
-        description: "User 1 id",
-        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+        description: "Couple status",
+        enum: CoupleStatus,
+        example: CoupleStatus.ACTIVE
     })
-    user1Id: string;
+    status: CoupleStatus;
+
+    @ApiPropertyOptional({
+        description: "Partner birth date (YYYY-MM-DD)",
+        example: "2000-01-01",
+        nullable: true
+    })
+    birthDate?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner email",
+        example: "partner@example.com",
+        nullable: true
+    })
+    email?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner full name",
+        example: "Partner User",
+        nullable: true
+    })
+    fullName?: string | null;
+}
+
+export class CoupleResponseDto {
 
     @ApiPropertyOptional({
         description: "User 2 id",
@@ -110,30 +138,14 @@ export class CoupleResponseDto {
     startDate?: string | null;
 
     @ApiPropertyOptional({
-        description: "Couple theme",
-        example: "sunset",
+        description: "Couple theme key",
+        example: "romantic-red",
         nullable: true
     })
     theme?: string | null;
 
-    @ApiProperty({
-        description: "Created time (ISO-8601)",
-        example: "2026-03-09T08:00:00.000Z"
-    })
-    createdAt: string;
 
-    @ApiProperty({
-        description: "Updated time (ISO-8601)",
-        example: "2026-03-09T09:00:00.000Z"
-    })
-    updatedAt: string;
-
-    @ApiPropertyOptional({
-        description: "Partner profile",
-        type: () => CouplePartnerResponseDto,
-        nullable: true
-    })
-    partner?: CouplePartnerResponseDto | null;
+ 
 }
 
 export class CoupleLocationUserResponseDto {

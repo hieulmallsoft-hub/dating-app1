@@ -14,6 +14,13 @@ export class UserProfileResponseDto {
     email: string;
 
     @ApiPropertyOptional({
+        description: "Unique 6-digit account code for pairing",
+        example: "123456",
+        nullable: true
+    })
+    accountCode?: string | null;
+
+    @ApiPropertyOptional({
         description: "Display name",
         example: "Mobile User",
         nullable: true

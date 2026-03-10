@@ -24,38 +24,38 @@ export class TripsController {
 
     @Get()
     @ApiOperation({
-        summary: "L?y danh sách chuy?n di",
-        description: "Tr? v? danh sách chuy?n di có phân trang cho ngu?i dùng hi?n t?i ho?c d?i phuong trong cùng c?p dôi."
+        summary: "Get trip list",
+        description: "Returns paginated trips for current user or partner in the same couple."
     })
     @ApiQuery({
         name: "userId",
         required: false,
-        description: "userId m?c tiêu (ph?i là tôi ho?c d?i phuong). M?c d?nh là ngu?i dùng hi?n t?i.",
+        description: "Target userId (must be self or partner). Default is current user.",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiQuery({
         name: "page",
         required: false,
         type: Number,
-        description: "S? trang",
+        description: "Page number",
         example: 1
     })
     @ApiQuery({
         name: "limit",
         required: false,
         type: Number,
-        description: "S? b?n ghi m?i trang",
+        description: "Records per page",
         example: 20
     })
     @ApiOkResponse({
-        description: "Ðã tr? v? danh sách chuy?n di",
+        description: "Returns trip list",
         type: TripListResponseDto
     })
     @ApiNotFoundResponse({
-        description: "userId yêu c?u không thu?c c?p dôi hi?n t?i"
+        description: "Requested userId is not in current couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async listTrips(
         @Req() req,
@@ -73,23 +73,23 @@ export class TripsController {
 
     @Get(":id/detail")
     @ApiOperation({
-        summary: "L?y chi ti?t chuy?n di",
-        description: "Tr? v? chi ti?t m?t chuy?n di theo id, bao g?m routeFull."
+        summary: "Get trip details",
+        description: "Returns one trip detail by id, including routeFull."
     })
     @ApiParam({
         name: "id",
-        description: "ID chuy?n di",
+        description: "Trip ID",
         example: "trip_20260309_001"
     })
     @ApiOkResponse({
-        description: "Ðã tr? v? chi ti?t chuy?n di",
+        description: "Returns trip detail",
         type: TripResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Không tìm th?y chuy?n di ho?c chuy?n di không thu?c c?p dôi hi?n t?i"
+        description: "Trip not found or does not belong to current couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getTripDetail(@Req() req, @Param("id") id: string) {
         return this.tripsService.getTripDetail(this.getCurrentUserId(req), id);
@@ -97,18 +97,18 @@ export class TripsController {
 
     @Post("sync")
     @ApiOperation({
-        summary: "Ð?ng b? chuy?n di t? mobile",
-        description: "Upsert hàng lo?t chuy?n di t? ?ng d?ng mobile."
+        summary: "Sync trips from mobile",
+        description: "Bulk upsert trips from mobile app."
     })
     @ApiCreatedResponse({
-        description: "Ðã d?ng b? chuy?n di",
+        description: "Trips synced",
         type: TripSyncResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Payload không h?p l? (ví d?: routePoints r?ng)"
+        description: "Invalid payload (for example: empty routePoints)"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async syncTrips(@Req() req, @Body() dto: TripSyncDto) {
         return this.tripsService.syncTrips(this.getCurrentUserId(req), dto);

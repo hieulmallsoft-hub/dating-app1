@@ -23,6 +23,7 @@ export function toApiUser<T extends Record<string, any> | null>(user: T) {
     return {
         id: user.id,
         email: user.email,
+        accountCode: user.accountCode ?? null,
         fullName: user.fullName ?? null,
         gender: toGenderCode(user.gender),
         birthDate: normalizeBirthDate(user.birthDate),

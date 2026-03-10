@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
-import { randomInt } from "crypto";
+import * as crypto from "crypto";
 import { DataSource, In, IsNull, Not } from "typeorm";
 import { CreateUserDto } from "../presentation/dto/create-user.dto";
 import { UpdateUserDto } from "../presentation/dto/update-user.dto";
@@ -36,9 +36,6 @@ type UpdateUserPayload = UpdateUserDto & {
 
 @Injectable()
 export class UsersService {
-    private readonly accountCodeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private readonly accountCodeLength = 10;
-
     constructor(
         private readonly userRepository: UserRepository,
         private readonly locationHistoryRepository: LocationHistoryRepository,
@@ -59,14 +56,6 @@ export class UsersService {
         return this.userRepository.findByProviderAndSocialId(provider, socialId);
     }
 
-    async accountCodeExists(accountCode: string) {
-        const normalizedCode = this.normalizeAccountCode(accountCode);
-        if (!normalizedCode) {
-            return false;
-        }
-        return this.userRepository.existsByAccountCode(normalizedCode);
-    }
-
     async getUserWithPassword(email: string) {
         return this.userRepository.findByEmailWithPassword(email);
     }
@@ -76,11 +65,8 @@ export class UsersService {
         if (existed) throw new ConflictException("Email already exists");
 
         const passwordHash = dto.password ? await bcrypt.hash(dto.password, 10) : null;
-        const accountCode = await this.generateUniqueAccountCode();
-
-        return this.userRepository.createAndSave({
+        const createdUser = await this.userRepository.createAndSave({
             email: dto.email,
-            accountCode,
             fullName: dto.fullName,
             password: passwordHash,
             tokenVersion: 0,
@@ -94,6 +80,37 @@ export class UsersService {
             sub: dto.sub ?? dto.socialId,
             provider: dto.provider
         });
+
+        return this.ensureAccountCode(createdUser.id);
+    }
+
+    async ensureAccountCode(userId: string): Promise<User> {
+        const existed = await this.userRepository.findById(userId);
+        if (!existed) throw new NotFoundException("User not found");
+        if (existed.accountCode && /^[0-9]{6}$/.test(existed.accountCode)) return existed;
+        if (existed.accountCode) {
+            await this.userRepository.updateById(userId, { accountCode: null });
+        }
+
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+            const candidateCode = this.generateAccountCode();
+            try {
+                const assigned = await this.userRepository.assignAccountCodeIfMissing(userId, candidateCode);
+                if (assigned) {
+                    const userWithCode = await this.userRepository.findById(userId);
+                    if (userWithCode) return userWithCode;
+                } else {
+                    const currentUser = await this.userRepository.findById(userId);
+                    if (currentUser?.accountCode) return currentUser;
+                }
+            } catch (error) {
+                if ((error as { code?: string }).code !== "23505") {
+                    throw error;
+                }
+            }
+        }
+
+        throw new ConflictException("Could not generate unique account code");
     }
 
     async updateUser(id: string, dto: UpdateUserPayload) {
@@ -253,43 +270,6 @@ export class UsersService {
         return this.userRepository.clearSession(id);
     }
 
-    async ensureAccountCode(id: string) {
-        const existed = await this.userRepository.findById(id);
-        if (!existed) throw new NotFoundException("User not found");
-
-        if (existed.accountCode) {
-            return existed;
-        }
-
-        const accountCode = await this.generateUniqueAccountCode();
-        await this.userRepository.updateById(id, { accountCode });
-        return this.getUserById(id);
-    }
-
-    private normalizeAccountCode(accountCode: string) {
-        return typeof accountCode === "string" ? accountCode.trim().toUpperCase() : "";
-    }
-
-    private createAccountCodeCandidate() {
-        let accountCode = "";
-        for (let index = 0; index < this.accountCodeLength; index += 1) {
-            const randomIndex = randomInt(0, this.accountCodeChars.length);
-            accountCode += this.accountCodeChars[randomIndex];
-        }
-        return accountCode;
-    }
-
-    private async generateUniqueAccountCode() {
-        for (let attempt = 0; attempt < 20; attempt += 1) {
-            const accountCode = this.createAccountCodeCandidate();
-            const existed = await this.userRepository.existsByAccountCode(accountCode);
-            if (!existed) {
-                return accountCode;
-            }
-        }
-
-        throw new ConflictException("Unable to generate account code");
-    }
 
     private distanceMeters(
         latitudeA: number,
@@ -323,6 +303,10 @@ export class UsersService {
             select: ["id"]
         });
         return couple?.id || null;
+    }
+
+    private generateAccountCode() {
+        return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
     }
 
     async deleteUser(userId: string) {

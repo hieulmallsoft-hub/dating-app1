@@ -33,6 +33,13 @@ export class AuthUserResponseDto {
     id: string;
 
     @ApiProperty({
+        description: "Unique 6-digit account code for pairing",
+        example: "123456",
+        nullable: true
+    })
+    accountCode: string | null;
+
+    @ApiProperty({
         description: "Social subject id (Google/Apple sub). Null for local account.",
         example: "103394857349857349857",
         nullable: true
@@ -44,13 +51,6 @@ export class AuthUserResponseDto {
         example: "mobile.user@example.com"
     })
     email: string;
-
-    @ApiProperty({
-        description: "Stable account code to identify this user across devices",
-        example: "A7K3M9Q2XZ",
-        nullable: true
-    })
-    accountCode: string | null;
 
     @ApiProperty({
         description: "Display name",
@@ -181,22 +181,4 @@ export class LogoutResponseDto {
         example: true
     })
     success: boolean;
-}
-
-export class CheckAccountCodeQueryDto {
-    @ApiProperty({
-        description: "Account code to check",
-        example: "A7K3M9Q2XZ"
-    })
-    @IsString()
-    @IsNotEmpty()
-    code: string;
-}
-
-export class CheckAccountCodeResponseDto {
-    @ApiProperty({
-        description: "Whether account code exists",
-        example: true
-    })
-    exists: boolean;
 }

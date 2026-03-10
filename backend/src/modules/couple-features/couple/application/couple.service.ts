@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from "@nestjs/common";
-import * as crypto from "crypto";
 import { DataSource, IsNull, Not, Repository } from "typeorm";
 import { CoupleRepository } from "../infrastructure/persistence/couple.repository";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
-import { Invite, InviteStatus } from "../../invites/domain/entities/invite.entity";
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
 import { User } from "../../../common-user/user/domain/entities/user.entity";
 import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
@@ -34,6 +32,18 @@ export class CoupleService {
         return {
             ...couple,
             partner: this.getPartnerFromCouple(couple, userId)
+        };
+    }
+
+    async getMyCoupleProfile(userId: string) {
+        const couple = await this.getMyCouple(userId);
+        const partner = this.getPartnerFromCouple(couple, userId);
+        return {
+            id: partner?.id ?? null,
+            status: couple.status,
+            birthDate: partner?.birthDate ? new Date(partner.birthDate).toISOString().slice(0, 10) : null,
+            email: partner?.email ?? null,
+            fullName: partner?.fullName ?? null
         };
     }
 
@@ -78,50 +88,12 @@ export class CoupleService {
         };
     }
 
-    async createInvite(userId: string) {
-        return this.dataSource.transaction(async (manager) => {
-            const coupleRepo = manager.getRepository(Couple);
-            const inviteRepo = manager.getRepository(Invite);
-            const userRepo = manager.getRepository(User);
-
-            await this.lockUsersForUpdate([userId], userRepo);
-
-            const existing = await this.findActiveCoupleByUserId(userId, coupleRepo);
-            if (existing) {
-                throw new ConflictException("You are already in a couple");
-            }
-
-            const now = new Date();
-            const pendingInvites = await inviteRepo.find({
-                where: { inviterId: userId, status: InviteStatus.PENDING },
-                order: { createdAt: "DESC" }
-            });
-
-            let reusableInvite: Invite | null = null;
-            for (const pendingInvite of pendingInvites) {
-                if (!reusableInvite && pendingInvite.expiresAt >= now) {
-                    reusableInvite = pendingInvite;
-                    continue;
-                }
-
-                pendingInvite.status = InviteStatus.EXPIRED;
-                await inviteRepo.save(pendingInvite);
-            }
-
-            if (reusableInvite) {
-                return reusableInvite;
-            }
-
-            return this.createInviteRecord(userId, inviteRepo);
-        });
-    }
-
     async joinCouple(userId: string, inviteCode: string) {
-        return this.joinCoupleInternal(userId, this.normalizeInviteCode(inviteCode), false);
+        return this.joinCoupleInternal(userId, this.normalizePartnerAccountCode(inviteCode), false);
     }
 
     async connectNew(userId: string, inviteCode: string) {
-        return this.joinCoupleInternal(userId, this.normalizeInviteCode(inviteCode), true);
+        return this.joinCoupleInternal(userId, this.normalizePartnerAccountCode(inviteCode), true);
     }
 
     async disconnect(userId: string) {
@@ -155,39 +127,25 @@ export class CoupleService {
     private async joinCoupleInternal(userId: string, inviteCode: string, disconnectCurrent: boolean) {
         const result = await this.dataSource.transaction(async (manager) => {
             const coupleRepo = manager.getRepository(Couple);
-            const inviteRepo = manager.getRepository(Invite);
             const userRepo = manager.getRepository(User);
+            const partner = await userRepo.findOne({
+                where: { accountCode: inviteCode },
+                select: ["id", "accountCode"]
+            });
 
-            const invite = await inviteRepo
-                .createQueryBuilder("invite")
-                .setLock("pessimistic_write")
-                .where("invite.inviteCode = :inviteCode", { inviteCode })
-                .andWhere("invite.status = :status", { status: InviteStatus.PENDING })
-                .getOne();
-
-            if (!invite) {
-                throw new NotFoundException("Invite code not found");
+            if (!partner) {
+                throw new NotFoundException("Account code not found");
             }
 
-            if (invite.status !== InviteStatus.PENDING) {
-                throw new BadRequestException("Invite code already used or expired");
+            if (partner.id === userId) {
+                throw new BadRequestException("You cannot connect using your own account code");
             }
 
-            if (invite.expiresAt < new Date()) {
-                invite.status = InviteStatus.EXPIRED;
-                await inviteRepo.save(invite);
-                throw new BadRequestException("Invite code expired");
-            }
+            await this.lockUsersForUpdate([partner.id, userId], userRepo);
 
-            if (invite.inviterId === userId) {
-                throw new BadRequestException("You cannot join your own invite");
-            }
-
-            await this.lockUsersForUpdate([invite.inviterId, userId], userRepo);
-
-            const inviterCouple = await this.findActiveCoupleByUserId(invite.inviterId, coupleRepo);
-            if (inviterCouple) {
-                throw new ConflictException("Inviter is already in a couple");
+            const partnerCouple = await this.findActiveCoupleByUserId(partner.id, coupleRepo);
+            if (partnerCouple) {
+                throw new ConflictException("Partner is already in a couple");
             }
 
             const myCurrentCouple = await this.findActiveCoupleByUserId(userId, coupleRepo);
@@ -201,45 +159,28 @@ export class CoupleService {
             }
 
             const couple = coupleRepo.create({
-                user1Id: invite.inviterId,
+                user1Id: partner.id,
                 user2Id: userId,
                 status: CoupleStatus.ACTIVE
             });
 
             await coupleRepo.save(couple);
 
-            const consumeResult = await inviteRepo.update(
-                { id: invite.id, status: InviteStatus.PENDING },
-                { status: InviteStatus.ACCEPTED }
-            );
-
-            if (consumeResult.affected !== 1) {
-                throw new ConflictException("Invite code already used");
-            }
-
-            await inviteRepo
-                .createQueryBuilder()
-                .update(Invite)
-                .set({ status: InviteStatus.EXPIRED })
-                .where("status = :status", { status: InviteStatus.PENDING })
-                .andWhere("inviterId IN (:...userIds)", { userIds: [invite.inviterId, userId] })
-                .execute();
-
             return {
                 couple,
-                inviterId: invite.inviterId
+                partnerId: partner.id
             };
         });
 
-        await this.notifyPairingSuccess(result.inviterId, userId);
+        await this.notifyPairingSuccess(result.partnerId, userId);
         return result.couple;
     }
 
-    private normalizeInviteCode(inviteCode: string) {
-        const normalizedCode = inviteCode.trim().toUpperCase();
+    private normalizePartnerAccountCode(inviteCode: string) {
+        const normalizedCode = inviteCode.trim();
 
-        if (!/^[A-F0-9]{8}$/.test(normalizedCode)) {
-            throw new BadRequestException("Invite code format is invalid");
+        if (!/^[0-9]{6}$/.test(normalizedCode)) {
+            throw new BadRequestException("Account code format is invalid");
         }
 
         return normalizedCode;
@@ -255,26 +196,6 @@ export class CoupleService {
             .orderBy("user.id", "ASC")
             .setLock("pessimistic_write")
             .getMany();
-    }
-
-    private async createInviteRecord(inviterId: string, inviteRepo: Repository<Invite>) {
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-            const invite = inviteRepo.create({
-                inviterId,
-                inviteCode: crypto.randomBytes(4).toString("hex").toUpperCase(),
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            });
-
-            try {
-                return await inviteRepo.save(invite);
-            } catch (error) {
-                if ((error as { code?: string }).code !== "23505") {
-                    throw error;
-                }
-            }
-        }
-
-        throw new ConflictException("Could not generate a unique invite code");
     }
 
     private getPartnerFromCouple(couple: Couple, userId: string): User | null {

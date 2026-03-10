@@ -21,21 +21,21 @@ export class GeofenceController {
 
     @Post("event")
     @ApiOperation({
-        summary: "G?i s? ki?n chuy?n tr?ng thái geofence",
-        description: "G?i s? ki?n ENTER/EXIT c?a m?t d?a di?m t? ?ng d?ng mobile."
+        summary: "Send geofence transition event",
+        description: "Send ENTER/EXIT event of one place from mobile app."
     })
     @ApiCreatedResponse({
-        description: "Ðã x? lý s? ki?n geofence",
+        description: "Geofence event processed",
         type: GeofenceEventResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Payload transition không h?p l? ho?c ngu?i dùng chua có d?i phuong"
+        description: "Invalid transition payload or user has no partner yet"
     })
     @ApiNotFoundResponse({
-        description: "Không tìm th?y d?a di?m ho?c d?a di?m không thu?c c?p dôi hi?n t?i"
+        description: "Place not found or does not belong to current couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async handleEvent(@Req() req, @Body() dto: GeofenceEventDto) {
         return this.placesService.handleGeofenceEvent(this.getCurrentUserId(req), {

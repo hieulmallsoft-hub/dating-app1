@@ -101,7 +101,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ unique: true, length: 10, nullable: true })
+  @Column({ unique: true, length: 6, nullable: true })
   accountCode: string | null;
 
   @Column({ select: false, nullable: true })

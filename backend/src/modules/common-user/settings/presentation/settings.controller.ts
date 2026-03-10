@@ -21,15 +21,15 @@ export class SettingsController {
 
     @Get()
     @ApiOperation({
-        summary: "L?y cài d?t c?a ngu?i dùng hi?n t?i",
-        description: "Tr? v? cài d?t hi?n t?i, t? t?o cài d?t m?c d?nh n?u chua có."
+        summary: "Get current user settings",
+        description: "Returns current settings, auto-creates defaults if missing."
     })
     @ApiOkResponse({
-        description: "Tr? v? cài d?t",
+        description: "Returns settings",
         type: SettingsResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getSettings(@Req() req) {
         return this.settingsService.getSettings(this.getCurrentUserId(req));
@@ -37,18 +37,18 @@ export class SettingsController {
 
     @Put()
     @ApiOperation({
-        summary: "C?p nh?t cài d?t c?a ngu?i dùng hi?n t?i",
-        description: "C?p nh?t tùy ch?n thông báo, giao di?n và quy?n riêng tu."
+        summary: "Update current user settings",
+        description: "Update notification, theme, and privacy preferences."
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t cài d?t",
+        description: "Settings updated",
         type: SettingsResponseDto
     })
     @ApiBadRequestResponse({
-        description: "D? li?u không h?p l? (enum ho?c ki?u d? li?u sai)"
+        description: "Invalid payload (enum or data type mismatch)"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async updateSettings(@Req() req, @Body() dto: UpdateSettingsDto) {
         return this.settingsService.updateSettings(this.getCurrentUserId(req), dto);

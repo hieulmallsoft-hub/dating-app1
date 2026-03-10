@@ -31,21 +31,21 @@ export class SecurityController {
     @Post("pin")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Thi?t l?p PIN b?o m?t",
-        description: "Thi?t l?p ho?c c?p nh?t PIN 4 ch? s? cho ngu?i dùng hi?n t?i."
+        summary: "Set security PIN",
+        description: "Set or update 4-digit PIN for current user."
     })
     @ApiBody({
         type: PinBodyDto
     })
     @ApiOkResponse({
-        description: "Thi?t l?p PIN thành công",
+        description: "PIN set successfully",
         type: SetPinResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Ð?nh d?ng PIN không h?p l? (ph?i g?m 4 ch? s?)"
+        description: "Invalid PIN format (must be exactly 4 digits)"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async setPin(@Req() req, @Body() dto: PinBodyDto) {
         const security = await this.securityService.setPin(this.getCurrentUserId(req), dto.pin);
@@ -59,21 +59,21 @@ export class SecurityController {
     @Post("verify-pin")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Xác th?c PIN b?o m?t",
-        description: "Xác th?c mã PIN ngu?i dùng v?a nh?p."
+        summary: "Verify security PIN",
+        description: "Verify user PIN input."
     })
     @ApiBody({
         type: PinBodyDto
     })
     @ApiOkResponse({
-        description: "Xác th?c PIN thành công",
+        description: "PIN verified successfully",
         type: VerifyPinResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Chua thi?t l?p PIN ho?c PIN không kh?p"
+        description: "PIN is not set or does not match"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async verifyPin(@Req() req, @Body() dto: PinBodyDto) {
         return this.securityService.verifyPin(this.getCurrentUserId(req), dto.pin);

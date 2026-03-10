@@ -44,15 +44,15 @@ export class AuthController {
     @ApiBearerAuth("JWT-auth")
     @Get("profile")
     @ApiOperation({
-        summary: "Lay thong tin nguoi dung da xac thuc",
-        description: "Gui access token trong header Authorization: Bearer <access_token>."
+        summary: "Get authenticated user info",
+        description: "Send access token in Authorization header: Bearer <access_token>."
     })
     @ApiOkResponse({
-        description: "Thong tin payload/token cua nguoi dung",
+        description: "Authenticated user payload information",
         type: AuthProfilePayloadResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thieu token truy cap, token het han hoac khong hop le"
+        description: "Missing access token, expired token, or invalid token"
     })
     getProfile(@Req() req: Request & { user: any }) {
         return req.user;
@@ -79,9 +79,9 @@ export class AuthController {
     }
 
     @ApiOperation({
-        summary: "Dang nhap Google cho mobile bang idToken",
+        summary: "Google login for mobile using idToken",
         description:
-            "Dung endpoint nay cho dang nhap Google. FE lay idToken tu SDK roi gui { idToken }. Backend tao tai khoan o lan dang nhap dau tien va tra ve user, tokens, meta."
+            "Use this endpoint for Google login. FE gets idToken from SDK and sends { idToken }. Backend creates account on first login and returns user, tokens, and meta."
     })
     @Public()
     @Post("google")
@@ -90,7 +90,7 @@ export class AuthController {
         type: SocialLoginDto,
         examples: {
             mobileGoogleLogin: {
-                summary: "Payload dang nhap Google",
+                summary: "Google login payload",
                 value: {
                     idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>"
                 }
@@ -98,14 +98,14 @@ export class AuthController {
         }
     })
     @ApiOkResponse({
-        description: "Dang nhap Google thanh cong",
+        description: "Google login successful",
         type: AuthSessionResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "idToken Google khong hop le hoac da het han, hoac audience khong khop"
+        description: "Google idToken is invalid, expired, or has audience mismatch"
     })
     @ApiBadRequestResponse({
-        description: "Thieu idToken"
+        description: "Missing idToken"
     })
     async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
@@ -117,30 +117,30 @@ export class AuthController {
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Lam moi access token",
+        summary: "Refresh access token",
         description:
-            "Truyen refreshToken trong body HOAC dung cookie refresh_token. API tra ve token moi va xoay vong refresh token."
+            "Pass refreshToken in body OR use refresh_token cookie. API returns a new access token and rotates refresh token."
     })
     @ApiBody({
         type: RefreshTokenDto,
         required: false,
         examples: {
             fromBody: {
-                summary: "Gui refresh token trong body",
+                summary: "Send refresh token in body",
                 value: { refreshToken: "8cc2c3f0f6496f1910d6fe3f2c0de9f4..." }
             },
             fromCookie: {
-                summary: "Chi dung cookie",
+                summary: "Use cookie only",
                 value: {}
             }
         }
     })
     @ApiOkResponse({
-        description: "Lam moi token thanh cong",
+        description: "Token refreshed successfully",
         type: AuthSessionResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thieu refresh token, refresh token khong hop le hoac da het han"
+        description: "Missing refresh token, invalid refresh token, or expired refresh token"
     })
     async refreshToken(
         @Body() refreshTokenDto: RefreshTokenDto,
@@ -157,15 +157,15 @@ export class AuthController {
     @Post("logout")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Dang xuat",
-        description: "Huy phien dang nhap hien tai va xoa cookie token."
+        summary: "Logout",
+        description: "Revoke current login session and clear token cookie."
     })
     @ApiOkResponse({
-        description: "Dang xuat thanh cong",
+        description: "Logout successful",
         type: LogoutResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thieu token truy cap hoac token khong hop le"
+        description: "Missing/invalid access token"
     })
     async logout(
         @Req() req: Request & { user?: { sub?: string; id?: string; user_Id?: string } },

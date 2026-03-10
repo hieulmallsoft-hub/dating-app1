@@ -16,6 +16,10 @@ export class UserRepository extends Repository<User> {
         return this.findOne({ where: { email } });
     }
 
+    findByAccountCode(accountCode: string): Promise<User | null> {
+        return this.findOne({ where: { accountCode } });
+    }
+
     findByProviderAndSocialId(provider: AuthProvider, socialId: string): Promise<User | null> {
         return this.findOne({
             where: [
@@ -25,18 +29,12 @@ export class UserRepository extends Repository<User> {
         });
     }
 
-    async existsByAccountCode(accountCode: string): Promise<boolean> {
-        const count = await this.count({ where: { accountCode } });
-        return count > 0;
-    }
-
     findByEmailWithPassword(email: string): Promise<User | null> {
         return this.findOne({
             where: { email },
             select: [
                 "id",
                 "email",
-                "accountCode",
                 "password",
                 "fullName",
                 "gender",
@@ -62,6 +60,17 @@ export class UserRepository extends Repository<User> {
 
     async updateById(id: string, data: Partial<User>): Promise<void> {
         await this.update({ id }, data);
+    }
+
+    async assignAccountCodeIfMissing(id: string, accountCode: string): Promise<boolean> {
+        const result = await this.createQueryBuilder()
+            .update(User)
+            .set({ accountCode })
+            .where("id = :id", { id })
+            .andWhere('"accountCode" IS NULL')
+            .execute();
+
+        return (result.affected ?? 0) > 0;
     }
 
     async deleteById(id: string): Promise<void> {

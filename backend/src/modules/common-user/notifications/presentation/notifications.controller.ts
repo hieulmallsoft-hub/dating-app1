@@ -25,16 +25,16 @@ export class NotificationsController {
 
     @Get()
     @ApiOperation({
-        summary: "L?y danh sách thông báo",
-        description: "Tr? v? danh sách thông báo c?a ngu?i dùng hi?n t?i."
+        summary: "Get notification list",
+        description: "Returns notifications for current user."
     })
     @ApiOkResponse({
-        description: "Ðã tr? v? danh sách thông báo",
+        description: "Returns notification list",
         type: NotificationResponseDto,
         isArray: true
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getNotifications(@Req() req) {
         return this.notificationsService.getNotifications(this.getCurrentUserId(req));
@@ -42,23 +42,23 @@ export class NotificationsController {
 
     @Put(":id/read")
     @ApiOperation({
-        summary: "Ðánh d?u thông báo dã d?c",
-        description: "Ðánh d?u m?t thông báo là dã d?c cho ngu?i dùng hi?n t?i."
+        summary: "Mark notification as read",
+        description: "Mark one notification as read for current user."
     })
     @ApiParam({
         name: "id",
-        description: "ID thông báo",
+        description: "Notification ID",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t thông báo",
+        description: "Notification updated",
         type: NotificationResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Không tìm th?y thông báo ho?c thông báo không thu?c ngu?i dùng hi?n t?i"
+        description: "Notification not found or does not belong to current user"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async markAsRead(@Req() req, @Param("id") id: string) {
         return this.notificationsService.markAsRead(id, this.getCurrentUserId(req));
@@ -67,19 +67,19 @@ export class NotificationsController {
     @Post("test")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "T?o thông báo test",
-        description: "T?o thông báo test cho ngu?i dùng hi?n t?i. title/content/type là tùy ch?n."
+        summary: "Create test notification",
+        description: "Create test notification for current user. title/content/type are optional."
     })
     @ApiBody({
         type: CreateTestNotificationDto,
         required: false
     })
     @ApiOkResponse({
-        description: "Ðã t?o thông báo test",
+        description: "Test notification created",
         type: NotificationResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async createTestNotification(
         @Req() req,

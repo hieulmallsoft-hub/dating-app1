@@ -13,9 +13,9 @@ import { AuthProvider } from "../../user/domain/entities/user.entity";
 
 type AuthUser = {
     id: string;
+    accountCode: string | null;
     sub: string | null;
     email: string;
-    accountCode: string | null;
     fullName: string | null;
     gender: 0 | 1 | 2 | null;
     avatar: string | null;
@@ -65,20 +65,20 @@ export class AuthService {
 
     async createSession(user: any, isNewUser = false): Promise<AuthResult> {
         this.assertAccountCanAuthenticate(user);
-        const userWithAccountCode = await this.usersService.ensureAccountCode(user.id);
-
+        const accountReadyUser =
+            user?.accountCode ? user : await this.usersService.ensureAccountCode(user.id);
         const refreshToken = this.generateRefreshToken();
         const refreshTokenExp = this.getRefreshTokenExpiry();
         const tokenVersion = await this.usersService.replaceSession(
-            userWithAccountCode.id,
+            accountReadyUser.id,
             refreshToken,
             refreshTokenExp
         );
 
         return {
-            user: this.buildAuthUser(userWithAccountCode),
-            tokens: this.buildTokens(userWithAccountCode, tokenVersion, refreshToken),
-            meta: this.buildAuthMeta(userWithAccountCode, isNewUser)
+            user: this.buildAuthUser(accountReadyUser),
+            tokens: this.buildTokens(accountReadyUser, tokenVersion, refreshToken),
+            meta: this.buildAuthMeta(accountReadyUser, isNewUser)
         };
     }
 
@@ -148,10 +148,10 @@ export class AuthService {
         if (!normalizedIdToken) {
             throw new UnauthorizedException("Google idToken is required");
         }
-        // kiểm tra 
-        // if (!this.isWellFormedJwt(normalizedIdToken)) {
-        //     throw new UnauthorizedException("Malformed Google idToken");
-        // }
+        if (!this.isWellFormedJwt(normalizedIdToken)) {
+            throw new UnauthorizedException("Malformed Google idToken");
+        }
+
 
         try {
             const audience: string | string[] =
@@ -188,9 +188,9 @@ export class AuthService {
             this.logger.error(`Google token verification failed: ${reason}`);
 
             const normalizedReason = reason.toLowerCase();
-            // if (normalizedReason.includes("wrong recipient") || normalizedReason.includes("audience")) {
-            //     throw new UnauthorizedException("Google token audience mismatch");
-            // }
+            if (normalizedReason.includes("wrong recipient") || normalizedReason.includes("audience")) {
+                throw new UnauthorizedException("Google token audience mismatch");
+            }
             if (normalizedReason.includes("invalid token signature")) {
                 throw new UnauthorizedException("Invalid Google token signature");
             }
@@ -227,12 +227,10 @@ export class AuthService {
             throw new UnauthorizedException("Session expired. Please log in again.");
         }
 
-        const userWithAccountCode = await this.usersService.ensureAccountCode(user.id);
-
         return {
-            user: this.buildAuthUser(userWithAccountCode),
-            tokens: this.buildTokens(userWithAccountCode, this.getTokenVersion(userWithAccountCode), refreshToken),
-            meta: this.buildAuthMeta(userWithAccountCode, false)
+            user: this.buildAuthUser(user),
+            tokens: this.buildTokens(user, this.getTokenVersion(user), refreshToken),
+            meta: this.buildAuthMeta(user, false)
         };
     }
 
@@ -274,17 +272,12 @@ export class AuthService {
             throw new UnauthorizedException("Session expired. Please log in again.");
         }
     }
-
-    async checkAccountCodeExists(accountCode: string): Promise<boolean> {
-        return this.usersService.accountCodeExists(accountCode);
-    }
-
     private buildAuthUser(user: any): AuthUser {
         return {
             id: user.id,
+            accountCode: user.accountCode ?? null,
             sub: user.sub ?? user.socialId ?? null,
             email: user.email,
-            accountCode: user.accountCode ?? null,
             fullName: user.fullName ?? null,
             gender: this.normalizeGenderCode(user.gender),
             avatar: user.avatar ?? null,
@@ -439,3 +432,4 @@ export class AuthService {
         return null;
     }
 }
+

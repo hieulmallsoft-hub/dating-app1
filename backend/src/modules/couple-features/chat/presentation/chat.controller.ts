@@ -21,33 +21,33 @@ export class ChatController {
 
     @Get("messages")
     @ApiOperation({
-        summary: "L?y tin nh?n chat",
-        description: "Tr? v? danh sách tin nh?n chat có phân trang cho c?p dôi hi?n t?i."
+        summary: "Get chat messages",
+        description: "Returns paginated chat messages for current couple."
     })
     @ApiQuery({
         name: "limit",
         required: false,
         type: Number,
-        description: "S? lu?ng tin nh?n c?n l?y",
+        description: "Number of messages to fetch",
         example: 50
     })
     @ApiQuery({
         name: "offset",
         required: false,
         type: Number,
-        description: "S? lu?ng tin nh?n c?n b? qua",
+        description: "Number of messages to skip",
         example: 0
     })
     @ApiOkResponse({
-        description: "Ðã tr? v? danh sách tin nh?n chat",
+        description: "Returns chat message list",
         type: ChatMessageResponseDto,
         isArray: true
     })
     @ApiNotFoundResponse({
-        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
+        description: "Current user is not in a couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getMessages(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
         return this.chatService.getMessages(this.getCurrentUserId(req), limit, offset);
@@ -56,18 +56,18 @@ export class ChatController {
     @Post("clear")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
-        summary: "Xóa l?ch s? chat",
-        description: "Xóa toàn b? l?ch s? chat c?a c?p dôi hi?n t?i."
+        summary: "Delete chat history",
+        description: "Delete all chat history of current couple."
     })
     @ApiOkResponse({
-        description: "Ðã xóa l?ch s? chat",
+        description: "Chat history deleted",
         type: ChatActionResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Ngu?i dùng hi?n t?i chua ghép dôi"
+        description: "Current user is not in a couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async clearChat(@Req() req) {
         return this.chatService.clearChat(this.getCurrentUserId(req));

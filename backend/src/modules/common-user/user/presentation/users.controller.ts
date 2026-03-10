@@ -51,15 +51,15 @@ export class UsersController {
 
     @Get("me")
     @ApiOperation({
-        summary: "L?y h? so ngu?i dùng hi?n t?i",
-        description: "Yêu c?u JWT access token."
+        summary: "Get current user profile",
+        description: "Requires JWT access token."
     })
     @ApiOkResponse({
-        description: "Tr? v? h? so ngu?i dùng hi?n t?i",
+        description: "Returns current user profile",
         type: UserProfileResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getMe(@Req() req) {
         const user = await this.usersService.getUserById(this.getCurrentUserId(req));
@@ -70,16 +70,16 @@ export class UsersController {
     @Public()
     @ApiExcludeEndpoint()
     @ApiOperation({
-        summary: "L?y ngu?i dùng theo email",
-        description: "Endpoint công khai. Tr? v? thông tin ngu?i dùng ho?c null."
+        summary: "Get user by email",
+        description: "Public endpoint. Returns user info or null."
     })
     @ApiParam({
         name: "email",
-        description: "Email ngu?i dùng",
+        description: "User email",
         example: "user@example.com"
     })
     @ApiOkResponse({
-        description: "Tìm th?y ngu?i dùng ho?c null",
+        description: "Found user or null",
         type: UserProfileResponseDto
     })
     async getUserByEmail(@Param("email") email: string) {
@@ -89,18 +89,18 @@ export class UsersController {
 
     @Put("me")
     @ApiOperation({
-        summary: "C?p nh?t h? so ngu?i dùng hi?n t?i",
-        description: "C?p nh?t các tru?ng h? so du?c phép s?a c?a ngu?i dùng hi?n t?i."
+        summary: "Update current user profile",
+        description: "Update editable profile fields for current user."
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t h? so",
+        description: "Profile updated",
         type: UserProfileResponseDto
     })
     @ApiBadRequestResponse({
-        description: "D? li?u không h?p l? ho?c ch?a tru?ng du?c b?o v?"
+        description: "Invalid payload or protected fields provided"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async updateMe(@Req() req, @Body() updateUserDto: UpdateUserDto) {
         const user = await this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
@@ -109,9 +109,8 @@ export class UsersController {
 
     @Post("me/avatar")
     @ApiOperation({
-        summary: "T?i lên và c?p nh?t ?nh d?i di?n ngu?i dùng hi?n t?i",
-        description:
-            "T?i ?nh d?i di?n b?ng multipart/form-data (field `file`). Backend luu file và t? d?ng c?p nh?t `users.avatar`."
+        summary: "Upload and update current user avatar",
+        description: "Upload avatar via multipart/form-data (field `file`). Backend stores file and auto-updates `users.avatar`."
     })
     @ApiConsumes("multipart/form-data")
     @ApiBody({
@@ -124,14 +123,14 @@ export class UsersController {
         }
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t ?nh d?i di?n",
+        description: "Avatar updated",
         type: UpdateAvatarResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Thi?u file, d?nh d?ng file không h? tr? ho?c d? li?u không h?p l?"
+        description: "Missing file, unsupported file format, or invalid payload"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     @UseInterceptors(
         FileInterceptor("file", {
@@ -179,18 +178,18 @@ export class UsersController {
 
     @Put("me/location")
     @ApiOperation({
-        summary: "C?p nh?t v? trí ngu?i dùng hi?n t?i",
-        description: "G?i v? trí GPS m?i nh?t và tr?ng thái thi?t b? d? theo dõi c?p dôi."
+        summary: "Update current user location",
+        description: "Submit latest GPS location and device state for couple tracking."
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t v? trí",
+        description: "Location updated",
         type: UpdateUserLocationResponseDto
     })
     @ApiBadRequestResponse({
-        description: "lat/lng không h?p l? ho?c các ch? s? tùy ch?n vu?t ph?m vi"
+        description: "Invalid lat/lng or optional metrics out of allowed range"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async updateMyLocation(@Req() req, @Body() dto: UpdateUserLocationDto) {
         return this.usersService.updateMyLocation(
@@ -206,15 +205,15 @@ export class UsersController {
 
     @Delete("me")
     @ApiOperation({
-        summary: "Xóa tài kho?n ngu?i dùng hi?n t?i",
-        description: "Xóa ngu?i dùng dang dang nh?p và d? li?u liên quan."
+        summary: "Delete current user account",
+        description: "Delete logged-in user and related data."
     })
     @ApiOkResponse({
-        description: "Ðã xóa ngu?i dùng",
+        description: "User deleted",
         type: DeleteUserResponseDto
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async deleteMe(@Req() req) {
         return this.usersService.deleteUser(this.getCurrentUserId(req));

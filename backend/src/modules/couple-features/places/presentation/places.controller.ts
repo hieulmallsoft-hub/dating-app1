@@ -42,23 +42,23 @@ export class PlacesController {
 
     @Get()
     @ApiOperation({
-        summary: "L?y danh sách d?a di?m",
-        description: "Tr? v? danh sách d?a di?m c?a c?p dôi hi?n t?i. Tham s? `since` h? tr? d?ng b? tang d?n."
+        summary: "Get place list",
+        description: "Returns place list of current couple. `since` supports incremental sync."
     })
     @ApiQuery({
         name: "since",
         required: false,
         type: Number,
-        description: "Epoch milliseconds cho d?ng b? tang d?n",
+        description: "Epoch milliseconds for incremental sync",
         example: 1762677600000
     })
     @ApiOkResponse({
-        description: "Ðã tr? v? danh sách d?a di?m",
+        description: "Returns place list",
         type: PlaceResponseDto,
         isArray: true
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async getPlaces(@Req() req, @Query("since") since?: string) {
         const parsedSince = since ? Number(since) : undefined;
@@ -67,18 +67,18 @@ export class PlacesController {
 
     @Post()
     @ApiOperation({
-        summary: "T?o d?a di?m",
-        description: "T?o d?a di?m cho c?p dôi hi?n t?i."
+        summary: "Create place",
+        description: "Create place for current couple."
     })
     @ApiCreatedResponse({
-        description: "Ðã t?o d?a di?m",
+        description: "Place created",
         type: PlaceResponseDto
     })
     @ApiBadRequestResponse({
-        description: "D? li?u không h?p l? (lat/lng/radius/type...)"
+        description: "Invalid payload (lat/lng/radius/type...)"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async createPlace(@Req() req, @Body() dto: CreatePlaceDto) {
         return this.placesService.createPlace(this.getCurrentUserId(req), dto);
@@ -86,26 +86,26 @@ export class PlacesController {
 
     @Put(":id")
     @ApiOperation({
-        summary: "C?p nh?t d?a di?m",
-        description: "C?p nh?t d?a di?m theo id."
+        summary: "Update place",
+        description: "Update place by id."
     })
     @ApiParam({
         name: "id",
-        description: "ID d?a di?m",
+        description: "Place ID",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Ðã c?p nh?t d?a di?m",
+        description: "Place updated",
         type: PlaceResponseDto
     })
     @ApiBadRequestResponse({
-        description: "D? li?u không h?p l?"
+        description: "Invalid payload"
     })
     @ApiNotFoundResponse({
-        description: "Không tìm th?y d?a di?m ho?c d?a di?m không thu?c c?p dôi hi?n t?i"
+        description: "Place not found or does not belong to current couple"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async updatePlace(@Req() req, @Param("id") id: string, @Body() dto: UpdatePlaceDto) {
         return this.placesService.updatePlace(this.getCurrentUserId(req), id, dto);
@@ -113,23 +113,23 @@ export class PlacesController {
 
     @Delete(":id")
     @ApiOperation({
-        summary: "Xóa d?a di?m (xóa m?m)",
-        description: "Xóa m?m d?a di?m theo id."
+        summary: "Soft delete place",
+        description: "Soft delete place by id."
     })
     @ApiParam({
         name: "id",
-        description: "ID d?a di?m",
+        description: "Place ID",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @ApiOkResponse({
-        description: "Ðã xóa d?a di?m",
+        description: "Place deleted",
         type: PlaceResponseDto
     })
     @ApiNotFoundResponse({
-        description: "Không tìm th?y d?a di?m"
+        description: "Place not found"
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async deletePlace(@Req() req, @Param("id") id: string) {
         return this.placesService.deletePlace(this.getCurrentUserId(req), id);
@@ -137,22 +137,22 @@ export class PlacesController {
 
     @Get("search")
     @ApiOperation({
-        summary: "Tìm d?a di?m theo t? khóa",
-        description: "Tìm ki?m b?ng nhà cung c?p d?a di?m bên ngoài theo t? khóa."
+        summary: "Search places by keyword",
+        description: "Search external place providers by keyword."
     })
     @ApiQuery({
         name: "q",
         required: true,
-        description: "T? khóa tìm ki?m",
+        description: "Search keyword",
         example: "coffee"
     })
     @ApiOkResponse({
-        description: "K?t qu? tìm ki?m. Tr? v? [] khi t? khóa quá ng?n ho?c nhà cung c?p g?p l?i.",
+        description: "Search result. Returns [] when keyword is too short or provider errors.",
         type: PlaceSearchResultResponseDto,
         isArray: true
     })
     @ApiUnauthorizedResponse({
-        description: "Thi?u token truy c?p ho?c token không h?p l?"
+        description: "Missing/invalid access token"
     })
     async searchPlaces(@Query("q") query: string) {
         return this.placesService.searchPlaces(query);
