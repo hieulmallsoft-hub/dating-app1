@@ -196,25 +196,6 @@ export class CoupleController {
         return this.coupleService.updateCouple(this.getCurrentUserId(req), { startDate: updateCoupleDto.startDate });
     }
 
-    @Put("theme")
-    @ApiOperation({
-        summary: "Update couple theme",
-        description: "Set current couple theme."
-    })
-    @ApiOkResponse({
-        description: "Theme updated",
-        type: CoupleResponseDto
-    })
-    @ApiNotFoundResponse({
-        description: "Current user is not in a couple"
-    })
-    @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
-    })
-    async setTheme(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
-        return this.coupleService.updateCouple(this.getCurrentUserId(req), { theme: updateCoupleDto.theme });
-    }
-
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {
         const userId = req.user?.sub || req.user?.id || req.user?.user_Id;
         if (!userId) {

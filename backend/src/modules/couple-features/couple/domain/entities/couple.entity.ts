@@ -48,9 +48,6 @@ export class Couple {
     @Column({ type: "date", nullable: true })
     startDate: Date | null;
 
-    @Column({ nullable: true })
-    theme: string | null;
-
     @CreateDateColumn()
     createdAt: Date;
 

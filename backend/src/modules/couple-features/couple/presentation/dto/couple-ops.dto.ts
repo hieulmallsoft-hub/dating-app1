@@ -21,16 +21,6 @@ export class UpdateCoupleDto {
     @IsDateString()
     @IsOptional()
     startDate?: string;
-
-    @ApiPropertyOptional({
-        description: "Couple theme key",
-        example: "romantic-red",
-        nullable: true
-    })
-    @IsString()
-    @IsOptional()
-    theme?: string;
-
 }
 
 export class CouplePartnerResponseDto {
@@ -136,16 +126,6 @@ export class CoupleResponseDto {
         nullable: true
     })
     startDate?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Couple theme key",
-        example: "romantic-red",
-        nullable: true
-    })
-    theme?: string | null;
-
-
- 
 }
 
 export class CoupleLocationUserResponseDto {

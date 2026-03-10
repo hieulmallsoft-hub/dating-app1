@@ -118,9 +118,6 @@ export class CoupleService {
         if (dto.startDate !== undefined) {
             couple.startDate = new Date(dto.startDate);
         }
-        if (dto.theme !== undefined) {
-            couple.theme = dto.theme;
-        }
         return this.coupleRepository.save(couple);
     }
 
