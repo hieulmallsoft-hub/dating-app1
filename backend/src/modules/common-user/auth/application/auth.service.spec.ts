@@ -124,6 +124,28 @@ describe("AuthService Google login security", () => {
         expect(result).toEqual(expected);
     });
 
+    it("normalizes bearer prefix and internal whitespace in idToken", async () => {
+        const service = createService("google-client-id");
+        const verifyIdToken = mockGoogleVerifyPayload(service, {
+            sub: "google-sub-123",
+            email: "user@example.com",
+            name: "User One",
+            picture: "https://example.com/avatar.png",
+            email_verified: true,
+            iss: "accounts.google.com"
+        });
+
+        jest.spyOn(service, "validateSocialUser").mockResolvedValue({ user: {}, tokens: {}, meta: {} } as any);
+
+        const formattedToken = `Bearer ${validJwt.slice(0, 12)} \n ${validJwt.slice(12)}`;
+        await service.loginWithGoogle(formattedToken);
+
+        expect(verifyIdToken).toHaveBeenCalledWith({
+            idToken: validJwt,
+            audience: "google-client-id"
+        });
+    });
+
     it("accepts multiple configured Google audiences", async () => {
         const service = createService(undefined, ["android-client-id", "ios-client-id"]);
         const verifyIdToken = mockGoogleVerifyPayload(service, {

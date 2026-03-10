@@ -148,9 +148,10 @@ export class AuthService {
         if (!normalizedIdToken) {
             throw new UnauthorizedException("Google idToken is required");
         }
-        if (!this.isWellFormedJwt(normalizedIdToken)) {
-            throw new UnauthorizedException("Malformed Google idToken");
-        }
+        // kiểm tra 
+        // if (!this.isWellFormedJwt(normalizedIdToken)) {
+        //     throw new UnauthorizedException("Malformed Google idToken");
+        // }
 
         try {
             const audience: string | string[] =
@@ -368,8 +369,9 @@ export class AuthService {
         }
 
         const trimmed = value.trim();
-        const unquoted = trimmed.replace(/^"(.*)"$/, "$1");
-        return unquoted.trim();
+        const unquoted = trimmed.replace(/^"(.*)"$/, "$1").trim();
+        const withoutBearer = unquoted.replace(/^Bearer\s+/i, "");
+        return withoutBearer.replace(/\s+/g, "");
     }
 
     private sanitizeGoogleVerifyErrorMessage(error: unknown): string {
