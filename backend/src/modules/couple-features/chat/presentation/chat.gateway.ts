@@ -14,6 +14,7 @@ import { ChatService } from "../application/chat.service";
 import { SendMessageDto } from "../presentation/dto/send-message.dto";
 import { WsJwtGuard } from "../../../common-user/auth/infrastructure/strategies/ws-jwt.guard";
 import { CoupleService } from "../../couple/application/couple.service";
+import { toChatMessageResponse } from "./mappers/chat-response.mapper";
 
 @WebSocketGateway({
     cors: {
@@ -51,14 +52,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return { event: "joined", data: { success: true, coupleId: couple.id } };
     }
 
-    @UseGuards(WsJwtGuard)
     @SubscribeMessage("message:send")
     async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() data: SendMessageDto) {
         const userId = this.getCurrentUserId(client);
         const savedMessage = await this.chatService.saveMessage(userId, data);
+        const response = toChatMessageResponse(savedMessage);
 
-        this.server.to(this.roomForCouple(savedMessage.coupleId)).emit("message:received", savedMessage);
-        return savedMessage;
+        this.server.to(this.roomForCouple(savedMessage.coupleId)).emit("message:received", response);
+        return response;
     }
 
     private getCurrentUserId(client: Socket & { user?: { sub?: string; id?: string; user_Id?: string } }) {

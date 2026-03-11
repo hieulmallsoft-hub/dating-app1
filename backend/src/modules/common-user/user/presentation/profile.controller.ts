@@ -3,7 +3,6 @@ import {
     Controller,
     Delete,
     Get,
-    Param,
     Put,
     Req,
     UnauthorizedException
@@ -11,12 +10,8 @@ import {
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
-    ApiExcludeController,
-    ApiExcludeEndpoint,
-    ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
-    ApiParam,
     ApiTags,
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
@@ -29,19 +24,17 @@ import {
     UserProfileResponseDto
 } from "./dto/user-ops.dto";
 import { toApiUser } from "./mappers/user-response.mapper";
-import { Public } from "src/common/decorators/customize";
 
-@ApiTags("users")
+@ApiTags("profile")
 @ApiBearerAuth("JWT-auth")
-@ApiExcludeController()
-@Controller("users")
-export class UsersController {
+@Controller("profile")
+export class ProfileController {
     constructor(private readonly usersService: UsersService) {}
 
-    @Get("me")
+    @Get()
     @ApiOperation({
-        summary: "Get current user profile",
-        description: "Requires JWT access token."
+        summary: "getProfile",
+        description: "Get current user profile."
     })
     @ApiOkResponse({
         description: "Returns current user profile",
@@ -55,31 +48,10 @@ export class UsersController {
         return toApiUser(user);
     }
 
-    @Get("email/:email")
-    @Public()
-    @ApiExcludeEndpoint()
+    @Put()
     @ApiOperation({
-        summary: "Get user by email",
-        description: "Public endpoint. Returns user info or null."
-    })
-    @ApiParam({
-        name: "email",
-        description: "User email",
-        example: "user@example.com"
-    })
-    @ApiOkResponse({
-        description: "Found user or null",
-        type: UserProfileResponseDto
-    })
-    async getUserByEmail(@Param("email") email: string) {
-        const user = await this.usersService.getUserByEmail(email);
-        return toApiUser(user);
-    }
-
-    @Put("me")
-    @ApiOperation({
-        summary: "Update current user profile",
-        description: "Update editable profile fields for current user."
+        summary: "updateProfile",
+        description: "Update current user profile fields."
     })
     @ApiOkResponse({
         description: "Profile updated",
@@ -96,10 +68,10 @@ export class UsersController {
         return toApiUser(user);
     }
 
-    @Put("me/location")
+    @Put("location")
     @ApiOperation({
-        summary: "Update current user location",
-        description: "Submit latest GPS location and device state for couple tracking."
+        summary: "updateProfileLocation",
+        description: "Update current user live location."
     })
     @ApiOkResponse({
         description: "Location updated",
@@ -123,10 +95,10 @@ export class UsersController {
         );
     }
 
-    @Delete("me")
+    @Delete()
     @ApiOperation({
-        summary: "Delete current user account",
-        description: "Delete logged-in user and related data."
+        summary: "deleteMyAccount",
+        description: "Delete current user account."
     })
     @ApiOkResponse({
         description: "User deleted",
@@ -146,6 +118,4 @@ export class UsersController {
         }
         return userId;
     }
-
 }
-

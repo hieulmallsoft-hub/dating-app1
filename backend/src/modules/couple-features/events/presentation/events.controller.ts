@@ -19,6 +19,7 @@ import {
     UpdateEventDto
 } from "./dto/event-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { toEventResponse, toEventResponseList } from "./mappers/event-response.mapper";
 
 @ApiTags("events")
 @ApiBearerAuth("JWT-auth")
@@ -44,7 +45,8 @@ export class EventsController {
         description: "Missing/invalid access token"
     })
     async getEvents(@Req() req) {
-        return this.eventsService.getEvents(this.getCurrentUserId(req));
+        const events = await this.eventsService.getEvents(this.getCurrentUserId(req));
+        return toEventResponseList(events);
     }
 
     @Post()
@@ -66,7 +68,8 @@ export class EventsController {
         description: "Missing/invalid access token"
     })
     async createEvent(@Req() req, @Body() dto: CreateEventDto) {
-        return this.eventsService.createEvent(this.getCurrentUserId(req), dto);
+        const event = await this.eventsService.createEvent(this.getCurrentUserId(req), dto);
+        return toEventResponse(event);
     }
 
     @Put(":id")
@@ -96,7 +99,8 @@ export class EventsController {
         description: "Missing/invalid access token"
     })
     async updateEvent(@Req() req, @Param("id") id: string, @Body() dto: UpdateEventDto) {
-        return this.eventsService.updateEvent(this.getCurrentUserId(req), id, dto);
+        const event = await this.eventsService.updateEvent(this.getCurrentUserId(req), id, dto);
+        return toEventResponse(event);
     }
 
     @Delete(":id")

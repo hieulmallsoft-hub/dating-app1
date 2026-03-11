@@ -28,8 +28,7 @@ export class EventsService {
         const couple = await this.coupleService.getMyCouple(userId);
         return this.eventRepository.find({
             where: { coupleId: couple.id },
-            order: { date: "ASC" },
-            relations: ["creator"]
+            order: { date: "ASC" }
         });
     }
 

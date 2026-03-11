@@ -1,51 +1,67 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as coupleApi from "../api/couple";
 import { getHttpMessage, getHttpStatus } from "../api/error";
+import * as userApi from "../api/user";
 
 type Props = {
   onAuthInvalid: () => void;
 };
 
-function normalizeInviteCode(value: string) {
-  return value.trim().toUpperCase();
+function normalizeAccountCode(value: string) {
+  return value.replace(/\D/g, "").slice(0, 6);
 }
 
-function isInviteCodeValid(value: string) {
-  return /^[A-F0-9]{8}$/.test(value);
+function isAccountCodeValid(value: string) {
+  return /^[0-9]{6}$/.test(value);
 }
 
 export default function CouplePanel({ onAuthInvalid }: Props) {
-  const [couple, setCouple] = useState<coupleApi.Couple | null>(null);
-  const [invite, setInvite] = useState<coupleApi.Invite | null>(null);
+  const [me, setMe] = useState<userApi.UserMe | null>(null);
+  const [profile, setProfile] = useState<coupleApi.CoupleProfile | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [startDateDraft, setStartDateDraft] = useState("");
-  const [themeDraft, setThemeDraft] = useState("");
+  const [savedStartDate, setSavedStartDate] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const partner = couple?.partner ?? null;
-  const normalizedJoinCode = useMemo(() => normalizeInviteCode(joinCode), [joinCode]);
-  const canJoin = useMemo(() => isInviteCodeValid(normalizedJoinCode) && !isWorking, [normalizedJoinCode, isWorking]);
+  const normalizedJoinCode = useMemo(() => normalizeAccountCode(joinCode), [joinCode]);
+  const canJoin = useMemo(
+    () => isAccountCodeValid(normalizedJoinCode) && !isWorking,
+    [normalizedJoinCode, isWorking]
+  );
 
-  const loadCouple = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+
     try {
-      const data = await coupleApi.getMyCouple();
-      setCouple(data);
-      setStartDateDraft(data.startDate || "");
-      setThemeDraft(data.theme || "");
+      const meData = await userApi.getMe();
+      setMe(meData);
+
+      try {
+        const coupleProfile = await coupleApi.getMyCouple();
+        setProfile(coupleProfile);
+      } catch (err: unknown) {
+        const status = getHttpStatus(err);
+        if (status === 404) {
+          setProfile(null);
+          setSavedStartDate("");
+          setStartDateDraft("");
+        } else if (status === 401) {
+          onAuthInvalid();
+        } else {
+          setError(getHttpMessage(err, "Failed to load couple profile"));
+        }
+      }
     } catch (err: unknown) {
       const status = getHttpStatus(err);
-      if (status === 404) {
-        setCouple(null);
-      } else if (status === 401) {
+      if (status === 401) {
         onAuthInvalid();
       } else {
-        setError(getHttpMessage(err, "Failed to load couple"));
+        setError(getHttpMessage(err, "Failed to load account profile"));
       }
     } finally {
       setIsLoading(false);
@@ -53,46 +69,65 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
   }, [onAuthInvalid]);
 
   useEffect(() => {
-    void loadCouple();
-  }, [loadCouple]);
+    void loadData();
+  }, [loadData]);
 
-  const createInvite = async () => {
-    setIsWorking(true);
-    setError(null);
-    setSuccess(null);
+  const copyAccountCode = async () => {
+    if (!me?.accountCode) return;
     try {
-      const data = await coupleApi.createInvite();
-      setInvite(data);
-      setSuccess("Da tao invite");
-    } catch (err: unknown) {
-      const status = getHttpStatus(err);
-      if (status === 401) {
-        onAuthInvalid();
-      } else {
-        setError(getHttpMessage(err, "Failed to create invite"));
-      }
-    } finally {
-      setIsWorking(false);
+      await navigator.clipboard.writeText(me.accountCode);
+      setSuccess("Da copy account code");
+    } catch {
+      setError("Khong copy duoc account code");
     }
   };
 
   const joinCouple = async () => {
     if (!canJoin) return;
+
     setIsWorking(true);
     setError(null);
     setSuccess(null);
     try {
       await coupleApi.joinCouple(normalizedJoinCode);
-      setInvite(null);
       setJoinCode("");
-      await loadCouple();
+      await loadData();
       setSuccess("Da ghep doi");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
       if (status === 401) {
         onAuthInvalid();
       } else {
-        setError(getHttpMessage(err, "Failed to join"));
+        setError(getHttpMessage(err, "Failed to join couple"));
+      }
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const saveStartDate = async () => {
+    if (!profile) return;
+    if (!startDateDraft.trim()) {
+      setError("Nhap start date truoc khi cap nhat");
+      return;
+    }
+
+    setIsWorking(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const updated = await coupleApi.setStartDate(startDateDraft);
+      const nextStartDate = updated.startDate || startDateDraft;
+      setSavedStartDate(nextStartDate);
+      setStartDateDraft(nextStartDate);
+      await loadData();
+      setSuccess("Da cap nhat ngay bat dau");
+    } catch (err: unknown) {
+      const status = getHttpStatus(err);
+      if (status === 401) {
+        onAuthInvalid();
+      } else {
+        setError(getHttpMessage(err, "Failed to update start date"));
       }
     } finally {
       setIsWorking(false);
@@ -101,14 +136,16 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
 
   const disconnect = async () => {
     if (!window.confirm("Ban chac chan muon ngat ket noi?")) return;
+
     setIsWorking(true);
     setError(null);
     setSuccess(null);
     try {
       await coupleApi.disconnectCouple();
-      setInvite(null);
+      setSavedStartDate("");
+      setStartDateDraft("");
       setJoinCode("");
-      await loadCouple();
+      await loadData();
       setSuccess("Da ngat ket noi");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
@@ -122,154 +159,95 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
     }
   };
 
-  const copyInvite = async () => {
-    if (!invite?.inviteCode) return;
-    try {
-      await navigator.clipboard.writeText(invite.inviteCode);
-    } catch {
-      // ignore
-    }
-  };
-
-  const saveCouple = async () => {
-    if (!couple) return;
-    setIsWorking(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const ops: Promise<unknown>[] = [];
-      if (startDateDraft !== (couple.startDate || "")) {
-        ops.push(coupleApi.setStartDate(startDateDraft));
-      }
-      if (themeDraft.trim() !== (couple.theme || "")) {
-        ops.push(coupleApi.setTheme(themeDraft.trim()));
-      }
-
-      if (!ops.length) {
-        setSuccess("Khong co thay doi");
-        return;
-      }
-
-      await Promise.all(ops);
-      await loadCouple();
-      setSuccess("Da cap nhat");
-    } catch (err: unknown) {
-      const status = getHttpStatus(err);
-      if (status === 401) {
-        onAuthInvalid();
-      } else {
-        setError(getHttpMessage(err, "Failed to update couple"));
-      }
-    } finally {
-      setIsWorking(false);
-    }
-  };
-
   if (isLoading) {
-    return <div className="panel">Loading...</div>;
+    return <div className="panel">Dang tai...</div>;
   }
 
   return (
     <div className="panel">
       <div className="panel-title">
-        <h3>Ghep doi</h3>
-        <p>Invite code de ket noi voi nguoi yeu</p>
+        <h3>Couple</h3>
+        <p>Ghep doi bang account code 6 chu so</p>
       </div>
 
       {error ? <div className="panel-error">{error}</div> : null}
       {success ? <div className="panel-success">{success}</div> : null}
 
-      {couple && couple.status === "ACTIVE" && partner ? (
+      {profile && profile.status === "ACTIVE" ? (
         <div className="couple-card">
           <div className="couple-partner">
             <div className="avatar">
-              {partner.avatar ? (
-                <img src={partner.avatar} alt="partner" />
-              ) : (
-                <span>{(partner.fullName || partner.email || "?").slice(0, 1).toUpperCase()}</span>
-              )}
+              <span>{(profile.fullName || profile.email || "?").slice(0, 1).toUpperCase()}</span>
             </div>
             <div className="partner-meta">
-              <div className="partner-name">{partner.fullName || partner.email}</div>
-              <div className="partner-sub">{partner.email}</div>
+              <div className="partner-name">{profile.fullName || profile.email || "Partner"}</div>
+              <div className="partner-sub">{profile.email || "-"}</div>
+              <div className="partner-sub">Partner id: {profile.id || "-"}</div>
             </div>
           </div>
 
-          <div className="couple-meta">
-            <label className="auth-field">
-              <span>Start date</span>
-              <input
-                type="date"
-                value={startDateDraft}
-                onChange={(e) => setStartDateDraft(e.target.value)}
-              />
-            </label>
-            <label className="auth-field">
-              <span>Theme</span>
-              <input
-                value={themeDraft}
-                onChange={(e) => setThemeDraft(e.target.value)}
-                placeholder="VD: pastel"
-              />
-            </label>
+          <div className="hint">
+            Vi tri:{" "}
+            {profile.latitude !== null && profile.longitude !== null
+              ? `${profile.latitude}, ${profile.longitude}`
+              : "Chua co du lieu"}
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={saveCouple}
-            disabled={isWorking}
-            type="button"
-          >
-            {isWorking ? "Dang xu ly..." : "Cap nhat"}
-          </button>
+          <label className="auth-field">
+            <span>Start date</span>
+            <input type="date" value={startDateDraft} onChange={(e) => setStartDateDraft(e.target.value)} />
+          </label>
 
-          <button className="btn btn-outline" onClick={disconnect} disabled={isWorking} type="button">
-            {isWorking ? "Dang xu ly..." : "Ngat ket noi"}
-          </button>
+          {savedStartDate ? (
+            <div className="hint">Start date hien tai: {savedStartDate}</div>
+          ) : (
+            <div className="hint">API couple/profile hien chua tra ve startDate, nhap de cap nhat.</div>
+          )}
+
+          <div className="join-row">
+            <button className="btn btn-primary" onClick={() => void saveStartDate()} disabled={isWorking} type="button">
+              {isWorking ? "Dang xu ly..." : "Cap nhat start date"}
+            </button>
+            <button className="btn btn-outline" onClick={() => void disconnect()} disabled={isWorking} type="button">
+              {isWorking ? "Dang xu ly..." : "Ngat ket noi"}
+            </button>
+          </div>
         </div>
       ) : (
-        <>
-          <div className="couple-actions">
-            <div className="action-card">
-              <div className="action-title">Tao ma moi</div>
-              <div className="action-desc">Gui code nay cho nguoi kia de ghep doi</div>
+        <div className="couple-actions">
+          <div className="action-card">
+            <div className="action-title">Account code cua ban</div>
+            <div className="action-desc">Gui ma nay cho partner de ho ghep doi voi ban</div>
 
-              {invite ? (
-                <div className="invite-box">
-                  <div className="invite-code">{invite.inviteCode}</div>
-                  <button className="btn btn-small" onClick={copyInvite} type="button">
-                    Copy
-                  </button>
-                </div>
-              ) : null}
-
-              <button className="btn btn-primary" onClick={createInvite} disabled={isWorking} type="button">
-                {isWorking ? "Dang tao..." : "Tao invite"}
+            <div className="invite-box">
+              <div className="invite-code">{me?.accountCode || "------"}</div>
+              <button className="btn btn-small" onClick={() => void copyAccountCode()} disabled={!me?.accountCode} type="button">
+                Copy
               </button>
             </div>
-
-            <div className="action-card">
-              <div className="action-title">Nhap code</div>
-              <div className="action-desc">Nhap code 8 ky tu (A-F, 0-9)</div>
-
-              <div className="join-row">
-                <input
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  placeholder="VD: 401CC2F1"
-                  className="join-input"
-                />
-                <button className="btn btn-primary" onClick={joinCouple} disabled={!canJoin} type="button">
-                  Join
-                </button>
-              </div>
-              {!joinCode ? null : !isInviteCodeValid(normalizedJoinCode) ? (
-                <div className="hint">Code phai dung 8 ky tu hex</div>
-              ) : null}
-            </div>
           </div>
-        </>
+
+          <div className="action-card">
+            <div className="action-title">Nhap account code partner</div>
+            <div className="action-desc">Code gom 6 chu so</div>
+
+            <div className="join-row">
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(normalizeAccountCode(e.target.value))}
+                placeholder="VD: 123456"
+                className="join-input"
+                maxLength={6}
+              />
+              <button className="btn btn-primary" onClick={() => void joinCouple()} disabled={!canJoin} type="button">
+                Join
+              </button>
+            </div>
+            {joinCode && !isAccountCodeValid(normalizedJoinCode) ? (
+              <div className="hint">Account code phai dung 6 chu so</div>
+            ) : null}
+          </div>
+        </div>
       )}
     </div>
   );

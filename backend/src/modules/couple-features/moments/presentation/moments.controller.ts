@@ -30,6 +30,7 @@ import {
     UpdateMomentDto
 } from "./dto/moment-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { toMomentResponse, toMomentResponseList } from "./mappers/moment-response.mapper";
 
 @ApiTags("moments")
 @ApiBearerAuth("JWT-auth")
@@ -54,8 +55,9 @@ export class MomentsController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getFeed(@Req() req) {
-        return this.momentsService.getFeed(this.getCurrentUserId(req));
+    async getMomentFeed(@Req() req) {
+        const moments = await this.momentsService.getFeed(this.getCurrentUserId(req));
+        return toMomentResponseList(moments);
     }
 
     @Post()
@@ -77,7 +79,8 @@ export class MomentsController {
         description: "Missing/invalid access token"
     })
     async createMoment(@Req() req, @Body() dto: CreateMomentDto) {
-        return this.momentsService.createMoment(this.getCurrentUserId(req), dto);
+        const moment = await this.momentsService.createMoment(this.getCurrentUserId(req), dto);
+        return toMomentResponse(moment);
     }
 
     @Put(":id")
@@ -107,7 +110,8 @@ export class MomentsController {
         description: "Missing/invalid access token"
     })
     async updateMoment(@Req() req, @Param("id") id: string, @Body() dto: UpdateMomentDto) {
-        return this.momentsService.updateMoment(this.getCurrentUserId(req), id, dto);
+        const moment = await this.momentsService.updateMoment(this.getCurrentUserId(req), id, dto);
+        return toMomentResponse(moment);
     }
 
     @Delete(":id")

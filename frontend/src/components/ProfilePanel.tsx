@@ -14,26 +14,15 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [gender, setGender] = useState<userApi.Gender | "">("");
-  const [genderPreference, setGenderPreference] = useState<userApi.GenderPreference | "">("");
   const [birthDate, setBirthDate] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [bio, setBio] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [school, setSchool] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [photoDraft, setPhotoDraft] = useState("");
 
-  const canSave = useMemo(
-    () => !isSaving && !isUploadingAvatar && !isUploadingPhoto,
-    [isSaving, isUploadingAvatar, isUploadingPhoto]
-  );
+  const canSave = useMemo(() => !isSaving && !isUploadingAvatar, [isSaving, isUploadingAvatar]);
 
   useEffect(() => {
     const load = async () => {
@@ -43,15 +32,9 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         setMe(data);
         setFullName(data.fullName || "");
         setGender(data.gender ?? "");
-        setGenderPreference(data.genderPreference ?? "");
         setBirthDate(data.birthDate || "");
         setAvatar(data.avatar || "");
         setAvatarLoadError(false);
-        setBio(data.bio || "");
-        setJobTitle(data.jobTitle || "");
-        setCompany(data.company || "");
-        setSchool(data.school || "");
-        setPhotos(Array.isArray(data.photos) ? data.photos : []);
       } catch (err: unknown) {
         const status = getHttpStatus(err);
         if (status === 401) {
@@ -64,21 +47,6 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
     void load();
   }, [onAuthInvalid]);
 
-  const addPhoto = () => {
-    const value = photoDraft.trim();
-    if (!value) return;
-    if (photos.includes(value)) {
-      setPhotoDraft("");
-      return;
-    }
-    setPhotos((prev) => [...prev, value]);
-    setPhotoDraft("");
-  };
-
-  const removePhoto = (url: string) => {
-    setPhotos((prev) => prev.filter((p) => p !== url));
-  };
-
   const uploadAvatar = async (file: File) => {
     setIsUploadingAvatar(true);
     setError(null);
@@ -86,12 +54,12 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
     try {
       const uploaded = await uploadsApi.uploadFile(file);
       if (uploaded.type !== "image") {
-        setError("Avatar chi ho tro anh (image)");
+        setError("Avatar chi ho tro image");
         return;
       }
       setAvatar(uploaded.fileUrl);
       setAvatarLoadError(false);
-      setSuccess("Da tai len avatar. Bam Luu profile de cap nhat");
+      setSuccess("Da tai avatar. Bam Luu profile de cap nhat");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
       if (status === 401) {
@@ -111,35 +79,15 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
     void uploadAvatar(file);
   };
 
-  const uploadPhoto = async (file: File) => {
-    setIsUploadingPhoto(true);
-    setError(null);
-    setSuccess(null);
+  const copyAccountCode = async () => {
+    const accountCode = me?.accountCode?.trim();
+    if (!accountCode) return;
     try {
-      const uploaded = await uploadsApi.uploadFile(file);
-      if (uploaded.type !== "image") {
-        setError("Photos chi ho tro anh (image)");
-        return;
-      }
-      setPhotos((prev) => (prev.includes(uploaded.fileUrl) ? prev : [...prev, uploaded.fileUrl]));
-      setSuccess("Da tai len photo. Bam Luu profile de cap nhat");
-    } catch (err: unknown) {
-      const status = getHttpStatus(err);
-      if (status === 401) {
-        onAuthInvalid();
-      } else {
-        setError(getHttpMessage(err, "Upload photo failed"));
-      }
-    } finally {
-      setIsUploadingPhoto(false);
+      await navigator.clipboard.writeText(accountCode);
+      setSuccess("Da copy account code");
+    } catch {
+      setError("Khong copy duoc account code");
     }
-  };
-
-  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    e.target.value = "";
-    if (!file) return;
-    void uploadPhoto(file);
   };
 
   const save = async () => {
@@ -151,19 +99,18 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
       const payload: userApi.UpdateMePayload = {
         fullName: fullName.trim() || undefined,
         gender: gender === "" ? undefined : gender,
-        genderPreference: genderPreference === "" ? undefined : genderPreference,
         birthDate: birthDate || undefined,
         avatar: avatar.trim() || undefined,
-        bio: bio.trim() || undefined,
-        jobTitle: jobTitle.trim() || undefined,
-        company: company.trim() || undefined,
-        school: school.trim() || undefined,
-        photos: photos.length ? photos : undefined,
       };
 
       const updated = await userApi.updateMe(payload);
       setMe(updated);
-      setSuccess("Da luu");
+      setFullName(updated.fullName || "");
+      setGender(updated.gender ?? "");
+      setBirthDate(updated.birthDate || "");
+      setAvatar(updated.avatar || "");
+      setAvatarLoadError(false);
+      setSuccess("Da luu profile");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
       if (status === 401) {
@@ -190,7 +137,7 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
     <div className="panel">
       <div className="panel-title">
         <h3>Tai khoan</h3>
-        <p>Cap nhat thong tin ca nhan</p>
+        <p>Thong tin profile va account code</p>
       </div>
 
       {error ? <div className="panel-error">{error}</div> : null}
@@ -213,8 +160,21 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
         <div className="profile-meta">
           <div className="profile-name">{me?.fullName || "No name"}</div>
           <div className="profile-sub">{me?.email || "-"}</div>
+          <div className="profile-sub">Account code: {me?.accountCode || "------"}</div>
         </div>
       </div>
+
+      <div className="join-row" style={{ marginBottom: 12 }}>
+        <button className="btn btn-small btn-outline" onClick={() => void copyAccountCode()} disabled={!me?.accountCode} type="button">
+          Copy account code
+        </button>
+      </div>
+
+      {me?.latitude !== undefined || me?.longitude !== undefined ? (
+        <div className="hint" style={{ marginBottom: 12 }}>
+          Last location: {me?.latitude ?? "-"}, {me?.longitude ?? "-"}
+        </div>
+      ) : null}
 
       <div className="profile-form">
         <label className="auth-field">
@@ -236,23 +196,6 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
             <option value="0">0 - MALE</option>
             <option value="1">1 - FEMALE</option>
             <option value="2">2 - OTHER</option>
-          </select>
-        </label>
-
-        <label className="auth-field">
-          <span>Gender preference</span>
-          <select
-            value={genderPreference === "" ? "" : String(genderPreference)}
-            onChange={(e) => {
-              const value = e.target.value;
-              setGenderPreference(value === "" ? "" : (Number(value) as userApi.GenderPreference));
-            }}
-            className="select"
-          >
-            <option value="">-</option>
-            <option value="0">0 - MALE</option>
-            <option value="1">1 - FEMALE</option>
-            <option value="2">2 - BOTH</option>
           </select>
         </label>
 
@@ -289,79 +232,15 @@ export default function ProfilePanel({ onLogout, onAuthInvalid }: Props) {
               </button>
             ) : null}
           </div>
-          {avatar && avatarLoadError ? (
-            <div className="hint">
-              Khong tai duoc anh. Link ban nhap co the la link bai viet, khong phai link anh truc tiep, hoac website chan hotlink. Hay dung link
-              ket thuc .jpg/.png/.webp (hoac Copy image address).
-            </div>
-          ) : null}
+          {avatar && avatarLoadError ? <div className="hint">Khong tai duoc anh avatar tu URL nay</div> : null}
         </label>
 
-        <label className="auth-field">
-          <span>Bio</span>
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="textarea" rows={3} />
-        </label>
-
-        <div className="grid-2">
-          <label className="auth-field">
-            <span>Job title</span>
-            <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-          </label>
-          <label className="auth-field">
-            <span>Company</span>
-            <input value={company} onChange={(e) => setCompany(e.target.value)} />
-          </label>
-        </div>
-
-        <label className="auth-field">
-          <span>School</span>
-          <input value={school} onChange={(e) => setSchool(e.target.value)} />
-        </label>
-
-        <div className="photos">
-          <div className="photos-head">
-            <div className="photos-title">Photos (URL)</div>
-            <div className="photos-sub">Them nhieu anh bang URL</div>
-          </div>
-          <div className="join-row">
-            <input
-              value={photoDraft}
-              onChange={(e) => setPhotoDraft(e.target.value)}
-              placeholder="https://..."
-              className="join-input"
-            />
-            <button className="btn btn-small" onClick={addPhoto} type="button">
-              Add
-            </button>
-          </div>
-          <div className="join-row" style={{ marginTop: 10 }}>
-            <label className={`btn btn-small ${isUploadingPhoto ? "btn-outline" : "btn-primary"}`}>
-              {isUploadingPhoto ? "Dang tai..." : "Upload photo"}
-              <input type="file" accept="image/*" onChange={onPickPhoto} hidden disabled={isUploadingPhoto} />
-            </label>
-          </div>
-          {photos.length ? (
-            <div className="photos-list">
-              {photos.map((url) => (
-                <div className="photo-row" key={url}>
-                  <span className="photo-url">{url}</span>
-                  <button className="btn btn-small" onClick={() => removePhoto(url)} type="button">
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="hint">Chua co photo nao</div>
-          )}
-        </div>
-
-        <button className="btn btn-primary" onClick={save} disabled={!canSave} type="button">
+        <button className="btn btn-primary" onClick={() => void save()} disabled={!canSave} type="button">
           {isSaving ? "Dang luu..." : "Luu profile"}
         </button>
       </div>
 
-      <button className="btn btn-outline" onClick={doLogout} type="button">
+      <button className="btn btn-outline" onClick={() => void doLogout()} type="button">
         Dang xuat
       </button>
     </div>

@@ -36,6 +36,10 @@ import {
 } from "./dto/media-ops.dto";
 import { UpdateMediaDto } from "./dto/update-media.dto";
 import { UpdateMediaStatusDto } from "./dto/update-media-status.dto";
+import {
+    toMediaItemResponse,
+    toMediaItemResponseList
+} from "./mappers/media-response.mapper";
 
 
 @ApiTags("media")
@@ -80,14 +84,18 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getMedia(
+    async getMediaAlbum(
         @Req() req,
         @Query("filter") filter: "all" | "me" | "partner" = "all",
         @Query("limit") limit?: string,
         @Query("cursor") cursor?: string
     ) {
         const parsedLimit = limit ? Number(limit) : 20;
-        return this.mediaService.getAlbum(this.getCurrentUserId(req), filter, parsedLimit, cursor);
+        const album = await this.mediaService.getAlbum(this.getCurrentUserId(req), filter, parsedLimit, cursor);
+        return {
+            items: toMediaItemResponseList(album.items),
+            nextCursor: album.nextCursor
+        };
     }
 
     @Get("changes")
@@ -116,7 +124,7 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getMediaChanges(
+    async getMediaAlbumChanges(
         @Req() req,
         @Query("since") since?: string,
         @Query("timeoutMs") timeoutMs?: string
@@ -144,8 +152,9 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    createMedia(@Req() req, @Body() body: CreateMediaDto) {
-        return this.mediaService.createForMyCouple(this.getCurrentUserId(req), body);
+    async createMedia(@Req() req, @Body() body: CreateMediaDto) {
+        const media = await this.mediaService.createForMyCouple(this.getCurrentUserId(req), body);
+        return toMediaItemResponse(media);
     }
 
     @Get(":id")
@@ -171,8 +180,9 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    getById(@Req() req, @Param("id") id: string) {
-        return this.mediaService.getMediaById(this.getCurrentUserId(req), id);
+    async getMediaDetail(@Req() req, @Param("id") id: string) {
+        const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id);
+        return toMediaItemResponse(media);
     }
     
     @Get(":id/download")
@@ -198,7 +208,7 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getDownloadUrl(@Req() req, @Param("id") id: string) {
+    async getMediaDownloadUrl(@Req() req, @Param("id") id: string) {
         const media = await this.mediaService.getMediaById(this.getCurrentUserId(req), id);
         return { downloadUrl: media.downloadUrl };
     }
@@ -226,8 +236,9 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    update(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaDto) {
-        return this.mediaService.updateMedia(this.getCurrentUserId(req), id, body);
+    async updateMediaDetail(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaDto) {
+        const media = await this.mediaService.updateMedia(this.getCurrentUserId(req), id, body);
+        return toMediaItemResponse(media);
     }
 
     @Patch(":id/status")
@@ -253,8 +264,9 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    updateStatus(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaStatusDto) {
-        return this.mediaService.updateMediaStatus(this.getCurrentUserId(req), id, body.status);
+    async updateMediaStatus(@Req() req, @Param("id") id: string, @Body() body: UpdateMediaStatusDto) {
+        const media = await this.mediaService.updateMediaStatus(this.getCurrentUserId(req), id, body.status);
+        return toMediaItemResponse(media);
     }
 
     @Delete(":id")
@@ -277,7 +289,7 @@ export class MediaController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    remove(@Req() req, @Param("id") id: string) {
+    deleteMedia(@Req() req, @Param("id") id: string) {
         return this.mediaService.deleteMedia(this.getCurrentUserId(req), id);
     }
 

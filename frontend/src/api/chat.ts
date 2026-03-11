@@ -21,7 +21,7 @@ export type ChatMessage = {
 };
 
 export async function getMessages(params?: { limit?: number; offset?: number }) {
-  const { data } = await http.get<ChatMessage[]>("/chat/messages", {
+  const { data } = await http.get<ChatMessage[]>("/chat/history", {
     params: {
       limit: params?.limit ?? 100,
       offset: params?.offset ?? 0,
@@ -31,7 +31,6 @@ export async function getMessages(params?: { limit?: number; offset?: number }) 
 }
 
 export async function clearChat() {
-  const { data } = await http.post<{ success: boolean }>("/chat/clear");
+  const { data } = await http.post<{ success: boolean }>("/chat/history/clear");
   return data;
 }
-

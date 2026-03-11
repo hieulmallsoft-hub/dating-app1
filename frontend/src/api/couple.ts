@@ -1,33 +1,21 @@
 import { http } from "./http";
 
-export type CoupleUser = {
-  id: string;
-  email: string;
+export type CoupleStatus = "ACTIVE" | "DISCONNECTED";
+
+export type CoupleProfile = {
+  id: string | null;
+  status: CoupleStatus;
+  birthDate: string | null;
+  email: string | null;
   fullName: string | null;
-  avatar: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
-export type Couple = {
-  id: string;
-  user1Id: string;
+export type CoupleMutationResponse = {
   user2Id: string | null;
-  status: "ACTIVE" | "DISCONNECTED";
+  status: CoupleStatus;
   startDate: string | null;
-  theme: string | null;
-  createdAt: string;
-  updatedAt: string;
-  user1?: CoupleUser;
-  user2?: CoupleUser | null;
-  partner?: CoupleUser | null;
-};
-
-export type Invite = {
-  id: string;
-  inviterId: string;
-  inviteCode: string;
-  status: "PENDING" | "ACCEPTED" | "EXPIRED";
-  expiresAt: string;
-  createdAt: string;
 };
 
 export type CoupleLocationUser = {
@@ -60,32 +48,22 @@ export type CoupleLocationHistoryResponse = {
 };
 
 export async function getMyCouple() {
-  const { data } = await http.get<Couple>("/couple");
-  return data;
-}
-
-export async function createInvite() {
-  const { data } = await http.post<Invite>("/couple/invite");
+  const { data } = await http.get<CoupleProfile>("/couple/profile");
   return data;
 }
 
 export async function joinCouple(inviteCode: string) {
-  const { data } = await http.post<Couple>("/couple/join", { inviteCode });
+  const { data } = await http.post<CoupleMutationResponse>("/couple/join", { inviteCode });
   return data;
 }
 
 export async function setStartDate(startDate: string) {
-  const { data } = await http.put<Couple>("/couple/start-date", { startDate });
-  return data;
-}
-
-export async function setTheme(theme: string) {
-  const { data } = await http.put<Couple>("/couple/theme", { theme });
+  const { data } = await http.put<CoupleMutationResponse>("/couple/start-date", { startDate });
   return data;
 }
 
 export async function disconnectCouple() {
-  const { data } = await http.post<Couple>("/couple/disconnect");
+  const { data } = await http.post<CoupleMutationResponse>("/couple/disconnect");
   return data;
 }
 

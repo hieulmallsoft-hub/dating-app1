@@ -51,8 +51,7 @@ export class PlacesService {
 
         return this.placeRepository.find({
             where,
-            order: { createdAt: "DESC" },
-            relations: ["sharedByUser"]
+            order: { createdAt: "DESC" }
         });
     }
 
@@ -122,7 +121,6 @@ export class PlacesService {
 
         return {
             success: true,
-            partnerId,
             placeId: place.id,
             transition: payload.transition,
             timestamp: payload.timestamp ?? Date.now()

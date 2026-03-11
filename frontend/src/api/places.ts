@@ -85,7 +85,6 @@ export async function sendGeofenceEvent(payload: {
 }) {
   const { data } = await http.post<{
     success: boolean;
-    partnerId: string;
     placeId: string;
     transition: "ENTER" | "EXIT";
     timestamp: number;

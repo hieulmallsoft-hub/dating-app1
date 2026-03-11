@@ -1,5 +1,6 @@
 import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
+    ApiBody,
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiCreatedResponse,
@@ -21,11 +22,36 @@ export class GeofenceController {
 
     @Post("event")
     @ApiOperation({
-        summary: "Send geofence transition event",
-        description: "Send ENTER/EXIT event of one place from mobile app."
+        summary: "Mobile geofence callback (ENTER/EXIT)",
+        description:
+            "Mobile app calls this API when OS geofence detects a transition for a saved place.\n" +
+            "- ENTER: user just entered the place radius.\n" +
+            "- EXIT: user just left the place radius.\n" +
+            "Backend will create a notification for partner."
+    })
+    @ApiBody({
+        type: GeofenceEventDto,
+        examples: {
+            enterExample: {
+                summary: "User enters Home geofence",
+                value: {
+                    placeId: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+                    transition: "ENTER",
+                    timestamp: 1762677600000
+                }
+            },
+            exitExample: {
+                summary: "User exits Company geofence",
+                value: {
+                    placeId: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+                    transition: "EXIT",
+                    timestamp: 1762677900000
+                }
+            }
+        }
     })
     @ApiCreatedResponse({
-        description: "Geofence event processed",
+        description: "Geofence event processed and partner notification queued",
         type: GeofenceEventResponseDto
     })
     @ApiBadRequestResponse({
@@ -37,7 +63,7 @@ export class GeofenceController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async handleEvent(@Req() req, @Body() dto: GeofenceEventDto) {
+    async sendGeofenceEvent(@Req() req, @Body() dto: GeofenceEventDto) {
         return this.placesService.handleGeofenceEvent(this.getCurrentUserId(req), {
             placeId: dto.placeId,
             transition: dto.transition,

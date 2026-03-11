@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Req, UseGuards, Query, HttpCode, HttpStatus, UnauthorizedException } from "@nestjs/common";
 import {
     ApiBearerAuth,
+    ApiExcludeEndpoint,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
@@ -11,6 +12,7 @@ import {
 import { ChatService } from "../application/chat.service";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { ChatActionResponseDto, ChatMessageResponseDto } from "./dto/chat-ops.dto";
+import { toChatMessageResponseList } from "./mappers/chat-response.mapper";
 
 @ApiTags("chat")
 @ApiBearerAuth("JWT-auth")
@@ -19,7 +21,7 @@ import { ChatActionResponseDto, ChatMessageResponseDto } from "./dto/chat-ops.dt
 export class ChatController {
     constructor(private readonly chatService: ChatService) {}
 
-    @Get("messages")
+    @Get("history")
     @ApiOperation({
         summary: "Get chat messages",
         description: "Returns paginated chat messages for current couple."
@@ -49,11 +51,18 @@ export class ChatController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getMessages(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
-        return this.chatService.getMessages(this.getCurrentUserId(req), limit, offset);
+    async getChatHistory(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
+        const messages = await this.chatService.getMessages(this.getCurrentUserId(req), limit, offset);
+        return toChatMessageResponseList(messages);
     }
 
-    @Post("clear")
+    @Get("messages")
+    @ApiExcludeEndpoint()
+    async getMessagesLegacy(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
+        return this.getChatHistory(req, limit, offset);
+    }
+
+    @Post("history/clear")
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
         summary: "Delete chat history",
@@ -69,8 +78,15 @@ export class ChatController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async clearChat(@Req() req) {
+    async clearChatHistory(@Req() req) {
         return this.chatService.clearChat(this.getCurrentUserId(req));
+    }
+
+    @Post("clear")
+    @HttpCode(HttpStatus.OK)
+    @ApiExcludeEndpoint()
+    async clearChatLegacy(@Req() req) {
+        return this.clearChatHistory(req);
     }
 
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {

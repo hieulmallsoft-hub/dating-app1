@@ -1,7 +1,6 @@
-import { Controller, Get, Put, Req, UseGuards, Param, UnauthorizedException, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Get, Put, Req, UseGuards, Param, UnauthorizedException } from "@nestjs/common";
 import {
     ApiBearerAuth,
-    ApiBody,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
@@ -11,10 +10,11 @@ import {
 } from "@nestjs/swagger";
 import { NotificationsService } from "../application/notifications.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
+import { NotificationResponseDto } from "./dto/notification-ops.dto";
 import {
-    CreateTestNotificationDto,
-    NotificationResponseDto
-} from "./dto/notification-ops.dto";
+    toNotificationResponse,
+    toNotificationResponseList
+} from "./mappers/notification-response.mapper";
 
 @ApiTags("notifications")
 @ApiBearerAuth("JWT-auth")
@@ -37,7 +37,8 @@ export class NotificationsController {
         description: "Missing/invalid access token"
     })
     async getNotifications(@Req() req) {
-        return this.notificationsService.getNotifications(this.getCurrentUserId(req));
+        const notifications = await this.notificationsService.getNotifications(this.getCurrentUserId(req));
+        return toNotificationResponseList(notifications);
     }
 
     @Put(":id/read")
@@ -61,39 +62,8 @@ export class NotificationsController {
         description: "Missing/invalid access token"
     })
     async markAsRead(@Req() req, @Param("id") id: string) {
-        return this.notificationsService.markAsRead(id, this.getCurrentUserId(req));
-    }
-
-    @Post("test")
-    @HttpCode(HttpStatus.OK)
-    @ApiOperation({
-        summary: "Create test notification",
-        description: "Create test notification for current user. title/content/type are optional."
-    })
-    @ApiBody({
-        type: CreateTestNotificationDto,
-        required: false
-    })
-    @ApiOkResponse({
-        description: "Test notification created",
-        type: NotificationResponseDto
-    })
-    @ApiUnauthorizedResponse({
-        description: "Missing/invalid access token"
-    })
-    async createTestNotification(
-        @Req() req,
-        @Body() dto: CreateTestNotificationDto
-    ) {
-        const userId = this.getCurrentUserId(req);
-        const fallbackTitle = "Test notification";
-        const fallbackContent = `Created at ${new Date().toISOString()}`;
-        return this.notificationsService.createNotification(
-            userId,
-            dto.title?.trim() || fallbackTitle,
-            dto.content?.trim() || fallbackContent,
-            dto.type?.trim() || "test"
-        );
+        const notification = await this.notificationsService.markAsRead(id, this.getCurrentUserId(req));
+        return toNotificationResponse(notification);
     }
 
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {

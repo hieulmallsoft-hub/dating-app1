@@ -95,7 +95,19 @@ async function bootstrap() {
                 "2) Copy tokens.access_token and click Authorize with: Bearer <access_token>.",
                 "3) Call GET /auth/profile to verify auth.",
                 "4) Use POST /auth/refresh when access token expires.",
-                "5) Use POST /auth/logout to end session."
+                "5) Use POST /auth/logout to end session.",
+                "",
+                "Mobile quick start (Profile):",
+                "- GET /profile",
+                "- PUT /profile",
+                "- PUT /profile/location",
+                "- DELETE /profile",
+                "",
+                "Mobile quick start (Notification realtime):",
+                "1) Connect socket.io to backend root namespace (/).",
+                "2) Send access token in auth.token (or auth.accessToken/query/header Authorization).",
+                "3) Emit notification:join, then listen notification:new and notification:read.",
+                "4) Use GET /notifications and PUT /notifications/:id/read for list/read state."
             ].join("\n")
         )
         .setVersion("1.0")
@@ -112,7 +124,9 @@ async function bootstrap() {
         )
         // .addSecurityRequirements('JWT-auth') // Removed global security to handle it manually
         .build();
-    const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, config, {
+        operationIdFactory: (_controllerKey: string, methodKey: string) => methodKey
+    });
     SwaggerModule.setup("api/docs", app, document, {
         jsonDocumentUrl: "api/docs-json",
         swaggerOptions: {

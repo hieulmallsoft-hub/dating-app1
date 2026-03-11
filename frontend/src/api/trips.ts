@@ -52,7 +52,7 @@ export async function listTrips(params?: { userId?: string; page?: number; limit
 }
 
 export async function getTripDetail(id: string) {
-  const { data } = await http.get<TripDetail>(`/trips/${id}/detail`);
+  const { data } = await http.get<TripDetail>(`/trips/${id}`);
   return data;
 }
 

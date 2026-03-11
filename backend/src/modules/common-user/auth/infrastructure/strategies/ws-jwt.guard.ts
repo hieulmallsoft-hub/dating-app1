@@ -18,13 +18,12 @@ export class WsJwtGuard implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
         try {
             const client: Socket = context.switchToWs().getClient<Socket>();
-            const authToken = client.handshake.auth?.token || client.handshake.headers?.authorization;
+            const token = this.extractToken(client);
 
-            if (!authToken) {
+            if (!token) {
                 throw new WsException("Unauthorized");
             }
 
-            const token = authToken.split(" ")[1] || authToken;
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: this.configService.get("JWT_SECRET")
             });
@@ -33,8 +32,43 @@ export class WsJwtGuard implements CanActivate {
             client["user"] = user;
             return true;
         } catch (err) {                                
-            this.logger.error(`WS Auth Error: ${err.message}`);
+            const message = err instanceof Error ? err.message : "unknown";
+            this.logger.error(`WS Auth Error: ${message}`);
             throw new WsException("Unauthorized");
         }
+    }
+
+    private extractToken(client: Socket) {
+        const auth = client.handshake.auth as Record<string, unknown> | undefined;
+        const query = client.handshake.query as Record<string, unknown> | undefined;
+        const headerAuthorization = client.handshake.headers?.authorization;
+
+        const candidates = [
+            this.toStringValue(auth?.token),
+            this.toStringValue(auth?.accessToken),
+            this.toStringValue(auth?.access_token),
+            this.toStringValue(headerAuthorization),
+            this.toStringValue(query?.token),
+            this.toStringValue(query?.accessToken),
+            this.toStringValue(query?.access_token)
+        ];
+
+        const rawToken = candidates.find((item) => Boolean(item && item.trim().length > 0));
+        if (!rawToken) return null;
+
+        const normalized = rawToken.trim();
+        if (normalized.toLowerCase().startsWith("bearer ")) {
+            return normalized.slice(7).trim();
+        }
+
+        return normalized;
+    }
+
+    private toStringValue(value: unknown) {
+        if (typeof value === "string") return value;
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === "string") {
+            return value[0];
+        }
+        return null;
     }
 }

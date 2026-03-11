@@ -11,6 +11,7 @@ import { SettingsService } from "../application/settings.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
 import { UpdateSettingsDto } from "./dto/update-settings.dto";
 import { SettingsResponseDto } from "./dto/settings-ops.dto";
+import { toSettingsResponse } from "./mappers/settings-response.mapper";
 
 @ApiTags("settings")
 @ApiBearerAuth("JWT-auth")
@@ -32,7 +33,8 @@ export class SettingsController {
         description: "Missing/invalid access token"
     })
     async getSettings(@Req() req) {
-        return this.settingsService.getSettings(this.getCurrentUserId(req));
+        const settings = await this.settingsService.getSettings(this.getCurrentUserId(req));
+        return toSettingsResponse(settings);
     }
 
     @Put()
@@ -51,7 +53,8 @@ export class SettingsController {
         description: "Missing/invalid access token"
     })
     async updateSettings(@Req() req, @Body() dto: UpdateSettingsDto) {
-        return this.settingsService.updateSettings(this.getCurrentUserId(req), dto);
+        const settings = await this.settingsService.updateSettings(this.getCurrentUserId(req), dto);
+        return toSettingsResponse(settings);
     }
 
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {

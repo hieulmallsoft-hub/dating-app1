@@ -9,14 +9,15 @@ export enum GeofenceTransition {
 
 export class GeofenceEventDto {
     @ApiProperty({
-        description: "Place id (UUID)",
+        description:
+            "Saved place id from /places list. Mobile geofence should send this place id when transition occurs.",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     @IsUUID()
     placeId: string;
 
     @ApiProperty({
-        description: "Transition type",
+        description: "Geofence transition from OS callback. ENTER=arrived, EXIT=left.",
         enum: GeofenceTransition,
         example: GeofenceTransition.ENTER
     })
@@ -24,7 +25,8 @@ export class GeofenceEventDto {
     transition: GeofenceTransition;
 
     @ApiPropertyOptional({
-        description: "Event timestamp in epoch milliseconds",
+        description:
+            "Event time in epoch milliseconds from device. If omitted, backend uses current server time.",
         example: 1762677600000
     })
     @IsOptional()
@@ -41,26 +43,20 @@ export class GeofenceEventResponseDto {
     success: boolean;
 
     @ApiProperty({
-        description: "Partner user id to receive notification",
-        example: "cd0b85d4-56a9-4976-bc98-076f1967e172"
-    })
-    partnerId: string;
-
-    @ApiProperty({
         description: "Place id",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
     })
     placeId: string;
 
     @ApiProperty({
-        description: "Transition type",
+        description: "Transition accepted by backend",
         enum: GeofenceTransition,
         example: GeofenceTransition.ENTER
     })
     transition: GeofenceTransition;
 
     @ApiProperty({
-        description: "Event timestamp in epoch milliseconds",
+        description: "Final event timestamp (epoch milliseconds) used by backend",
         example: 1762677600000
     })
     timestamp: number;

@@ -41,8 +41,7 @@ export class MomentsService {
 
         return this.momentRepository.find({
             where: { coupleId: couple.id },
-            order: { createdAt: "DESC" },
-            relations: ["creator"]
+            order: { createdAt: "DESC" }
         });
     }
 

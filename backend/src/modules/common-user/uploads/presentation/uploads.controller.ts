@@ -39,7 +39,7 @@ export class UploadsController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async presign(@Body() presignDto: PresignDto) {
+    async createUploadPresign(@Body() presignDto: PresignDto) {
         return this.uploadsService.generatePresignedUrl(presignDto.fileName, presignDto.type);
     }
 

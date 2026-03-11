@@ -1,20 +1,62 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { io, type Socket } from "socket.io-client";
 import { getHttpMessage, getHttpStatus } from "../api/error";
+import { BACKEND_URL } from "../api/http";
 import * as notificationsApi from "../api/notifications";
+import { getAccessToken } from "../lib/authStorage";
 
 type Props = {
   onAuthInvalid: () => void;
 };
 
+function getSocketErrorMessage(payload: unknown) {
+  if (typeof payload === "string") return payload;
+  if (
+    typeof payload === "object" &&
+    payload &&
+    "message" in payload &&
+    typeof (payload as { message?: unknown }).message === "string"
+  ) {
+    return (payload as { message: string }).message;
+  }
+  return "";
+}
+
+function toSocketNotification(payload: unknown): notificationsApi.AppNotification | null {
+  if (!payload || typeof payload !== "object") return null;
+
+  const raw = payload as Record<string, unknown>;
+  if (
+    typeof raw.id !== "string" ||
+    typeof raw.userId !== "string" ||
+    typeof raw.title !== "string" ||
+    typeof raw.content !== "string" ||
+    typeof raw.createdAt !== "string"
+  ) {
+    return null;
+  }
+
+  const parsedDate = new Date(raw.createdAt);
+  if (Number.isNaN(parsedDate.getTime())) return null;
+
+  return {
+    id: raw.id,
+    userId: raw.userId,
+    title: raw.title,
+    content: raw.content,
+    type: typeof raw.type === "string" ? raw.type : null,
+    isRead: Boolean(raw.isRead),
+    createdAt: parsedDate.toISOString(),
+  };
+}
+
 export default function NotificationsPanel({ onAuthInvalid }: Props) {
   const [items, setItems] = useState<notificationsApi.AppNotification[]>([]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [type, setType] = useState("test");
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const loadRef = useRef<(silent?: boolean) => Promise<void>>(async () => undefined);
 
   const unreadCount = useMemo(
     () => items.filter((item) => !item.isRead).length,
@@ -48,40 +90,59 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
   }, [load]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      void load(true);
-    }, 6000);
-
-    return () => window.clearInterval(timer);
+    loadRef.current = load;
   }, [load]);
 
-  const createTestNotification = async () => {
-    if (isWorking) return;
+  useEffect(() => {
+    const accessToken = getAccessToken();
+    if (!accessToken) return;
 
-    setIsWorking(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const created = await notificationsApi.createTestNotification({
-        title: title.trim() || undefined,
-        content: content.trim() || undefined,
-        type: type.trim() || undefined,
-      });
+    const socket: Socket = io(BACKEND_URL, {
+      transports: ["websocket"],
+      auth: {
+        token: `Bearer ${accessToken}`,
+      },
+    });
+
+    socket.on("connect", () => {
+      socket.emit("notification:join", {});
+      void loadRef.current(true);
+    });
+
+    socket.on("notification:new", (payload: unknown) => {
+      const created = toSocketNotification(payload);
+      if (!created) return;
+
       setItems((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
-      setSuccess("Da tao test notification");
-      setTitle("");
-      setContent("");
-    } catch (err: unknown) {
-      const status = getHttpStatus(err);
-      if (status === 401) {
+    });
+
+    socket.on("notification:read", (payload: unknown) => {
+      const updated = toSocketNotification(payload);
+      if (!updated) return;
+
+      setItems((prev) => {
+        if (!prev.some((item) => item.id === updated.id)) {
+          return [updated, ...prev];
+        }
+        return prev.map((item) => (item.id === updated.id ? updated : item));
+      });
+    });
+
+    socket.on("exception", (payload: unknown) => {
+      const message = getSocketErrorMessage(payload);
+      if (message.toLowerCase().includes("unauthorized")) {
         onAuthInvalid();
-      } else {
-        setError(getHttpMessage(err, "Create notification failed"));
+        return;
       }
-    } finally {
-      setIsWorking(false);
-    }
-  };
+      if (message) {
+        setError(message);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [onAuthInvalid]);
 
   const markAsRead = async (id: string) => {
     if (isWorking) return;
@@ -135,7 +196,7 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
     <div className="panel">
       <div className="panel-title">
         <h3>Notifications</h3>
-        <p>Test thong bao cua tai khoan hien tai</p>
+        <p>Thong bao realtime cua tai khoan hien tai</p>
       </div>
 
       {error ? <div className="panel-error">{error}</div> : null}
@@ -160,46 +221,6 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
           disabled={isWorking || unreadCount === 0}
         >
           Read all
-        </button>
-      </div>
-
-      <div className="notification-form">
-        <label className="auth-field">
-          <span>Title</span>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Mac dinh: Test notification"
-          />
-        </label>
-
-        <label className="auth-field">
-          <span>Content</span>
-          <textarea
-            className="textarea"
-            rows={2}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Mac dinh: Created at ..."
-          />
-        </label>
-
-        <label className="auth-field">
-          <span>Type</span>
-          <input
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            placeholder="test"
-          />
-        </label>
-
-        <button
-          className="btn btn-primary"
-          type="button"
-          disabled={isWorking}
-          onClick={() => void createTestNotification()}
-        >
-          {isWorking ? "Dang tao..." : "Create test notification"}
         </button>
       </div>
 

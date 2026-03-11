@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
+    ApiExcludeEndpoint,
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiCreatedResponse,
@@ -14,6 +15,7 @@ import {
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { TripsService } from "../application/trips.service";
 import { TripListResponseDto, TripResponseDto, TripSyncDto, TripSyncResponseDto } from "./dto/trip.dto";
+import { toTripResponse, toTripResponseList } from "./mappers/trip-response.mapper";
 
 @ApiTags("trips")
 @ApiBearerAuth("JWT-auth")
@@ -67,11 +69,16 @@ export class TripsController {
         const parsedPage = page ? Number(page) : 1;
         const parsedLimit = limit ? Number(limit) : 20;
         const targetUserId = userId || requesterId;
-
-        return this.tripsService.listTrips(requesterId, targetUserId, parsedPage, parsedLimit);
+        const response = await this.tripsService.listTrips(requesterId, targetUserId, parsedPage, parsedLimit);
+        return {
+            data: toTripResponseList(response.data),
+            page: response.page,
+            limit: response.limit,
+            total: response.total
+        };
     }
 
-    @Get(":id/detail")
+    @Get(":id")
     @ApiOperation({
         summary: "Get trip details",
         description: "Returns one trip detail by id, including routeFull."
@@ -91,8 +98,15 @@ export class TripsController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getTripDetail(@Req() req, @Param("id") id: string) {
-        return this.tripsService.getTripDetail(this.getCurrentUserId(req), id);
+    async getTripById(@Req() req, @Param("id") id: string) {
+        const trip = await this.tripsService.getTripDetail(this.getCurrentUserId(req), id);
+        return toTripResponse(trip, true);
+    }
+
+    @Get(":id/detail")
+    @ApiExcludeEndpoint()
+    async getTripDetailLegacy(@Req() req, @Param("id") id: string) {
+        return this.getTripById(req, id);
     }
 
     @Post("sync")

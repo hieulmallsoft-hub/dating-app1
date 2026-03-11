@@ -1,5 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsString } from "class-validator";
 
 export class NotificationResponseDto {
     @ApiProperty({
@@ -44,30 +43,4 @@ export class NotificationResponseDto {
         example: "2026-03-09T08:00:00.000Z"
     })
     createdAt: string;
-}
-
-export class CreateTestNotificationDto {
-    @ApiPropertyOptional({
-        description: "Test title",
-        example: "Test notification"
-    })
-    @IsOptional()
-    @IsString()
-    title?: string;
-
-    @ApiPropertyOptional({
-        description: "Test content",
-        example: "Created from Swagger"
-    })
-    @IsOptional()
-    @IsString()
-    content?: string;
-
-    @ApiPropertyOptional({
-        description: "Test type",
-        example: "test"
-    })
-    @IsOptional()
-    @IsString()
-    type?: string;
 }

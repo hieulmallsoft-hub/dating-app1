@@ -54,7 +54,7 @@ export class AuthController {
     @ApiUnauthorizedResponse({
         description: "Missing access token, expired token, or invalid token"
     })
-    getProfile(@Req() req: Request & { user: any }) {
+    getAuthProfile(@Req() req: Request & { user: any }) {
         return req.user;
     }
 
@@ -62,13 +62,13 @@ export class AuthController {
     @Public()
     @Get("google")
     @UseGuards(GoogleAuthGuard)
-    async googleAuth(@Req() _req: Request) {}
+    async startGoogleOAuth(@Req() _req: Request) {}
 
     @ApiExcludeEndpoint()
     @Public()
     @Get("google/callback")
     @UseGuards(GoogleAuthGuard)
-    async googleAuthRedirect(@Req() req: Request & { user: any }, @Res() res: Response) {
+    async handleGoogleOAuthCallback(@Req() req: Request & { user: any }, @Res() res: Response) {
         const result = await this.authService.validateSocialUser(req.user);
         this.setTokensCookie(res, result.tokens);
 
@@ -107,7 +107,7 @@ export class AuthController {
     @ApiBadRequestResponse({
         description: "Missing idToken"
     })
-    async googleLogin(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
+    async loginWithGoogle(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
         return result;
@@ -142,7 +142,7 @@ export class AuthController {
     @ApiUnauthorizedResponse({
         description: "Missing refresh token, invalid refresh token, or expired refresh token"
     })
-    async refreshToken(
+    async refreshAuthToken(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: Request & { cookies?: Record<string, string> },
         @Res({ passthrough: true }) res: Response
@@ -167,7 +167,7 @@ export class AuthController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async logout(
+    async logoutSession(
         @Req() req: Request & { user?: { sub?: string; id?: string; user_Id?: string } },
         @Res({ passthrough: true }) res: Response
     ) {

@@ -12,6 +12,7 @@ import {
     Query
 } from "@nestjs/common";
 import {
+    ApiExcludeEndpoint,
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiConflictResponse,
@@ -32,6 +33,7 @@ import {
     UpdateCoupleDto
 } from "./dto/couple-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { toCoupleResponse } from "./mappers/couple-response.mapper";
 
 @ApiTags("couple")
 @ApiBearerAuth("JWT-auth")
@@ -40,7 +42,7 @@ import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategie
 export class CoupleController {
     constructor(private readonly coupleService: CoupleService) {}
 
-    @Get()
+    @Get("profile")
     @ApiOperation({
         summary: "Get current couple info",
         description: "Returns partner profile, location, and couple status for current user."
@@ -55,8 +57,14 @@ export class CoupleController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getCouple(@Req() req) {
+    async getCoupleProfile(@Req() req) {
         return this.coupleService.getMyCoupleProfile(this.getCurrentUserId(req));
+    }
+
+    @Get()
+    @ApiExcludeEndpoint()
+    async getCoupleProfileLegacy(@Req() req) {
+        return this.getCoupleProfile(req);
     }
 
     @Get("locations")
@@ -128,7 +136,8 @@ export class CoupleController {
         description: "Missing/invalid access token"
     })
     async joinCouple(@Req() req, @Body() joinCoupleDto: JoinCoupleDto) {
-        return this.coupleService.joinCouple(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
+        const couple = await this.coupleService.joinCouple(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
+        return toCoupleResponse(couple);
     }
 
     @Post("disconnect")
@@ -147,8 +156,9 @@ export class CoupleController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async disconnect(@Req() req) {
-        return this.coupleService.disconnect(this.getCurrentUserId(req));
+    async disconnectCouple(@Req() req) {
+        const couple = await this.coupleService.disconnect(this.getCurrentUserId(req));
+        return toCoupleResponse(couple);
     }
 
     @Put("start-date")
@@ -169,8 +179,11 @@ export class CoupleController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async setStartDate(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
-        return this.coupleService.updateCouple(this.getCurrentUserId(req), { startDate: updateCoupleDto.startDate });
+    async updateCoupleStartDate(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
+        const couple = await this.coupleService.updateCouple(this.getCurrentUserId(req), {
+            startDate: updateCoupleDto.startDate
+        });
+        return toCoupleResponse(couple);
     }
 
     private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {

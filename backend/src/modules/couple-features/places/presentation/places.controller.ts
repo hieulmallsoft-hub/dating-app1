@@ -31,6 +31,7 @@ import {
 } from "./dto/place-ops.dto";
 import { UpdatePlaceDto } from "./dto/update-place.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
+import { toPlaceResponse, toPlaceResponseList } from "./mappers/place-response.mapper";
 
 
 @ApiTags("places")
@@ -62,7 +63,8 @@ export class PlacesController {
     })
     async getPlaces(@Req() req, @Query("since") since?: string) {
         const parsedSince = since ? Number(since) : undefined;
-        return this.placesService.getPlaces(this.getCurrentUserId(req), parsedSince);
+        const places = await this.placesService.getPlaces(this.getCurrentUserId(req), parsedSince);
+        return toPlaceResponseList(places);
     }
 
     @Post()
@@ -81,7 +83,8 @@ export class PlacesController {
         description: "Missing/invalid access token"
     })
     async createPlace(@Req() req, @Body() dto: CreatePlaceDto) {
-        return this.placesService.createPlace(this.getCurrentUserId(req), dto);
+        const place = await this.placesService.createPlace(this.getCurrentUserId(req), dto);
+        return toPlaceResponse(place);
     }
 
     @Put(":id")
@@ -108,7 +111,8 @@ export class PlacesController {
         description: "Missing/invalid access token"
     })
     async updatePlace(@Req() req, @Param("id") id: string, @Body() dto: UpdatePlaceDto) {
-        return this.placesService.updatePlace(this.getCurrentUserId(req), id, dto);
+        const place = await this.placesService.updatePlace(this.getCurrentUserId(req), id, dto);
+        return toPlaceResponse(place);
     }
 
     @Delete(":id")
@@ -132,7 +136,8 @@ export class PlacesController {
         description: "Missing/invalid access token"
     })
     async deletePlace(@Req() req, @Param("id") id: string) {
-        return this.placesService.deletePlace(this.getCurrentUserId(req), id);
+        const place = await this.placesService.deletePlace(this.getCurrentUserId(req), id);
+        return toPlaceResponse(place);
     }
 
     @Get("search")
