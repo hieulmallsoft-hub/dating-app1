@@ -26,7 +26,10 @@ export async function markNotificationAsRead(id: string) {
 }
 
 export async function registerPushToken(payload: PushTokenPayload) {
-  const { data } = await http.post<{ success: boolean }>("/notifications/push-tokens/register", payload);
+  const { data } = await http.post<{ success: boolean; deviceId?: string | null; idDevice?: string | null }>(
+    "/notifications/push-tokens/register",
+    payload
+  );
   return data;
 }
 

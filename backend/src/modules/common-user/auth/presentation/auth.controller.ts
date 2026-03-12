@@ -81,7 +81,7 @@ export class AuthController {
     @ApiOperation({
         summary: "Google login for mobile using idToken",
         description:
-            "Use this endpoint for Google login. FE gets idToken from SDK and sends { idToken }. Backend creates account on first login and returns user, tokens, and meta."
+            "Use this endpoint for Google login. FE gets idToken from SDK and sends { idToken, iddevice }. Backend creates account on first login and returns user, tokens, meta, and iddevice."
     })
     @Public()
     @Post("google")
@@ -92,7 +92,8 @@ export class AuthController {
             mobileGoogleLogin: {
                 summary: "Google login payload",
                 value: {
-                    idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>"
+                    idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>",
+                    iddevice: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740"
                 }
             }
         }
@@ -105,12 +106,15 @@ export class AuthController {
         description: "Google idToken is invalid, expired, or has audience mismatch"
     })
     @ApiBadRequestResponse({
-        description: "Missing idToken"
+        description: "Missing idToken or iddevice"
     })
     async loginWithGoogle(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
         this.setTokensCookie(res, result.tokens);
-        return result;
+        return {
+            ...result,
+            iddevice: socialLoginDto.iddevice
+        };
     }
 
     @Public()

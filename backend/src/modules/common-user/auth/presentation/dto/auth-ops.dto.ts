@@ -12,6 +12,23 @@ export class SocialLoginDto {
     @IsString()
     @IsNotEmpty()
     idToken: string;
+
+    @ApiProperty({
+        description: "Device identifier from mobile app (required for Google login flow).",
+        example: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740"
+    })
+    @Transform(({ value, obj }) => {
+        const normalizedValue =
+            typeof value === "string"
+                ? value
+                : typeof obj?.idDevice === "string"
+                  ? obj.idDevice
+                  : value;
+        return typeof normalizedValue === "string" ? normalizedValue.trim() : normalizedValue;
+    })
+    @IsString()
+    @IsNotEmpty()
+    iddevice: string;
 }
 
 export class RefreshTokenDto {
@@ -165,6 +182,13 @@ export class AuthSessionResponseDto {
 
     @ApiProperty({ type: () => AuthSessionMetaResponseDto })
     meta: AuthSessionMetaResponseDto;
+
+    @ApiPropertyOptional({
+        description: "Device identifier sent from mobile on Google login.",
+        example: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740",
+        nullable: true
+    })
+    iddevice?: string | null;
 }
 
 export class MobileGoogleAuthResponseDto {

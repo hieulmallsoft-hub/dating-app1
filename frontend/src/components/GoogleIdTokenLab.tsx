@@ -29,8 +29,27 @@ declare global {
 
 const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 const GOOGLE_SCRIPT_ID = "google-identity-services";
+const DEVICE_ID_STORAGE_KEY = "google-id-token-lab-device-id";
 
 let googleScriptPromise: Promise<void> | null = null;
+
+function getOrCreateDeviceId() {
+  if (typeof window === "undefined") {
+    return "web-unknown-device";
+  }
+
+  const existing = window.localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+  if (existing) {
+    return existing;
+  }
+
+  const generated =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? `web-${crypto.randomUUID()}`
+      : `web-${Date.now()}`;
+  window.localStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
+  return generated;
+}
 
 function loadGoogleScript() {
   if (typeof window !== "undefined" && window.google?.accounts?.id) {
@@ -160,10 +179,11 @@ export default function GoogleIdTokenLab() {
     setStatus("");
 
     try {
+      const iddevice = getOrCreateDeviceId();
       const res = await fetch(`${BACKEND_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: idToken.trim() }),
+        body: JSON.stringify({ idToken: idToken.trim(), iddevice }),
         credentials: "include",
       });
       const text = await res.text();

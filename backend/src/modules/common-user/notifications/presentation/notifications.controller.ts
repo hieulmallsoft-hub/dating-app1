@@ -85,8 +85,8 @@ export class NotificationsController {
         description: "Missing/invalid access token"
     })
     async registerDevicePushToken(@Req() req, @Body() body: PushTokenBodyDto) {
-        await this.registerPushTokenInternal(req, body);
-        return { success: true };
+        const deviceId = await this.registerPushTokenInternal(req, body);
+        return { success: true, deviceId, idDevice: deviceId };
     }
     // xóa token khi user logout hoặc uninstall app để tránh gửi thông báo đẩy cho thiết bị đó nữa
     @Post("push-tokens/unregister")
@@ -109,7 +109,7 @@ export class NotificationsController {
     }
 
     private async registerPushTokenInternal(req: JwtRequestLike, body: PushTokenBodyDto) {
-        await this.notificationsService.registerPushToken(
+        return this.notificationsService.registerPushToken(
             this.getCurrentUserId(req),
             body.token,
             body.platform || "web"
@@ -128,4 +128,3 @@ export class NotificationsController {
         return userId;
     }
 }
-

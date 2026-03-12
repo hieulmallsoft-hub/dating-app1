@@ -29,4 +29,18 @@ export class PushTokenAckDto {
         example: true
     })
     success: boolean;
+
+    @ApiPropertyOptional({
+        description: "Saved push-device identifier in backend (returned on register).",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    deviceId?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Alias of deviceId for mobile compatibility.",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    idDevice?: string | null;
 }

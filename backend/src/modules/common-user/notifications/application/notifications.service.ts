@@ -65,7 +65,7 @@ export class NotificationsService {
 
     async registerPushToken(userId: string, token: string, platform: PushTokenPlatform = "web") {
         const cleanToken = token.trim();
-        if (!cleanToken) return;
+        if (!cleanToken) return null;
 
         await this.pushTokenRepository.upsert(
             {
@@ -75,6 +75,13 @@ export class NotificationsService {
             },
             ["token"]
         );
+
+        const savedPushToken = await this.pushTokenRepository.findOne({
+            where: { token: cleanToken },
+            select: ["id"]
+        });
+
+        return savedPushToken?.id ?? null;
     }
 
     async unregisterPushToken(userId: string, token: string) {

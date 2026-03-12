@@ -91,7 +91,7 @@ async function bootstrap() {
         .setDescription(
             [
                 "Mobile quick start (Auth):",
-                "1) Use POST /auth/google with a real Google idToken from mobile SDK.",
+                "1) Use POST /auth/google with a real Google idToken and iddevice from mobile SDK.",
                 "2) Copy tokens.access_token and click Authorize with: Bearer <access_token>.",
                 "3) Call GET /auth/profile to verify auth.",
                 "4) Use POST /auth/refresh when access token expires.",
