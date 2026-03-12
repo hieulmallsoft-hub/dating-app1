@@ -107,7 +107,11 @@ async function bootstrap() {
                 "1) Connect socket.io to backend root namespace (/).",
                 "2) Send access token in auth.token (or auth.accessToken/query/header Authorization).",
                 "3) Emit notification:join, then listen notification:new and notification:read.",
-                "4) Use GET /notifications and PUT /notifications/:id/read for list/read state."
+                "4) Use GET /notifications and PUT /notifications/:id/read for list/read state.",
+                "",
+                "Mobile quick start (FCM push token):",
+                "1) On login, call POST /notifications/push-tokens/register with { token, platform: 'android' | 'ios' | 'web' }.",
+                "2) On logout, call POST /notifications/push-tokens/unregister with { token }."
             ].join("\n")
         )
         .setVersion("1.0")

@@ -1,20 +1,24 @@
-import { Controller, Get, Put, Req, UseGuards, Param, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
     ApiBearerAuth,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
     ApiParam,
+    ApiBody,
     ApiTags,
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 import { NotificationsService } from "../application/notifications.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
 import { NotificationResponseDto } from "./dto/notification-ops.dto";
+import { PushTokenAckDto, PushTokenBodyDto } from "./dto/push-token.dto";
 import {
     toNotificationResponse,
     toNotificationResponseList
 } from "./mappers/notification-response.mapper";
+
+type JwtRequestLike = { user?: { sub?: string; id?: string; user_Id?: string } };
 
 @ApiTags("notifications")
 @ApiBearerAuth("JWT-auth")
@@ -65,8 +69,58 @@ export class NotificationsController {
         const notification = await this.notificationsService.markAsRead(id, this.getCurrentUserId(req));
         return toNotificationResponse(notification);
     }
+    // lưu token của thiết bị để gửi thông báo đẩy sau này
+    @Post("push-tokens/register")
+    @ApiOperation({
+        summary: "Register device push token",
+        description:
+            "Use this route when user logs in or when FCM token changes. Backend will save/update token for current user."
+    })
+    @ApiBody({ type: PushTokenBodyDto })
+    @ApiOkResponse({
+        description: "Device token has been saved",
+        type: PushTokenAckDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async registerDevicePushToken(@Req() req, @Body() body: PushTokenBodyDto) {
+        await this.registerPushTokenInternal(req, body);
+        return { success: true };
+    }
+    // xóa token khi user logout hoặc uninstall app để tránh gửi thông báo đẩy cho thiết bị đó nữa
+    @Post("push-tokens/unregister")
+    @ApiOperation({
+        summary: "Unregister device push token",
+        description:
+            "Use this route on logout/uninstall to stop this device from receiving push notifications."
+    })
+    @ApiBody({ type: PushTokenBodyDto })
+    @ApiOkResponse({
+        description: "Device token has been removed",
+        type: PushTokenAckDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async unregisterDevicePushToken(@Req() req, @Body() body: PushTokenBodyDto) {
+        await this.unregisterPushTokenInternal(req, body);
+        return { success: true };
+    }
 
-    private getCurrentUserId(req: { user?: { sub?: string; id?: string; user_Id?: string } }) {
+    private async registerPushTokenInternal(req: JwtRequestLike, body: PushTokenBodyDto) {
+        await this.notificationsService.registerPushToken(
+            this.getCurrentUserId(req),
+            body.token,
+            body.platform || "web"
+        );
+    }
+
+    private async unregisterPushTokenInternal(req: JwtRequestLike, body: PushTokenBodyDto) {
+        await this.notificationsService.unregisterPushToken(this.getCurrentUserId(req), body.token);
+    }
+
+    private getCurrentUserId(req: JwtRequestLike) {
         const userId = req.user?.sub || req.user?.id || req.user?.user_Id;
         if (!userId) {
             throw new UnauthorizedException("Invalid access token payload");

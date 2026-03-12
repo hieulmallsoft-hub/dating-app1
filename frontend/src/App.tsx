@@ -7,6 +7,7 @@ import FirstTimeProfileSetup from "./components/FirstTimeProfileSetup";
 import { getHttpStatus } from "./api/error";
 import * as userApi from "./api/user";
 import { clearTokens, hasAuthTokens, setTokens } from "./lib/authStorage";
+import { syncPushTokenWithServer, unregisterPushTokenFromServer } from "./lib/pushNotifications";
 
 type SessionStage = "logged_out" | "checking_profile" | "profile_check_failed" | "needs_profile" | "ready";
 
@@ -73,9 +74,17 @@ const App: React.FC = () => {
   }, [stage]);
 
   const handleLogout = () => {
+    void unregisterPushTokenFromServer();
     clearTokens();
     setStage("logged_out");
   };
+
+  useEffect(() => {
+    if (stage !== "ready") return;
+    void syncPushTokenWithServer().catch((error) => {
+      console.warn("Failed to sync push token", error);
+    });
+  }, [stage]);
 
   if (stage === "checking_profile") {
     return (

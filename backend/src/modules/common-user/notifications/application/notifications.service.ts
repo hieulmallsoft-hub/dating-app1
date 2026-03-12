@@ -1,6 +1,10 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { In } from "typeorm";
 import { NotificationRepository } from "../infrastructure/persistence/notification.repository";
+import { PushTokenRepository } from "../infrastructure/persistence/push-token.repository";
 import { NotificationGateway } from "../presentation/notification.gateway";
+import { FirebasePushService } from "./firebase-push.service";
+import type { PushTokenPlatform } from "../domain/entities/push-token.entity";
 
 @Injectable()
 export class NotificationsService {
@@ -8,7 +12,9 @@ export class NotificationsService {
 
     constructor(
         private readonly notificationRepository: NotificationRepository,
-        private readonly notificationGateway: NotificationGateway
+        private readonly pushTokenRepository: PushTokenRepository,
+        private readonly notificationGateway: NotificationGateway,
+        private readonly firebasePushService: FirebasePushService
     ) {}
 
     async getNotifications(userId: string) {
@@ -52,7 +58,32 @@ export class NotificationsService {
             this.logger.warn(`Emit notification:new failed: ${(error as Error)?.message || "unknown"}`);
         }
 
+        await this.sendPushForNotification(saved.id, userId, title, content, type);
+
         return saved;
+    }
+
+    async registerPushToken(userId: string, token: string, platform: PushTokenPlatform = "web") {
+        const cleanToken = token.trim();
+        if (!cleanToken) return;
+
+        await this.pushTokenRepository.upsert(
+            {
+                userId,
+                token: cleanToken,
+                platform
+            },
+            ["token"]
+        );
+    }
+
+    async unregisterPushToken(userId: string, token: string) {
+        const cleanToken = token.trim();
+        if (!cleanToken) return;
+        await this.pushTokenRepository.delete({
+            userId,
+            token: cleanToken
+        });
     }
 
     private toEventPayload(notification: {
@@ -76,5 +107,47 @@ export class NotificationsService {
                     ? notification.createdAt.toISOString()
                     : new Date(notification.createdAt).toISOString()
         };
+    }
+
+    private async sendPushForNotification(
+        notificationId: string,
+        userId: string,
+        title: string,
+        content: string,
+        type?: string
+    ) {
+        const tokens = await this.pushTokenRepository.find({
+            where: { userId },
+            select: ["token"]
+        });
+        if (!tokens.length) return;
+
+        const payload = {
+            title: title.trim() || "Thong bao moi",
+            body: this.truncateBody(content),
+            data: {
+                notificationId,
+                type: type || "general"
+            },
+            link: "/",
+            ttlSeconds: 3600 * 24
+        };
+
+        const result = await this.firebasePushService.sendToTokens(
+            tokens.map((item) => item.token),
+            payload
+        );
+
+        if (result.invalidTokens.length) {
+            await this.pushTokenRepository.delete({
+                token: In(result.invalidTokens)
+            });
+        }
+    }
+
+    private truncateBody(content: string) {
+        const clean = content.trim();
+        if (!clean) return "Ban vua nhan thong bao moi";
+        return clean.length > 180 ? `${clean.slice(0, 177)}...` : clean;
     }
 }
