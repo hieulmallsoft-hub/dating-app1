@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
+import { Transform } from "class-transformer";
 
 export class NotificationResponseDto {
     
@@ -44,4 +46,44 @@ export class NotificationResponseDto {
         example: "2026-03-09T08:00:00.000Z"
     })
     createdAt: string;
+}
+
+export class CreateTestNotificationDto {
+    @ApiPropertyOptional({
+        description: "Target user id to receive notification. If omitted, backend sends to current authenticated user.",
+        example: "4f8cc6d9-ccf3-4e1e-ae3d-0f23db4be0d7"
+    })
+    @IsOptional()
+    @IsUUID()
+    targetUserId?: string;
+
+    @ApiProperty({
+        description: "Notification title",
+        example: "Test thong bao"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(120)
+    title: string;
+
+    @ApiProperty({
+        description: "Notification content",
+        example: "Backend test tu Swagger"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(500)
+    content: string;
+
+    @ApiPropertyOptional({
+        description: "Notification type",
+        example: "test"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @IsOptional()
+    @IsString()
+    @MaxLength(50)
+    type?: string;
 }

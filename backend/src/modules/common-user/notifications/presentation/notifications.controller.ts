@@ -1,6 +1,20 @@
-import { Controller, Get, Param, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    Post,
+    Put,
+    Req,
+    UnauthorizedException,
+    UseGuards
+} from "@nestjs/common";
+import {
+    ApiBadRequestResponse,
     ApiBearerAuth,
+    ApiBody,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
@@ -10,7 +24,7 @@ import {
 } from "@nestjs/swagger";
 import { NotificationsService } from "../application/notifications.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
-import { NotificationResponseDto } from "./dto/notification-ops.dto";
+import { CreateTestNotificationDto, NotificationResponseDto } from "./dto/notification-ops.dto";
 import {
     toNotificationResponse,
     toNotificationResponseList
@@ -66,6 +80,57 @@ export class NotificationsController {
     async markAsRead(@Req() req, @Param("id") id: string) {
         const notification = await this.notificationsService.markAsRead(id, this.getCurrentUserId(req));
         return toNotificationResponse(notification);
+    }
+
+    @Post("test")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Create test notification",
+        description:
+            "Create a notification manually for testing. It goes through DB save, realtime socket emit, and push send."
+    })
+    @ApiBody({
+        type: CreateTestNotificationDto,
+        examples: {
+            self: {
+                summary: "Send to current user",
+                value: {
+                    title: "Test thong bao",
+                    content: "Backend test tu Swagger",
+                    type: "test"
+                }
+            },
+            partner: {
+                summary: "Send to partner by user id",
+                value: {
+                    targetUserId: "4f8cc6d9-ccf3-4e1e-ae3d-0f23db4be0d7",
+                    title: "Tin nhan moi",
+                    content: "Demo push/socket",
+                    type: "chat"
+                }
+            }
+        }
+    })
+    @ApiOkResponse({
+        description: "Notification created and dispatched",
+        type: NotificationResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid request body"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async createTestNotification(@Req() req: JwtRequestLike, @Body() body: CreateTestNotificationDto) {
+        const actorId = this.getCurrentUserId(req);
+        const targetUserId = body.targetUserId?.trim() || actorId;
+        const created = await this.notificationsService.createNotification(
+            targetUserId,
+            body.title,
+            body.content,
+            body.type
+        );
+        return toNotificationResponse(created);
     }
 
     private getCurrentUserId(req: JwtRequestLike) {
