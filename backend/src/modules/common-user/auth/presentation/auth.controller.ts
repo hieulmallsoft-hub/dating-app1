@@ -3,6 +3,7 @@ import {
     Body,
     Controller,
     Get,
+    Headers,
     HttpCode,
     HttpStatus,
     Post,
@@ -27,6 +28,7 @@ import { AuthService } from "../application/auth.service";
 import {
     AuthProfilePayloadResponseDto,
     AuthSessionResponseDto,
+    DevIssueTokenDto,
     FcmTokenRegisterResponseDto,
     FcmTokenBodyDto,
     LogoutResponseDto,
@@ -37,13 +39,15 @@ import {
 import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
 import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../../notifications/domain/entities/push-token.entity";
+import { UsersService } from "../../user/application/user.service";
 
 @ApiTags("auth-mobile")
 @Controller("auth")
 export class AuthController {
     constructor(
         private readonly authService: AuthService,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        private readonly usersService: UsersService
     ) {}
 
     @ApiBearerAuth("JWT-auth")
@@ -124,6 +128,68 @@ export class AuthController {
             fcmToken,
             platform
         );
+        this.setTokensCookie(res, result.tokens);
+        return {
+            ...result,
+            deviceId,
+            idDevice: deviceId,
+            iddevice: deviceId
+        };
+    }
+
+    @Public()
+    @Post("dev/token")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Issue access token for local/staging debug",
+        description:
+            "Debug-only endpoint. Requires DEV_AUTH_ENABLED=true and header x-dev-auth-key=<DEV_AUTH_SECRET>."
+    })
+    @ApiBody({
+        type: DevIssueTokenDto,
+        examples: {
+            byUserId: {
+                summary: "Issue token by user id",
+                value: {
+                    userId: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+                }
+            },
+            byEmailWithFcm: {
+                summary: "Issue token by email and save fcmToken",
+                value: {
+                    email: "mobile.user@example.com",
+                    fcmToken:
+                        "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA",
+                    platform: "android"
+                }
+            }
+        }
+    })
+    @ApiOkResponse({
+        description: "Debug token issued successfully",
+        type: AuthSessionResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Missing userId/email"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Dev endpoint disabled or invalid x-dev-auth-key"
+    })
+    async issueDevToken(
+        @Headers("x-dev-auth-key") devAuthKey: string | undefined,
+        @Body() body: DevIssueTokenDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        this.assertDevTokenIssuingEnabled(devAuthKey);
+
+        const user = await this.resolveDevTargetUser(body);
+        const result = await this.authService.createSession(user, false);
+        const fcmToken = this.extractOptionalFcmToken(body);
+        const platform = this.normalizePlatform(body.platform, "android");
+        const deviceId = fcmToken
+            ? await this.authService.saveFcmToken(result.user.id, fcmToken, platform)
+            : null;
+
         this.setTokensCookie(res, result.tokens);
         return {
             ...result,
@@ -305,11 +371,71 @@ export class AuthController {
         return token;
     }
 
+    private extractOptionalFcmToken(body: Partial<FcmTokenBodyDto>) {
+        const candidate = body.fcmToken ?? body.fcm_token ?? body.token ?? body.idDevice ?? body.iddevice;
+        const token = typeof candidate === "string" ? candidate.trim() : "";
+        if (!token) {
+            return null;
+        }
+        if (token.length < 20 || token.length > 4096) {
+            throw new BadRequestException("fcmToken length must be between 20 and 4096");
+        }
+        return token;
+    }
+
     private normalizePlatform(value: unknown, fallback: PushTokenPlatform): PushTokenPlatform {
         const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
         if (PUSH_TOKEN_PLATFORMS.includes(normalized as PushTokenPlatform)) {
             return normalized as PushTokenPlatform;
         }
         return fallback;
+    }
+
+    private assertDevTokenIssuingEnabled(devAuthKey: string | undefined) {
+        const enabledRaw = (
+            this.configService.get<string>("DEV_AUTH_ENABLED") ??
+            process.env.DEV_AUTH_ENABLED ??
+            ""
+        )
+            .trim()
+            .toLowerCase();
+        const enabled = enabledRaw === "true" || enabledRaw === "1" || enabledRaw === "yes";
+
+        if (!enabled) {
+            throw new UnauthorizedException("Dev token endpoint is disabled");
+        }
+
+        const configuredSecret = (
+            this.configService.get<string>("DEV_AUTH_SECRET") ??
+            process.env.DEV_AUTH_SECRET ??
+            ""
+        ).trim();
+        if (!configuredSecret) {
+            throw new UnauthorizedException("Dev token endpoint secret is not configured");
+        }
+
+        const incomingSecret = typeof devAuthKey === "string" ? devAuthKey.trim() : "";
+        if (!incomingSecret || incomingSecret !== configuredSecret) {
+            throw new UnauthorizedException("Invalid dev auth key");
+        }
+    }
+
+    private async resolveDevTargetUser(body: DevIssueTokenDto) {
+        const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+        const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+
+        if (!userId && !email) {
+            throw new BadRequestException("userId or email is required");
+        }
+
+        if (userId) {
+            return this.usersService.getUserById(userId);
+        }
+
+        const user = await this.usersService.getUserByEmail(email);
+        if (!user) {
+            throw new UnauthorizedException("User not found");
+        }
+        return user;
     }
 }

@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { ApiHideProperty, ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../../../notifications/domain/entities/push-token.entity";
@@ -37,6 +37,83 @@ export class SocialLoginDto {
 
     @ApiPropertyOptional({
         description: "FCM token from mobile app. Backend will save it right after Google login.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value, obj }) => normalizeTokenValue(value, obj))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcmToken?: string;
+
+    @ApiHideProperty()
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcm_token?: string;
+
+    @ApiHideProperty()
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    token?: string;
+
+    @ApiHideProperty()
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    idDevice?: string;
+
+    @ApiHideProperty()
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    iddevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Device platform that owns this FCM token.",
+        enum: PUSH_TOKEN_PLATFORMS,
+        example: "android",
+        default: "android"
+    })
+    @IsOptional()
+    @Transform(({ value }) => normalizePlatformValue(value))
+    @IsIn(PUSH_TOKEN_PLATFORMS)
+    platform?: PushTokenPlatform;
+}
+
+export class DevIssueTokenDto {
+    @ApiPropertyOptional({
+        description: "Target user id to issue access token for local/staging debug.",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MaxLength(120)
+    userId?: string;
+
+    @ApiPropertyOptional({
+        description: "Alternative to userId. Issue token by email.",
+        example: "mobile.user@example.com"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+    @IsOptional()
+    @IsEmail()
+    @MaxLength(255)
+    email?: string;
+
+    @ApiPropertyOptional({
+        description: "Optional FCM token to save while issuing dev token.",
         example:
             "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
     })
