@@ -101,7 +101,7 @@ export class CoupleService {
     }
 
     async disconnect(userId: string) {
-        return this.dataSource.transaction(async (manager) => {
+        const result = await this.dataSource.transaction(async (manager) => {
             const coupleRepo = manager.getRepository(Couple);
             const userRepo = manager.getRepository(User);
 
@@ -112,17 +112,29 @@ export class CoupleService {
                 throw new NotFoundException("You are not in a couple");
             }
 
+            const partnerId = couple.user1Id === userId ? couple.user2Id : couple.user1Id;
             couple.status = CoupleStatus.DISCONNECTED;
-            return coupleRepo.save(couple);
+            const saved = await coupleRepo.save(couple);
+            return { couple: saved, partnerId };
         });
+
+        await this.notifyDisconnect(result.partnerId);
+        return result.couple;
     }
 
     async updateCouple(userId: string, dto: UpdateCoupleDto) {
         const couple = await this.getMyCouple(userId);
+        const partnerId = couple.user1Id === userId ? couple.user2Id : couple.user1Id;
         if (dto.startDate !== undefined) {
             couple.startDate = new Date(dto.startDate);
         }
-        return this.coupleRepository.save(couple);
+        const saved = await this.coupleRepository.save(couple);
+
+        if (dto.startDate !== undefined) {
+            await this.notifyStartDateUpdated(partnerId, saved.startDate);
+        }
+
+        return saved;
     }
 
     private async joinCoupleInternal(userId: string, inviteCode: string) {
@@ -280,6 +292,39 @@ export class CoupleService {
                     `Create couple notification failed: ${(result.reason as Error)?.message || "unknown"}`
                 );
             }
+        }
+    }
+
+    private async notifyDisconnect(partnerId: string | null) {
+        if (!partnerId) return;
+
+        try {
+            await this.notificationsService.createNotification(
+                partnerId,
+                "Cap nhat ghep doi",
+                "Doi cua ban vua ngat ket noi ghep doi",
+                "couple"
+            );
+        } catch (error) {
+            this.logger.warn(`Create disconnect notification failed: ${(error as Error)?.message || "unknown"}`);
+        }
+    }
+
+    private async notifyStartDateUpdated(partnerId: string | null, startDate?: Date | null) {
+        if (!partnerId) return;
+
+        const normalizedDate =
+            startDate instanceof Date && !Number.isNaN(startDate.getTime())
+                ? startDate.toISOString().slice(0, 10)
+                : null;
+        const content = normalizedDate
+            ? `Doi cua ban vua cap nhat ngay bat dau: ${normalizedDate}`
+            : "Doi cua ban vua cap nhat ngay bat dau";
+
+        try {
+            await this.notificationsService.createNotification(partnerId, "Cap nhat ghep doi", content, "couple");
+        } catch (error) {
+            this.logger.warn(`Create start-date notification failed: ${(error as Error)?.message || "unknown"}`);
         }
     }
 

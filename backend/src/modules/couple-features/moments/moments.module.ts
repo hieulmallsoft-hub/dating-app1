@@ -7,9 +7,10 @@ import { MomentRepository } from "./infrastructure/persistence/moment.repository
 import { MomentsController } from "./presentation/moments.controller";
 import { CoupleModule } from "../couple/couple.module";
 import { MediaModule } from "../media/media.module";
+import { NotificationsModule } from "../../common-user/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Moment]), CoupleModule, MediaModule],
+    imports: [TypeOrmModule.forFeature([Moment]), CoupleModule, MediaModule, NotificationsModule],
     controllers: [MomentsController],
     providers: [MomentsService, MomentRepository],
     exports: [MomentsService]

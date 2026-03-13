@@ -6,9 +6,10 @@ import { EventsService } from "./application/events.service";
 import { EventRepository } from "./infrastructure/persistence/event.repository";
 import { EventsController } from "./presentation/events.controller";
 import { CoupleModule } from "../couple/couple.module";
+import { NotificationsModule } from "../../common-user/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Event]), CoupleModule],
+    imports: [TypeOrmModule.forFeature([Event]), CoupleModule, NotificationsModule],
     controllers: [EventsController],
     providers: [EventsService, EventRepository],
     exports: [EventsService]

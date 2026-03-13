@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { In } from "typeorm";
+import { In, MoreThan } from "typeorm";
 import { NotificationRepository } from "../infrastructure/persistence/notification.repository";
 import { PushTokenRepository } from "../infrastructure/persistence/push-token.repository";
 import { NotificationGateway } from "../presentation/notification.gateway";
@@ -58,6 +58,56 @@ export class NotificationsService {
         }
 
         await this.sendPushForNotification(saved.id, userId, title, content, type);
+
+        return saved;
+    }
+
+    async createNotificationWithTimeWindow(
+        userId: string,
+        title: string,
+        content: string,
+        type: string,
+        mergeWindowSeconds = 600
+    ) {
+        const normalizedType = type.trim();
+        if (!normalizedType) {
+            return this.createNotification(userId, title, content, type);
+        }
+
+        const normalizedWindow = this.normalizeMergeWindow(mergeWindowSeconds);
+        const cutoff = new Date(Date.now() - normalizedWindow * 1000);
+
+        const recent = await this.notificationRepository.findOne({
+            where: {
+                userId,
+                type: normalizedType,
+                isRead: false,
+                createdAt: MoreThan(cutoff)
+            },
+            order: { createdAt: "DESC" }
+        });
+
+        if (!recent) {
+            return this.createNotification(userId, title, content, normalizedType);
+        }
+
+        const incomingBaseContent = this.stripMergeSuffix(content);
+        const currentCount = this.extractMergeCount(recent.content);
+        const mergedCount = currentCount + 1;
+        recent.title = title;
+        recent.content = this.appendMergeCount(incomingBaseContent, mergedCount);
+        recent.isRead = false;
+        const saved = await this.notificationRepository.save(recent);
+
+        try {
+            this.notificationGateway.emitNewNotification(userId, this.toEventPayload(saved));
+        } catch (error) {
+            this.logger.warn(`Emit notification:new (merged) failed: ${(error as Error)?.message || "unknown"}`);
+        }
+
+        this.logger.debug(
+            `Merged notification within ${normalizedWindow}s window: user=${userId}, type=${normalizedType}, count=${mergedCount}`
+        );
 
         return saved;
     }
@@ -134,5 +184,30 @@ export class NotificationsService {
         const clean = content.trim();
         if (!clean) return "Ban vua nhan thong bao moi";
         return clean.length > 180 ? `${clean.slice(0, 177)}...` : clean;
+    }
+
+    private normalizeMergeWindow(value: number) {
+        if (!Number.isFinite(value)) return 600;
+        const safe = Math.floor(value);
+        return Math.max(30, Math.min(3600, safe));
+    }
+
+    private stripMergeSuffix(content: string) {
+        const clean = content.trim();
+        return clean.replace(/\s+\(x\d+\)\s*$/, "").trim();
+    }
+
+    private extractMergeCount(content: string) {
+        const matched = content.match(/\(x(\d+)\)\s*$/);
+        if (!matched) return 1;
+        const parsed = Number(matched[1]);
+        if (!Number.isFinite(parsed) || parsed < 1) return 1;
+        return Math.floor(parsed);
+    }
+
+    private appendMergeCount(base: string, count: number) {
+        const normalizedBase = this.stripMergeSuffix(base);
+        if (count <= 1) return normalizedBase;
+        return `${normalizedBase} (x${count})`;
     }
 }

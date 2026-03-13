@@ -1,18 +1,20 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException, Logger } from "@nestjs/common";
 import { MomentRepository } from "../infrastructure/persistence/moment.repository";
 import { CoupleService } from "../../couple/application/couple.service";
 import { CreateMomentDto, UpdateMomentDto } from "../presentation/dto/moment-ops.dto";
-import { Moment } from "../domain/entities/moment.entity";
-
-import { MomentsService as MomentsServiceType } from "./moments.service";
+import { Moment, MomentPrivacy } from "../domain/entities/moment.entity";
 import { MediaService } from "../../media/application/media.service";
+import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 
 @Injectable()
 export class MomentsService {
+    private readonly logger = new Logger(MomentsService.name);
+
     constructor(
         private readonly momentRepository: MomentRepository,
         private readonly coupleService: CoupleService,
-        private readonly mediaService: MediaService
+        private readonly mediaService: MediaService,
+        private readonly notificationsService: NotificationsService
     ) {}
 
     async createMoment(userId: string, dto: CreateMomentDto) {
@@ -33,6 +35,10 @@ export class MomentsService {
             }
         }
 
+        if (savedMoment.privacy === MomentPrivacy.COUPLE && (!dto.photos || dto.photos.length === 0)) {
+            await this.notifyPartnerForMoment(couple, userId, "created", savedMoment);
+        }
+
         return savedMoment;
     }
 
@@ -50,8 +56,15 @@ export class MomentsService {
         if (!moment) throw new NotFoundException("Moment not found");
         if (moment.creatorId !== userId) throw new ForbiddenException("Not your moment");
 
+        const couple = await this.coupleService.getMyCouple(userId);
         Object.assign(moment, dto);
-        return this.momentRepository.save(moment);
+        const saved = await this.momentRepository.save(moment);
+
+        if (saved.privacy === MomentPrivacy.COUPLE) {
+            await this.notifyPartnerForMoment(couple, userId, "updated", saved);
+        }
+
+        return saved;
     }
 
     async deleteMoment(userId: string, id: string) {
@@ -59,7 +72,54 @@ export class MomentsService {
         if (!moment) throw new NotFoundException("Moment not found");
         if (moment.creatorId !== userId) throw new ForbiddenException("Not your moment");
 
+        const couple = await this.coupleService.getMyCouple(userId);
+        const deletedSnapshot = {
+            content: moment.content,
+            photos: moment.photos,
+            privacy: moment.privacy
+        };
         await this.momentRepository.delete(id);
+
+        if (deletedSnapshot.privacy === MomentPrivacy.COUPLE) {
+            await this.notifyPartnerForMoment(couple, userId, "deleted", deletedSnapshot);
+        }
+
         return { success: true };
+    }
+
+    private async notifyPartnerForMoment(
+        couple: { user1Id: string; user2Id: string | null },
+        actorId: string,
+        action: "created" | "updated" | "deleted",
+        moment: { content?: string | null; photos?: string[] | null }
+    ) {
+        const partnerId = couple.user1Id === actorId ? couple.user2Id : couple.user1Id;
+        if (!partnerId) return;
+
+        const trimmedContent = moment.content?.trim() || "";
+        const photoCount = Array.isArray(moment.photos) ? moment.photos.length : 0;
+        const preview = trimmedContent
+            ? trimmedContent.length > 140
+                ? `${trimmedContent.slice(0, 137)}...`
+                : trimmedContent
+            : photoCount > 0
+              ? `Moment co ${photoCount} anh`
+              : "Moment moi";
+
+        let title = "Moment moi";
+        let content = `Doi cua ban vua dang moment: ${preview}`;
+        if (action === "updated") {
+            title = "Moment da cap nhat";
+            content = `Doi cua ban vua cap nhat moment: ${preview}`;
+        } else if (action === "deleted") {
+            title = "Moment da xoa";
+            content = `Doi cua ban vua xoa mot moment`;
+        }
+
+        try {
+            await this.notificationsService.createNotification(partnerId, title, content, "moment");
+        } catch (error) {
+            this.logger.warn(`Create moment notification failed: ${(error as Error)?.message || "unknown"}`);
+        }
     }
 }
