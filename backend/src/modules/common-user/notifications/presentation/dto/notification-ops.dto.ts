@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class NotificationResponseDto {
+    
     @ApiProperty({
         description: "Notification id",
         example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"

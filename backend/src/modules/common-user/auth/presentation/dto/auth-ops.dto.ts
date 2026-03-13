@@ -1,6 +1,28 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
+import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../../../notifications/domain/entities/push-token.entity";
+
+const pickTokenValue = (value: unknown, obj: Record<string, unknown> | undefined) => {
+    if (typeof value === "string") return value;
+    if (!obj) return value;
+    const candidates = [obj.fcmToken, obj.fcm_token, obj.token, obj.idDevice, obj.iddevice];
+    const first = candidates.find((item) => typeof item === "string");
+    return first ?? value;
+};
+
+const normalizeTokenValue = (value: unknown, obj: Record<string, unknown> | undefined) => {
+    const raw = pickTokenValue(value, obj);
+    return typeof raw === "string" ? raw.trim() : raw;
+};
+
+const normalizePlatformValue = (value: unknown) => {
+    return typeof value === "string" ? value.trim().toLowerCase() : value;
+};
+
+const normalizeOptionalString = (value: unknown) => {
+    return typeof value === "string" ? value.trim() : value;
+};
 
 export class SocialLoginDto {
     @ApiProperty({
@@ -13,22 +35,211 @@ export class SocialLoginDto {
     @IsNotEmpty()
     idToken: string;
 
-    @ApiProperty({
-        description: "Device identifier from mobile app (required for Google login flow).",
-        example: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740"
+    @ApiPropertyOptional({
+        description: "FCM token from mobile app. Backend will save it right after Google login.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
     })
-    @Transform(({ value, obj }) => {
-        const normalizedValue =
-            typeof value === "string"
-                ? value
-                : typeof obj?.idDevice === "string"
-                  ? obj.idDevice
-                  : value;
-        return typeof normalizedValue === "string" ? normalizedValue.trim() : normalizedValue;
-    })
+    @Transform(({ value, obj }) => normalizeTokenValue(value, obj))
+    @IsOptional()
     @IsString()
-    @IsNotEmpty()
-    iddevice: string;
+    @MinLength(20)
+    @MaxLength(4096)
+    fcmToken?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcm_token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    idDevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    iddevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Device platform that owns this FCM token.",
+        enum: PUSH_TOKEN_PLATFORMS,
+        example: "android",
+        default: "android"
+    })
+    @IsOptional()
+    @Transform(({ value }) => normalizePlatformValue(value))
+    @IsIn(PUSH_TOKEN_PLATFORMS)
+    platform?: PushTokenPlatform;
+}
+
+export class RegisterFcmTokenDto {
+    @ApiPropertyOptional({
+        description: "FCM token of current device.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value, obj }) => normalizeTokenValue(value, obj))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcmToken?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcm_token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    idDevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    iddevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Device platform that owns this FCM token.",
+        enum: PUSH_TOKEN_PLATFORMS,
+        example: "android",
+        default: "android"
+    })
+    @IsOptional()
+    @Transform(({ value }) => normalizePlatformValue(value))
+    @IsIn(PUSH_TOKEN_PLATFORMS)
+    platform?: PushTokenPlatform;
+}
+
+export class FcmTokenBodyDto {
+    @ApiPropertyOptional({
+        description: "FCM token of current device.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value, obj }) => normalizeTokenValue(value, obj))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcmToken?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    fcm_token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    token?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    idDevice?: string;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias for fcmToken.",
+        example:
+            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MinLength(20)
+    @MaxLength(4096)
+    iddevice?: string;
 }
 
 export class RefreshTokenDto {
@@ -184,8 +395,22 @@ export class AuthSessionResponseDto {
     meta: AuthSessionMetaResponseDto;
 
     @ApiPropertyOptional({
-        description: "Device identifier sent from mobile on Google login.",
-        example: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740",
+        description: "Saved push-device identifier in backend (created/updated from FCM token).",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    deviceId?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Alias of deviceId for mobile compatibility.",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    idDevice?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias of deviceId for backward compatibility.",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
         nullable: true
     })
     iddevice?: string | null;
@@ -197,6 +422,35 @@ export class MobileGoogleAuthResponseDto {
 
     @ApiProperty({ type: () => AuthSessionMetaResponseDto })
     meta: AuthSessionMetaResponseDto;
+}
+
+export class FcmTokenRegisterResponseDto {
+    @ApiProperty({
+        description: "Register/update FCM token result",
+        example: true
+    })
+    success: boolean;
+
+    @ApiPropertyOptional({
+        description: "Saved push-device identifier in backend",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    deviceId?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Alias of deviceId for mobile compatibility",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    idDevice?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Legacy alias of deviceId for backward compatibility",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8",
+        nullable: true
+    })
+    iddevice?: string | null;
 }
 
 export class LogoutResponseDto {

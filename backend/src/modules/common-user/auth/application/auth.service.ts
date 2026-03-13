@@ -10,6 +10,8 @@ import * as crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { UsersService } from "../../user/application/user.service";
 import { AuthProvider } from "../../user/domain/entities/user.entity";
+import { PushTokenRepository } from "../../notifications/infrastructure/persistence/push-token.repository";
+import type { PushTokenPlatform } from "../../notifications/domain/entities/push-token.entity";
 
 type AuthUser = {
     id: string;
@@ -50,7 +52,8 @@ export class AuthService {
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        private readonly pushTokenRepository: PushTokenRepository
     ) {
         this.googleClientIds = this.resolveGoogleClientIds();
         this.googleClientId = this.googleClientIds[0];
@@ -201,6 +204,36 @@ export class AuthService {
 
     async logout(userId: string): Promise<void> {
         await this.usersService.clearSession(userId);
+    }
+
+    async saveFcmToken(userId: string, fcmToken: string, platform: PushTokenPlatform = "android") {
+        const cleanToken = fcmToken.trim();
+        if (!cleanToken) return null;
+
+        await this.pushTokenRepository.upsert(
+            {
+                userId,
+                token: cleanToken,
+                platform
+            },
+            ["token"]
+        );
+
+        const savedPushToken = await this.pushTokenRepository.findOne({
+            where: { token: cleanToken },
+            select: ["id"]
+        });
+
+        return savedPushToken?.id ?? null;
+    }
+
+    async removeFcmToken(userId: string, fcmToken: string) {
+        const cleanToken = fcmToken.trim();
+        if (!cleanToken) return;
+        await this.pushTokenRepository.delete({
+            userId,
+            token: cleanToken
+        });
     }
 
     async refreshToken(token: string): Promise<AuthResult> {

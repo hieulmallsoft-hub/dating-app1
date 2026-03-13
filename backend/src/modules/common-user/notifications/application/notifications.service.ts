@@ -4,7 +4,6 @@ import { NotificationRepository } from "../infrastructure/persistence/notificati
 import { PushTokenRepository } from "../infrastructure/persistence/push-token.repository";
 import { NotificationGateway } from "../presentation/notification.gateway";
 import { FirebasePushService } from "./firebase-push.service";
-import type { PushTokenPlatform } from "../domain/entities/push-token.entity";
 
 @Injectable()
 export class NotificationsService {
@@ -63,36 +62,6 @@ export class NotificationsService {
         return saved;
     }
 
-    async registerPushToken(userId: string, token: string, platform: PushTokenPlatform = "web") {
-        const cleanToken = token.trim();
-        if (!cleanToken) return null;
-
-        await this.pushTokenRepository.upsert(
-            {
-                userId,
-                token: cleanToken,
-                platform
-            },
-            ["token"]
-        );
-
-        const savedPushToken = await this.pushTokenRepository.findOne({
-            where: { token: cleanToken },
-            select: ["id"]
-        });
-
-        return savedPushToken?.id ?? null;
-    }
-
-    async unregisterPushToken(userId: string, token: string) {
-        const cleanToken = token.trim();
-        if (!cleanToken) return;
-        await this.pushTokenRepository.delete({
-            userId,
-            token: cleanToken
-        });
-    }
-
     private toEventPayload(notification: {
         id: string;
         userId: string;
@@ -127,7 +96,10 @@ export class NotificationsService {
             where: { userId },
             select: ["token"]
         });
-        if (!tokens.length) return;
+        if (!tokens.length) {
+            this.logger.debug(`Skip push: user ${userId} has no registered token`);
+            return;
+        }
 
         const payload = {
             title: title.trim() || "Thong bao moi",
@@ -144,6 +116,12 @@ export class NotificationsService {
             tokens.map((item) => item.token),
             payload
         );
+
+        if (result.failed > 0) {
+            this.logger.warn(
+                `Push send partial failure for user ${userId}: sent=${result.sent}, failed=${result.failed}`
+            );
+        }
 
         if (result.invalidTokens.length) {
             await this.pushTokenRepository.delete({

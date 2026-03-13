@@ -10,6 +10,10 @@ describe("AuthService Google login security", () => {
             ({
                 clearSession: jest.fn()
             } as any);
+        const pushTokenRepository = {
+            upsert: jest.fn(),
+            findOne: jest.fn().mockResolvedValue({ id: "device-id-1" })
+        } as any;
         const jwtService = {} as any;
         const configService = {
             get: jest.fn((key: string) => {
@@ -23,7 +27,7 @@ describe("AuthService Google login security", () => {
             })
         } as any;
 
-        return new AuthService(usersService, jwtService, configService);
+        return new AuthService(usersService, jwtService, configService, pushTokenRepository);
     };
 
     const mockGoogleVerifyPayload = (service: AuthService, payload: any) => {

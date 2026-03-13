@@ -91,7 +91,7 @@ async function bootstrap() {
         .setDescription(
             [
                 "Mobile quick start (Auth):",
-                "1) Use POST /auth/google with a real Google idToken and iddevice from mobile SDK.",
+                "1) Use POST /auth/google with { idToken, fcmToken, platform } from mobile SDK.",
                 "2) Copy tokens.access_token and click Authorize with: Bearer <access_token>.",
                 "3) Call GET /auth/profile to verify auth.",
                 "4) Use POST /auth/refresh when access token expires.",
@@ -110,8 +110,9 @@ async function bootstrap() {
                 "4) Use GET /notifications and PUT /notifications/:id/read for list/read state.",
                 "",
                 "Mobile quick start (FCM push token):",
-                "1) On login, call POST /notifications/push-tokens/register with { token, platform: 'android' | 'ios' | 'web' }.",
-                "2) On logout, call POST /notifications/push-tokens/unregister with { token }."
+                "1) FCM token is now saved in POST /auth/google payload.",
+                "2) On token refresh, call POST /auth/fcm-token/register with { fcmToken, platform }.",
+                "3) On logout/uninstall, call POST /auth/fcm-token/unregister with { fcmToken }."
             ].join("\n")
         )
         .setVersion("1.0")

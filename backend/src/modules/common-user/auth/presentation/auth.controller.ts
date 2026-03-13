@@ -1,4 +1,5 @@
-﻿import {
+import {
+    BadRequestException,
     Body,
     Controller,
     Get,
@@ -26,12 +27,16 @@ import { AuthService } from "../application/auth.service";
 import {
     AuthProfilePayloadResponseDto,
     AuthSessionResponseDto,
+    FcmTokenRegisterResponseDto,
+    FcmTokenBodyDto,
     LogoutResponseDto,
+    RegisterFcmTokenDto,
     RefreshTokenDto,
     SocialLoginDto
 } from "./dto/auth-ops.dto";
 import { GoogleAuthGuard } from "../infrastructure/strategies/google-auth.guard";
 import { Public } from "src/common/decorators/customize";
+import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../../notifications/domain/entities/push-token.entity";
 
 @ApiTags("auth-mobile")
 @Controller("auth")
@@ -81,7 +86,7 @@ export class AuthController {
     @ApiOperation({
         summary: "Google login for mobile using idToken",
         description:
-            "Use this endpoint for Google login. FE gets idToken from SDK and sends { idToken, iddevice }. Backend creates account on first login and returns user, tokens, meta, and iddevice."
+            "Use this endpoint for Google login. FE gets idToken + fcmToken from SDK and sends { idToken, fcmToken, platform }. Backend creates account on first login and stores FCM token immediately."
     })
     @Public()
     @Post("google")
@@ -93,7 +98,9 @@ export class AuthController {
                 summary: "Google login payload",
                 value: {
                     idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...<google-id-token>",
-                    iddevice: "android-2f8c9a54-3f6b-4ad8-9e65-913f3cbf6740"
+                    fcmToken:
+                        "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA",
+                    platform: "android"
                 }
             }
         }
@@ -106,14 +113,23 @@ export class AuthController {
         description: "Google idToken is invalid, expired, or has audience mismatch"
     })
     @ApiBadRequestResponse({
-        description: "Missing idToken or iddevice"
+        description: "Missing idToken or fcmToken"
     })
     async loginWithGoogle(@Body() socialLoginDto: SocialLoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.loginWithGoogle(socialLoginDto.idToken);
+        const fcmToken = this.extractFcmToken(socialLoginDto);
+        const platform = this.normalizePlatform(socialLoginDto.platform, "android");
+        const deviceId = await this.authService.saveFcmToken(
+            result.user.id,
+            fcmToken,
+            platform
+        );
         this.setTokensCookie(res, result.tokens);
         return {
             ...result,
-            iddevice: socialLoginDto.iddevice
+            deviceId,
+            idDevice: deviceId,
+            iddevice: deviceId
         };
     }
 
@@ -155,6 +171,68 @@ export class AuthController {
         const result = await this.authService.refreshToken(refreshToken);
         this.setTokensCookie(res, result.tokens);
         return result;
+    }
+
+    @ApiBearerAuth("JWT-auth")
+    @Post("fcm-token/register")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Register/update current device FCM token",
+        description: "Save latest FCM token for current user (call after login and on token refresh)."
+    })
+    @ApiBody({
+        type: RegisterFcmTokenDto
+    })
+    @ApiOkResponse({
+        description: "FCM token saved successfully",
+        type: FcmTokenRegisterResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Missing or invalid fcmToken"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async registerFcmToken(
+        @Req() req: Request & { user?: { sub?: string; id?: string; user_Id?: string } },
+        @Body() body: RegisterFcmTokenDto
+    ) {
+        const userId = this.getCurrentUserId(req);
+        const fcmToken = this.extractFcmToken(body);
+        const platform = this.normalizePlatform(body.platform, "android");
+        const deviceId = await this.authService.saveFcmToken(
+            userId,
+            fcmToken,
+            platform
+        );
+        return { success: true, deviceId, idDevice: deviceId, iddevice: deviceId };
+    }
+
+    @ApiBearerAuth("JWT-auth")
+    @Post("fcm-token/unregister")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Unregister current device FCM token",
+        description: "Remove current device token from DB (call on logout/uninstall)."
+    })
+    @ApiBody({
+        type: FcmTokenBodyDto
+    })
+    @ApiOkResponse({
+        description: "FCM token removed successfully",
+        type: LogoutResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async unregisterFcmToken(
+        @Req() req: Request & { user?: { sub?: string; id?: string; user_Id?: string } },
+        @Body() body: FcmTokenBodyDto
+    ) {
+        const userId = this.getCurrentUserId(req);
+        const fcmToken = this.extractFcmToken(body);
+        await this.authService.removeFcmToken(userId, fcmToken);
+        return { success: true };
     }
 
     @ApiBearerAuth("JWT-auth")
@@ -213,5 +291,25 @@ export class AuthController {
             throw new UnauthorizedException("Invalid access token payload");
         }
         return userId;
+    }
+
+    private extractFcmToken(body: Partial<FcmTokenBodyDto>) {
+        const candidate = body.fcmToken ?? body.fcm_token ?? body.token ?? body.idDevice ?? body.iddevice;
+        const token = typeof candidate === "string" ? candidate.trim() : "";
+        if (!token) {
+            throw new BadRequestException("fcmToken is required");
+        }
+        if (token.length < 20 || token.length > 4096) {
+            throw new BadRequestException("fcmToken length must be between 20 and 4096");
+        }
+        return token;
+    }
+
+    private normalizePlatform(value: unknown, fallback: PushTokenPlatform): PushTokenPlatform {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+        if (PUSH_TOKEN_PLATFORMS.includes(normalized as PushTokenPlatform)) {
+            return normalized as PushTokenPlatform;
+        }
+        return fallback;
     }
 }

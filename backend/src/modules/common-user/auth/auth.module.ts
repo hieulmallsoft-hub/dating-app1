@@ -9,6 +9,7 @@ import { JwtStrategy } from "./infrastructure/strategies/jwt.strategy";
 import { GoogleStrategy } from "./infrastructure/strategies/google.strategy";
 import { GoogleAuthGuard } from "./infrastructure/strategies/google-auth.guard";
 import { WsJwtGuard } from "./infrastructure/strategies/ws-jwt.guard";
+import { PushTokenRepository } from "../notifications/infrastructure/persistence/push-token.repository";
 
 @Module({
     imports: [
@@ -28,7 +29,7 @@ import { WsJwtGuard } from "./infrastructure/strategies/ws-jwt.guard";
             })
         })
     ],
-    providers: [AuthService, JwtStrategy, GoogleStrategy, GoogleAuthGuard, WsJwtGuard],
+    providers: [AuthService, JwtStrategy, GoogleStrategy, GoogleAuthGuard, WsJwtGuard, PushTokenRepository],
     controllers: [AuthController],
     exports: [AuthService, JwtModule, WsJwtGuard]
 })

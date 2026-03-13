@@ -1,40 +1,71 @@
-# Mobile Google Login (POST-only)
+# Mobile Google Login + FCM Token (POST-only)
 
-Tài liệu này chỉ giữ **1 flow social login duy nhất** để test và tích hợp:
+Tai lieu nay dung cho mobile flow ngan gon, khong dung OAuth redirect callback.
 
-- `POST /auth/google`
-
-## 1) Route cần gọi
+## 1) Login route can goi
 
 ```http
 POST /auth/google
 Content-Type: application/json
 
 {
-  "idToken": "<GOOGLE_ID_TOKEN>"
+  "idToken": "<GOOGLE_ID_TOKEN>",
+  "fcmToken": "<FCM_DEVICE_TOKEN>",
+  "platform": "android"
 }
 ```
 
-## 2) Bắt buộc phải có gì
+Bat buoc:
+1. `idToken` la bat buoc, lay tu Google Sign-In SDK.
+2. `fcmToken` la bat buoc, lay tu Firebase Messaging SDK.
+3. `platform` la optional (`android` | `ios` | `web` | `unknown`), mac dinh `android`.
 
-1. `idToken` là bắt buộc.
-2. `idToken` phải do Google cấp từ SDK (không tự fake).
-3. `GOOGLE_CLIENT_ID` phía backend phải đúng với client tạo ra token.
+Ket qua thanh cong:
+- `200 OK`, tra `user`, `tokens`, `meta`, va them `deviceId` (`idDevice` alias).
 
-## 3) Kết quả mong đợi
+## 2) Khi token FCM refresh tren mobile
 
-- Thành công: `200 OK`, trả `user`, `tokens`.
-- Thất bại:
-  - `401 Invalid Google token` (token sai/hết hạn/không đúng audience).
-  - `400` nếu body sai định dạng.
+Sau khi app da login va co access token, goi endpoint nay de cap nhat token moi:
 
-## 4) Lấy idToken để test nhanh
+```http
+POST /auth/fcm-token/register
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
 
-1. Chạy frontend.
-2. Mở trang lab: `http://localhost:5173/google-idtoken-lab`
-3. Đăng nhập Google trên trang lab để lấy token.
-4. Dùng token đó gọi `POST /auth/google` trên Swagger/Postman.
+{
+  "fcmToken": "<NEW_FCM_DEVICE_TOKEN>",
+  "platform": "android"
+}
+```
 
-## 5) Không dùng trong flow rút gọn này
+Ket qua:
+- `200 OK`:
 
-Không dùng luồng OAuth redirect/callback trong tài liệu rút gọn này.
+```json
+{
+  "success": true,
+  "deviceId": "<uuid|null>",
+  "idDevice": "<uuid|null>"
+}
+```
+
+## 3) Khi logout/uninstall
+
+```http
+POST /auth/fcm-token/unregister
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+
+{
+  "fcmToken": "<CURRENT_FCM_DEVICE_TOKEN>"
+}
+```
+
+## 4) Test nhanh
+
+1. Chay frontend.
+2. Mo `http://localhost:5173/google-idtoken-lab`.
+3. Dang nhap Google de lay `idToken`.
+4. Lay `fcmToken` tu app/mobile.
+5. Goi `POST /auth/google` tren Swagger/Postman voi ca `idToken` + `fcmToken`.
+

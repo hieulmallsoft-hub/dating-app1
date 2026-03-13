@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
-import * as notificationsApi from "../api/notifications";
+import * as authApi from "../api/auth";
 
 type FirebaseWebConfig = {
   apiKey: string;
@@ -154,18 +154,15 @@ export async function syncPushTokenWithServer() {
   const currentToken = getStoredToken();
   if (currentToken === nextToken) return;
 
-  await notificationsApi.registerPushToken({
-    token: nextToken,
+  await authApi.registerFcmToken({
+    fcmToken: nextToken,
     platform: "web",
   });
 
   storeToken(nextToken);
 
   if (currentToken && currentToken !== nextToken) {
-    await notificationsApi.unregisterPushToken({
-      token: currentToken,
-      platform: "web",
-    });
+    await authApi.unregisterFcmToken({ fcmToken: currentToken });
   }
 }
 
@@ -174,10 +171,7 @@ export async function unregisterPushTokenFromServer() {
   const currentToken = getStoredToken();
   if (currentToken) {
     try {
-      await notificationsApi.unregisterPushToken({
-        token: currentToken,
-        platform: "web",
-      });
+      await authApi.unregisterFcmToken({ fcmToken: currentToken });
     } catch (error) {
       console.warn("Failed to unregister push token", error);
     }
