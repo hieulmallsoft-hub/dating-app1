@@ -1,5 +1,5 @@
 import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiHideProperty, ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../../../notifications/domain/entities/push-token.entity";
 
@@ -47,11 +47,7 @@ export class SocialLoginDto {
     @MaxLength(4096)
     fcmToken?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -59,11 +55,7 @@ export class SocialLoginDto {
     @MaxLength(4096)
     fcm_token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -71,11 +63,7 @@ export class SocialLoginDto {
     @MaxLength(4096)
     token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -83,11 +71,7 @@ export class SocialLoginDto {
     @MaxLength(4096)
     idDevice?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -120,11 +104,7 @@ export class RegisterFcmTokenDto {
     @MaxLength(4096)
     fcmToken?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -132,11 +112,7 @@ export class RegisterFcmTokenDto {
     @MaxLength(4096)
     fcm_token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -144,11 +120,7 @@ export class RegisterFcmTokenDto {
     @MaxLength(4096)
     token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -156,11 +128,7 @@ export class RegisterFcmTokenDto {
     @MaxLength(4096)
     idDevice?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -193,11 +161,7 @@ export class FcmTokenBodyDto {
     @MaxLength(4096)
     fcmToken?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -205,11 +169,7 @@ export class FcmTokenBodyDto {
     @MaxLength(4096)
     fcm_token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -217,11 +177,7 @@ export class FcmTokenBodyDto {
     @MaxLength(4096)
     token?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
@@ -229,11 +185,7 @@ export class FcmTokenBodyDto {
     @MaxLength(4096)
     idDevice?: string;
 
-    @ApiPropertyOptional({
-        description: "Legacy alias for fcmToken.",
-        example:
-            "ePuSzfxwSVSnCcMk1X4-qZ:APA91bEDweT7e1A5oDfZGPoMz3SWFRhcV6OqglwdL5gcvevEOgtLe1_WAynxv3tBsD282ONs_C2tL4VcNlBpmC43fzE3ZRd_POrq4nS_z_K7XaAh_AYj1hA"
-    })
+    @ApiHideProperty()
     @Transform(({ value }) => normalizeOptionalString(value))
     @IsOptional()
     @IsString()
