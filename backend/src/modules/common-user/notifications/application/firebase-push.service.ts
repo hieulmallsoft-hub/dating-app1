@@ -84,6 +84,34 @@ export class FirebasePushService {
 
         try {
             const response = await messaging.sendEachForMulticast(message);
+            if (response.failureCount > 0) {
+                const failures = response.responses
+                    .map((item, index) => ({
+                        success: item.success,
+                        code: item.error?.code || "unknown",
+                        message: item.error?.message || "unknown",
+                        token: cleanTokens[index]
+                    }))
+                    .filter((item) => !item.success);
+
+                const codeStats = failures.reduce<Record<string, number>>((acc, item) => {
+                    acc[item.code] = (acc[item.code] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const sampleFailures = failures.slice(0, 3).map((item) => ({
+                    code: item.code,
+                    message: item.message,
+                    token: this.maskToken(item.token)
+                }));
+
+                this.logger.warn(
+                    `FCM multicast failures: failed=${response.failureCount}, codes=${JSON.stringify(
+                        codeStats
+                    )}, sample=${JSON.stringify(sampleFailures)}`
+                );
+            }
+
             const invalidTokens = response.responses
                 .map((item, index) => ({ item, token: cleanTokens[index] }))
                 .filter(({ item }) => !item.success && INVALID_TOKEN_CODES.has(item.error?.code || ""))
@@ -95,7 +123,13 @@ export class FirebasePushService {
                 invalidTokens
             };
         } catch (error) {
-            this.logger.warn(`FCM send failed: ${(error as Error)?.message || "unknown"}`);
+            const err = error as Error & {
+                code?: string;
+                errorInfo?: { code?: string; message?: string };
+            };
+            const code = err.code || err.errorInfo?.code || "unknown";
+            const message = err.message || err.errorInfo?.message || "unknown";
+            this.logger.warn(`FCM send failed: code=${code}, message=${message}`);
             return { sent: 0, failed: cleanTokens.length, invalidTokens: [] };
         }
     }
@@ -169,5 +203,11 @@ export class FirebasePushService {
             .trim()
             .replace(/\\\\n/g, "\n")
             .replace(/\\n/g, "\n");
+    }
+
+    private maskToken(token: string) {
+        const clean = token.trim();
+        if (clean.length <= 12) return clean;
+        return `${clean.slice(0, 6)}...${clean.slice(-6)}`;
     }
 }
