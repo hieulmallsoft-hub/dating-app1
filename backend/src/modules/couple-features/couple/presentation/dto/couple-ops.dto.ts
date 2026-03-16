@@ -40,6 +40,8 @@ export class UpdateCoupleDto {
     @IsDateString()
     @IsOptional()
     updateTime?: string;
+
+
 }
 
 export class CouplePartnerResponseDto {
@@ -94,12 +96,49 @@ export class CoupleProfileResponseDto {
     })
     id?: string | null;
 
-    @ApiProperty({
-        description: "Couple status",
-        enum: CoupleStatus,
-        example: CoupleStatus.ACTIVE
+    @ApiPropertyOptional({
+        description: "Partner email",
+        example: "partner@example.com"
     })
-    status: CoupleStatus;
+    email?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner 6-digit account code",
+        example: "123456",
+        nullable: true
+    })
+    accountCode?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Deprecated alias of accountCode (kept for backward compatibility)",
+        example: "123456",
+        nullable: true,
+        deprecated: true
+    })
+    inviteCode?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner full name",
+        example: "Partner User",
+        nullable: true
+    })
+    fullName?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Partner gender code: 0=MALE, 1=FEMALE, 2=OTHER",
+        enum: [0, 1, 2],
+        type: Number,
+        example: 1,
+        nullable: true
+    })
+    gender?: 0 | 1 | 2 | null;
+
+    @ApiPropertyOptional({
+        description: "Partner birth date (YYYY-MM-DD)",
+        example: "2000-01-01",
+        nullable: true
+    })
+    birthDate?: string | null;
 
     @ApiPropertyOptional({
         description: "Relationship start date",
@@ -116,25 +155,11 @@ export class CoupleProfileResponseDto {
     startDateAt?: string | null;
 
     @ApiPropertyOptional({
-        description: "Partner birth date (YYYY-MM-DD)",
-        example: "2000-01-01",
+        description: "Partner avatar URL",
+        example: "https://cdn.example.com/avatars/partner.jpg",
         nullable: true
     })
-    birthDate?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Partner email",
-        example: "partner@example.com",
-        nullable: true
-    })
-    email?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Partner full name",
-        example: "Partner User",
-        nullable: true
-    })
-    fullName?: string | null;
+    avatar?: string | null;
 
     @ApiPropertyOptional({
         description: "Partner latitude",
@@ -151,8 +176,14 @@ export class CoupleProfileResponseDto {
         nullable: true
     })
     longitude?: number | null;
-}
 
+    @ApiProperty({
+        description: "Couple status",
+        enum: CoupleStatus,
+        example: CoupleStatus.ACTIVE
+    })
+    status: CoupleStatus;
+}
 export class CoupleResponseDto {
 
     @ApiPropertyOptional({

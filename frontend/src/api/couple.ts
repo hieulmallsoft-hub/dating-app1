@@ -4,12 +4,16 @@ export type CoupleStatus = "ACTIVE" | "DISCONNECTED";
 
 export type CoupleProfile = {
   id: string | null;
+  accountCode?: string | null;
+  inviteCode?: string | null;
+  gender?: 0 | 1 | 2 | null;
   status: CoupleStatus;
   startDate?: string | null;
   startDateAt?: string | null;
   birthDate: string | null;
   email: string | null;
   fullName: string | null;
+  avatar?: string | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -56,7 +60,7 @@ export async function getMyCouple() {
 }
 
 export async function joinCouple(inviteCode: string) {
-  const { data } = await http.post<CoupleMutationResponse>("/couple/join", { inviteCode });
+  const { data } = await http.post<CoupleProfile>("/couple/join", { inviteCode });
   return data;
 }
 

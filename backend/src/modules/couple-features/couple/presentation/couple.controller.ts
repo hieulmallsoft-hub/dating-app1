@@ -121,7 +121,7 @@ export class CoupleController {
     })
     @ApiOkResponse({
         description: "Couple joined successfully",
-        type: CoupleResponseDto
+        type: CoupleProfileResponseDto
     })
     @ApiBadRequestResponse({
         description: "Account code format is invalid"
@@ -136,8 +136,9 @@ export class CoupleController {
         description: "Missing/invalid access token"
     })
     async joinCouple(@Req() req, @Body() joinCoupleDto: JoinCoupleDto) {
-        const couple = await this.coupleService.joinCouple(this.getCurrentUserId(req), joinCoupleDto.inviteCode);
-        return toCoupleResponse(couple);
+        const userId = this.getCurrentUserId(req);
+        await this.coupleService.joinCouple(userId, joinCoupleDto.inviteCode);
+        return this.coupleService.getMyCoupleProfile(userId);
     }
 
     @Post("disconnect")
@@ -198,7 +199,6 @@ export class CoupleController {
         return userId;
     }
 }
-
 
 
 

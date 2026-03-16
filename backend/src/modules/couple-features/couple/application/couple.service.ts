@@ -39,14 +39,26 @@ export class CoupleService {
     async getMyCoupleProfile(userId: string) {
         const couple = await this.getMyCouple(userId);
         const partner = this.getPartnerFromCouple(couple, userId);
+        const partnerAccountCode =
+            typeof partner?.accountCode === "string" && partner.accountCode.trim().length > 0
+                ? partner.accountCode.trim()
+                : null;
+        const partnerGender =
+            partner?.gender === 0 || partner?.gender === 1 || partner?.gender === 2
+                ? (partner.gender as 0 | 1 | 2)
+                : null;
+
         return {
             id: partner?.id ?? null,
-            status: couple.status,
+            email: partner?.email ?? null,
+            accountCode: partnerAccountCode,
+            inviteCode: partnerAccountCode,
+            fullName: partner?.fullName ?? null,
+            gender: partnerGender,
+            birthDate: partner?.birthDate ? new Date(partner.birthDate).toISOString().slice(0, 10) : null,
             startDate: couple.startDate ? new Date(couple.startDate).toISOString().slice(0, 10) : null,
             startDateAt: couple.startDateAt ? new Date(couple.startDateAt).toISOString() : null,
-            birthDate: partner?.birthDate ? new Date(partner.birthDate).toISOString().slice(0, 10) : null,
-            email: partner?.email ?? null,
-            fullName: partner?.fullName ?? null,
+            avatar: partner?.avatar ?? null,
             latitude:
                 partner?.latitude !== null && partner?.latitude !== undefined
                     ? Number(partner.latitude)
@@ -54,7 +66,8 @@ export class CoupleService {
             longitude:
                 partner?.longitude !== null && partner?.longitude !== undefined
                     ? Number(partner.longitude)
-                    : null
+                    : null,
+            status: couple.status
         };
     }
 
