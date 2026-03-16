@@ -48,6 +48,9 @@ export class Couple {
     @Column({ type: "date", nullable: true })
     startDate: Date | null;
 
+    @Column({ nullable: true, type: "timestamp" })
+    startDateAt: Date | null;
+
     @CreateDateColumn()
     createdAt: Date;
 

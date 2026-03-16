@@ -5,6 +5,8 @@ export type CoupleStatus = "ACTIVE" | "DISCONNECTED";
 export type CoupleProfile = {
   id: string | null;
   status: CoupleStatus;
+  startDate?: string | null;
+  startDateAt?: string | null;
   birthDate: string | null;
   email: string | null;
   fullName: string | null;
@@ -16,6 +18,7 @@ export type CoupleMutationResponse = {
   user2Id: string | null;
   status: CoupleStatus;
   startDate: string | null;
+  startDateAt?: string | null;
 };
 
 export type CoupleLocationUser = {

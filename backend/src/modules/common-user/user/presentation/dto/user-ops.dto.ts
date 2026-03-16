@@ -44,6 +44,20 @@ export class UserProfileResponseDto {
     birthDate?: string | null;
 
     @ApiPropertyOptional({
+        description: "Relationship start date from current active couple",
+        example: "2026-03-09",
+        nullable: true
+    })
+    startDate?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Last updated time of relationship start date (ISO-8601)",
+        example: "2026-03-16T10:12:00.000Z",
+        nullable: true
+    })
+    startDateAt?: string | null;
+
+    @ApiPropertyOptional({
         description: "Avatar URL",
         example: "https://cdn.example.com/avatars/me.jpg",
         nullable: true

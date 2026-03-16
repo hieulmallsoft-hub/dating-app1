@@ -4,6 +4,7 @@ import { CoupleService } from "../../couple/application/couple.service";
 import { CreateEventDto, UpdateEventDto } from "../presentation/dto/event-ops.dto";
 import { Event } from "../domain/entities/event.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class EventsService {
@@ -100,7 +101,7 @@ export class EventsService {
         }
 
         try {
-            await this.notificationsService.createNotification(partnerId, title, content, "event");
+            await this.notificationsService.createNotification(partnerId, title, content, NotificationType.EVENT);
         } catch (error) {
             this.logger.warn(`Create event notification failed: ${(error as Error)?.message || "unknown"}`);
         }

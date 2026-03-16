@@ -4,6 +4,7 @@ import { CoupleService } from "../../couple/application/couple.service";
 import { SendMessageDto } from "../presentation/dto/send-message.dto";
 import { MessageType } from "../domain/entities/message.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class ChatService {
@@ -69,7 +70,12 @@ export class ChatService {
 
         const preview = this.buildMessagePreview(dto);
         try {
-            await this.notificationsService.createNotification(partnerId, "Tin nhan moi", preview, "chat");
+            await this.notificationsService.createNotification(
+                partnerId,
+                "Tin nhan moi",
+                preview,
+                NotificationType.CHAT
+            );
         } catch (error) {
             this.logger.warn(`Create chat notification failed: ${(error as Error)?.message || "unknown"}`);
         }

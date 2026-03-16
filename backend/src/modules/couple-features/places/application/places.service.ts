@@ -7,6 +7,7 @@ import { UpdatePlaceDto } from "../presentation/dto/update-place.dto";
 import { Place, PlaceType } from "../domain/entities/place.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 import { UsersService } from "../../../common-user/user/application/user.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class PlacesService {
@@ -117,7 +118,12 @@ export class PlacesService {
         const title = payload.transition === "ENTER" ? "Geofence enter" : "Geofence exit";
         const content = `${actorName} ${verb} ${place.name}`;
 
-        await this.notificationsService.createNotification(partnerId, title, content, "geofence");
+        await this.notificationsService.createNotification(
+            partnerId,
+            title,
+            content,
+            NotificationType.GEOFENCE
+        );
 
         return {
             success: true,

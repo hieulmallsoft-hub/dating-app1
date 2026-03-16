@@ -1,11 +1,24 @@
 import { http } from "./http";
 
+export type NotificationType =
+  | "GENERAL"
+  | "CHAT"
+  | "COUPLE"
+  | "COUPLE_START_DATE"
+  | "EVENT"
+  | "MOMENT"
+  | "MEDIA"
+  | "GEOFENCE"
+  | "INVITE"
+  | "TRIP"
+  | "TEST";
+
 export type AppNotification = {
   id: string;
   userId: string;
   title: string;
   content: string;
-  type: string | null;
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
 };
@@ -13,7 +26,7 @@ export type AppNotification = {
 export type CreateTestNotificationPayload = {
   title: string;
   content: string;
-  type?: string;
+  type?: NotificationType;
   targetUserId?: string;
 };
 

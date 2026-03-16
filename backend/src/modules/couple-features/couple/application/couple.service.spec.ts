@@ -94,7 +94,9 @@ describe("CoupleService", () => {
         expect(coupleRepo.create).toHaveBeenCalledWith({
             user1Id: "user-1",
             user2Id: "user-2",
-            status: CoupleStatus.ACTIVE
+            status: CoupleStatus.ACTIVE,
+            startDate: expect.any(Date),
+            startDateAt: expect.any(Date)
         });
         expect(result).toEqual(
             expect.objectContaining({
@@ -174,5 +176,67 @@ describe("CoupleService", () => {
                 accuracy: 9.5
             })
         );
+    });
+
+    it("allows overriding startDate and refreshes startDateAt", async () => {
+        const userLockQueryBuilder = {
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            setLock: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([{ id: "user-1" }, { id: "user-2" }])
+        };
+
+        const existingDate = new Date("2026-03-16T00:00:00.000Z");
+        const existingUpdatedAt = new Date("2025-03-16T09:00:00.000Z");
+        const mutableCouple = {
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE,
+            startDate: existingDate,
+            startDateAt: existingUpdatedAt
+        };
+
+        const coupleRepo = {
+            findOne: jest.fn().mockResolvedValue(mutableCouple),
+            save: jest.fn().mockImplementation(async (value) => ({
+                ...value
+            }))
+        };
+
+        const userRepo = {
+            createQueryBuilder: jest.fn().mockReturnValue(userLockQueryBuilder)
+        };
+
+        dataSource.transaction.mockImplementation(async (callback) =>
+            callback({
+                getRepository: (entity: unknown) => {
+                    if (entity === Couple) return coupleRepo;
+                    if (entity === User) return userRepo;
+                    throw new Error("Unexpected repository");
+                }
+            })
+        );
+
+        const result = await service.updateCouple("user-1", { startDate: "2026-03-20" });
+
+        expect(coupleRepo.save).toHaveBeenCalledTimes(1);
+        expect(coupleRepo.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                startDate: expect.any(Date),
+                startDateAt: expect.any(Date)
+            })
+        );
+        expect(result.startDate).toBeInstanceOf(Date);
+        expect(result.startDateAt).toBeInstanceOf(Date);
+        expect((result.startDate as Date).toISOString().slice(0, 10)).toBe("2026-03-20");
+        expect((result.startDateAt as Date).getTime()).toBeGreaterThanOrEqual(existingUpdatedAt.getTime());
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: CoupleStatus.ACTIVE
+            })
+        );
+        expect(notificationsService.createNotification).toHaveBeenCalledTimes(1);
     });
 });

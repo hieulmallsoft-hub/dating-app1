@@ -1,9 +1,14 @@
+import {
+    NotificationType,
+    normalizeNotificationType
+} from "../../domain/entities/notification.entity";
+
 type NotificationLike = {
     id: string;
     userId: string;
     title: string;
     content: string;
-    type?: string | null;
+    type?: NotificationType | string | null;
     isRead: boolean;
     createdAt: Date | string;
 };
@@ -18,7 +23,7 @@ export function toNotificationResponse(notification: NotificationLike) {
         userId: notification.userId,
         title: notification.title,
         content: notification.content,
-        type: notification.type ?? null,
+        type: normalizeNotificationType(notification.type),
         isRead: Boolean(notification.isRead),
         createdAt: toIsoString(notification.createdAt)
     };

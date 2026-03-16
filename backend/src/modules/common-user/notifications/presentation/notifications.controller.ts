@@ -29,6 +29,7 @@ import {
     toNotificationResponse,
     toNotificationResponseList
 } from "./mappers/notification-response.mapper";
+import { NotificationType } from "../domain/entities/notification.entity";
 
 type JwtRequestLike = { user?: { sub?: string; id?: string; user_Id?: string } };
 
@@ -97,7 +98,7 @@ export class NotificationsController {
                 value: {
                     title: "Test thong bao",
                     content: "Backend test tu Swagger",
-                    type: "test"
+                    type: NotificationType.TEST
                 }
             },
             partner: {
@@ -106,7 +107,7 @@ export class NotificationsController {
                     targetUserId: "4f8cc6d9-ccf3-4e1e-ae3d-0f23db4be0d7",
                     title: "Tin nhan moi",
                     content: "Demo push/socket",
-                    type: "chat"
+                    type: NotificationType.CHAT
                 }
             }
         }

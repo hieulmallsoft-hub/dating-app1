@@ -4,6 +4,7 @@ type CoupleLike = {
     user2Id?: string | null;
     status: CoupleStatus;
     startDate?: Date | string | null;
+    startDateAt?: Date | string | null;
 };
 
 function toDateOnly(value: Date | string | null | undefined) {
@@ -27,9 +28,17 @@ function toDateOnly(value: Date | string | null | undefined) {
 }
 
 export function toCoupleResponse(couple: CoupleLike) {
+    const normalizeDateTime = (value: Date | string | null | undefined) => {
+        if (!value) return null;
+        if (value instanceof Date) return value.toISOString();
+        const normalized = value.trim();
+        return normalized ? new Date(normalized).toISOString() : null;
+    };
+
     return {
         user2Id: couple.user2Id ?? null,
         status: couple.status,
-        startDate: toDateOnly(couple.startDate)
+        startDate: toDateOnly(couple.startDate),
+        startDateAt: normalizeDateTime(couple.startDateAt)
     };
 }

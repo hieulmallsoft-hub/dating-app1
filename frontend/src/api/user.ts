@@ -9,6 +9,8 @@ export type UserMe = {
   fullName: string | null;
   avatar: string | null;
   birthDate: string | null;
+  startDate?: string | null;
+  startDateAt?: string | null;
   gender: Gender | null;
   latitude?: number | null;
   longitude?: number | null;

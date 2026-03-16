@@ -21,6 +21,7 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
   const [joinCode, setJoinCode] = useState("");
   const [startDateDraft, setStartDateDraft] = useState("");
   const [savedStartDate, setSavedStartDate] = useState("");
+  const [savedStartDateAt, setSavedStartDateAt] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +45,17 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
       try {
         const coupleProfile = await coupleApi.getMyCouple();
         setProfile(coupleProfile);
+        const nextStartDate = coupleProfile.startDate || "";
+        setSavedStartDate(nextStartDate);
+        setStartDateDraft(nextStartDate);
+        setSavedStartDateAt(coupleProfile.startDateAt || "");
       } catch (err: unknown) {
         const status = getHttpStatus(err);
         if (status === 404) {
           setProfile(null);
           setSavedStartDate("");
           setStartDateDraft("");
+          setSavedStartDateAt("");
         } else if (status === 401) {
           onAuthInvalid();
         } else {
@@ -120,6 +126,7 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
       const nextStartDate = updated.startDate || startDateDraft;
       setSavedStartDate(nextStartDate);
       setStartDateDraft(nextStartDate);
+      setSavedStartDateAt(updated.startDateAt || new Date().toISOString());
       await loadData();
       setSuccess("Da cap nhat ngay bat dau");
     } catch (err: unknown) {
@@ -144,6 +151,7 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
       await coupleApi.disconnectCouple();
       setSavedStartDate("");
       setStartDateDraft("");
+      setSavedStartDateAt("");
       setJoinCode("");
       await loadData();
       setSuccess("Da ngat ket noi");
@@ -201,8 +209,9 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
           {savedStartDate ? (
             <div className="hint">Start date hien tai: {savedStartDate}</div>
           ) : (
-            <div className="hint">API couple/profile hien chua tra ve startDate, nhap de cap nhat.</div>
+            <div className="hint">Chua co start date, nhap de cap nhat.</div>
           )}
+          {savedStartDateAt ? <div className="hint">Cap nhat lan cuoi: {savedStartDateAt}</div> : null}
 
           <div className="join-row">
             <button className="btn btn-primary" onClick={() => void saveStartDate()} disabled={isWorking} type="button">

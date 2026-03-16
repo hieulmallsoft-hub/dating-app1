@@ -4,6 +4,7 @@ import { CoupleService } from "../../couple/application/couple.service";
 import { TripSyncDto } from "../presentation/dto/trip.dto";
 import { RoutePoint, Trip } from "../domain/entities/trip.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class TripsService {
@@ -134,7 +135,7 @@ export class TripsService {
                 partnerId,
                 title,
                 content,
-                "trip",
+                NotificationType.TRIP,
                 600
             );
         } catch (error) {

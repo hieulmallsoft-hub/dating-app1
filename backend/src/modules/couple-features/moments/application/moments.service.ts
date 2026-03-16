@@ -5,6 +5,7 @@ import { CreateMomentDto, UpdateMomentDto } from "../presentation/dto/moment-ops
 import { Moment, MomentPrivacy } from "../domain/entities/moment.entity";
 import { MediaService } from "../../media/application/media.service";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class MomentsService {
@@ -117,7 +118,7 @@ export class MomentsService {
         }
 
         try {
-            await this.notificationsService.createNotification(partnerId, title, content, "moment");
+            await this.notificationsService.createNotification(partnerId, title, content, NotificationType.MOMENT);
         } catch (error) {
             this.logger.warn(`Create moment notification failed: ${(error as Error)?.message || "unknown"}`);
         }

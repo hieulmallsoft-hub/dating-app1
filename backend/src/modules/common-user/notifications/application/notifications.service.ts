@@ -4,6 +4,10 @@ import { NotificationRepository } from "../infrastructure/persistence/notificati
 import { PushTokenRepository } from "../infrastructure/persistence/push-token.repository";
 import { NotificationGateway } from "../presentation/notification.gateway";
 import { FirebasePushService } from "./firebase-push.service";
+import {
+    NotificationType,
+    normalizeNotificationType
+} from "../domain/entities/notification.entity";
 
 @Injectable()
 export class NotificationsService {
@@ -42,12 +46,18 @@ export class NotificationsService {
         return saved;
     }
 
-    async createNotification(userId: string, title: string, content: string, type?: string) {
+    async createNotification(
+        userId: string,
+        title: string,
+        content: string,
+        type?: NotificationType | string
+    ) {
+        const normalizedType = normalizeNotificationType(type);
         const notification = this.notificationRepository.create({
             userId,
             title,
             content,
-            type
+            type: normalizedType
         });
         const saved = await this.notificationRepository.save(notification);
 
@@ -57,7 +67,7 @@ export class NotificationsService {
             this.logger.warn(`Emit notification:new failed: ${(error as Error)?.message || "unknown"}`);
         }
 
-        await this.sendPushForNotification(saved.id, userId, title, content, type);
+        await this.sendPushForNotification(saved.id, userId, title, content, normalizedType);
 
         return saved;
     }
@@ -66,13 +76,10 @@ export class NotificationsService {
         userId: string,
         title: string,
         content: string,
-        type: string,
+        type: NotificationType | string,
         mergeWindowSeconds = 600
     ) {
-        const normalizedType = type.trim();
-        if (!normalizedType) {
-            return this.createNotification(userId, title, content, type);
-        }
+        const normalizedType = normalizeNotificationType(type);
 
         const normalizedWindow = this.normalizeMergeWindow(mergeWindowSeconds);
         const cutoff = new Date(Date.now() - normalizedWindow * 1000);
@@ -117,7 +124,7 @@ export class NotificationsService {
         userId: string;
         title: string;
         content: string;
-        type?: string | null;
+        type?: NotificationType | string | null;
         isRead: boolean;
         createdAt: Date | string;
     }) {
@@ -126,7 +133,7 @@ export class NotificationsService {
             userId: notification.userId,
             title: notification.title,
             content: notification.content,
-            type: notification.type ?? null,
+            type: normalizeNotificationType(notification.type),
             isRead: Boolean(notification.isRead),
             createdAt:
                 notification.createdAt instanceof Date
@@ -140,7 +147,7 @@ export class NotificationsService {
         userId: string,
         title: string,
         content: string,
-        type?: string
+        type: NotificationType
     ) {
         const tokens = await this.pushTokenRepository.find({
             where: { userId },
@@ -156,7 +163,7 @@ export class NotificationsService {
             body: this.truncateBody(content),
             data: {
                 notificationId,
-                type: type || "general"
+                type
             },
             link: "/",
             ttlSeconds: 3600 * 24

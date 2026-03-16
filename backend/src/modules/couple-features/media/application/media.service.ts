@@ -15,6 +15,7 @@ import { MediaRepository } from "../infrastructure/persistence/media.repository"
 import { MediaRealtimeService } from "./media-realtime.service";
 import { MediaGateway } from "../presentation/media.gateway";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 type AlbumFilter = "all" | "me" | "partner";
 type MediaType = "image" | "video";
@@ -308,7 +309,7 @@ export class MediaService {
           : "Doi cua ban vua dang mot anh moi";
 
     try {
-      await this.notificationsService.createNotification(partnerId, title, content, "media");
+      await this.notificationsService.createNotification(partnerId, title, content, NotificationType.MEDIA);
     } catch (error) {
       this.logger.warn(`Create media notification failed: ${(error as Error)?.message || "unknown"}`);
     }

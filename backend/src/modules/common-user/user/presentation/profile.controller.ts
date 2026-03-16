@@ -44,7 +44,7 @@ export class ProfileController {
         description: "Missing/invalid access token"
     })
     async getProfile(@Req() req) {
-        const user = await this.usersService.ensureAccountCode(this.getCurrentUserId(req));
+        const user = await this.usersService.getProfile(this.getCurrentUserId(req));
         return toApiUser(user);
     }
 
@@ -64,7 +64,7 @@ export class ProfileController {
         description: "Missing/invalid access token"
     })
     async updateProfile(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-        const user = await this.usersService.updateUser(this.getCurrentUserId(req), updateUserDto);
+        const user = await this.usersService.updateProfile(this.getCurrentUserId(req), updateUserDto);
         return toApiUser(user);
     }
 

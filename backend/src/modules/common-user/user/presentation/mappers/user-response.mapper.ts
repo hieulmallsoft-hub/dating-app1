@@ -5,12 +5,22 @@ export function toApiUser<T extends Record<string, any> | null>(user: T) {
         return user;
     }
 
-    const normalizeBirthDate = (value: unknown): string | null => {
+    const normalizeDateOnly = (value: unknown): string | null => {
         if (!value) return null;
         if (value instanceof Date) return value.toISOString().slice(0, 10);
         if (typeof value === "string") {
             const trimmed = value.trim();
             return trimmed.length > 0 ? trimmed : null;
+        }
+        return null;
+    };
+
+    const normalizeDateTime = (value: unknown): string | null => {
+        if (!value) return null;
+        if (value instanceof Date) return value.toISOString();
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            return trimmed.length > 0 ? new Date(trimmed).toISOString() : null;
         }
         return null;
     };
@@ -29,7 +39,9 @@ export function toApiUser<T extends Record<string, any> | null>(user: T) {
                 : null,
         fullName: user.fullName ?? null,
         gender: toGenderCode(user.gender),
-        birthDate: normalizeBirthDate(user.birthDate),
+        birthDate: normalizeDateOnly(user.birthDate),
+        startDate: normalizeDateOnly(user.startDate),
+        startDateAt: normalizeDateTime(user.startDateAt),
         avatar: user.avatar ?? null,
         latitude: toNullableNumber(user.latitude),
         longitude: toNullableNumber(user.longitude)

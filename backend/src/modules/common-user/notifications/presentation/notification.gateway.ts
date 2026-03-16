@@ -17,6 +17,7 @@ import {
   NOTIFICATION_SOCKET_EVENTS,
   NOTIFICATION_SOCKET_ROOM_PREFIX,
 } from "./constants/notification-realtime.constants";
+import { NotificationType } from "../domain/entities/notification.entity";
 
 type AuthSocket = Socket & {
   user?: { sub?: string; id?: string; user_Id?: string };
@@ -27,7 +28,7 @@ type NotificationEventPayload = {
   userId: string;
   title: string;
   content: string;
-  type: string | null;
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
 };

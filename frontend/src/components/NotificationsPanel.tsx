@@ -12,6 +12,20 @@ type Props = {
 type SocketStatus = "idle" | "connecting" | "connected" | "disconnected" | "error";
 type LogLevel = "info" | "success" | "warn" | "error";
 
+const NOTIFICATION_TYPES: notificationsApi.NotificationType[] = [
+  "GENERAL",
+  "CHAT",
+  "COUPLE",
+  "COUPLE_START_DATE",
+  "EVENT",
+  "MOMENT",
+  "MEDIA",
+  "GEOFENCE",
+  "INVITE",
+  "TRIP",
+  "TEST",
+];
+
 type RealtimeLog = {
   id: number;
   at: string;
@@ -49,13 +63,17 @@ function toSocketNotification(payload: unknown): notificationsApi.AppNotificatio
 
   const parsedDate = new Date(raw.createdAt);
   if (Number.isNaN(parsedDate.getTime())) return null;
+  const normalizedType = typeof raw.type === "string" ? raw.type.toUpperCase() : "GENERAL";
+  const type = NOTIFICATION_TYPES.includes(normalizedType as notificationsApi.NotificationType)
+    ? (normalizedType as notificationsApi.NotificationType)
+    : "GENERAL";
 
   return {
     id: raw.id,
     userId: raw.userId,
     title: raw.title,
     content: raw.content,
-    type: typeof raw.type === "string" ? raw.type : null,
+    type,
     isRead: Boolean(raw.isRead),
     createdAt: parsedDate.toISOString(),
   };
@@ -93,7 +111,7 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
   const [logs, setLogs] = useState<RealtimeLog[]>([]);
   const [testTitle, setTestTitle] = useState("Web realtime test");
   const [testContent, setTestContent] = useState("Kiem tra notification realtime tu web");
-  const [testType, setTestType] = useState("test");
+  const [testType, setTestType] = useState<notificationsApi.NotificationType>("TEST");
   const [testTargetUserId, setTestTargetUserId] = useState("");
 
   const socketRef = useRef<Socket | null>(null);
@@ -309,10 +327,9 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
       const payload: notificationsApi.CreateTestNotificationPayload = {
         title: cleanTitle,
         content: cleanContent,
+        type: testType,
       };
-      const cleanType = testType.trim();
       const cleanTargetUserId = testTargetUserId.trim();
-      if (cleanType) payload.type = cleanType;
       if (cleanTargetUserId) payload.targetUserId = cleanTargetUserId;
 
       const created = await notificationsApi.createTestNotification(payload);
@@ -462,7 +479,16 @@ export default function NotificationsPanel({ onAuthInvalid }: Props) {
           </label>
           <label>
             <span>Type</span>
-            <input value={testType} onChange={(event) => setTestType(event.target.value)} />
+            <select
+              value={testType}
+              onChange={(event) => setTestType(event.target.value as notificationsApi.NotificationType)}
+            >
+              {NOTIFICATION_TYPES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="full">
             <span>Content</span>

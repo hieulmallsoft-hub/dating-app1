@@ -6,6 +6,7 @@ import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
 import { User } from "../../../common-user/user/domain/entities/user.entity";
 import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class CoupleService {
@@ -41,6 +42,8 @@ export class CoupleService {
         return {
             id: partner?.id ?? null,
             status: couple.status,
+            startDate: couple.startDate ? new Date(couple.startDate).toISOString().slice(0, 10) : null,
+            startDateAt: couple.startDateAt ? new Date(couple.startDateAt).toISOString() : null,
             birthDate: partner?.birthDate ? new Date(partner.birthDate).toISOString().slice(0, 10) : null,
             email: partner?.email ?? null,
             fullName: partner?.fullName ?? null,
@@ -123,18 +126,43 @@ export class CoupleService {
     }
 
     async updateCouple(userId: string, dto: UpdateCoupleDto) {
-        const couple = await this.getMyCouple(userId);
-        const partnerId = couple.user1Id === userId ? couple.user2Id : couple.user1Id;
-        if (dto.startDate !== undefined) {
-            couple.startDate = new Date(dto.startDate);
-        }
-        const saved = await this.coupleRepository.save(couple);
+        const result = await this.dataSource.transaction(async (manager) => {
+            const coupleRepo = manager.getRepository(Couple);
+            const userRepo = manager.getRepository(User);
+            const couple = await this.findActiveCoupleByUserId(userId, coupleRepo);
 
-        if (dto.startDate !== undefined) {
-            await this.notifyStartDateUpdated(partnerId, saved.startDate);
+            if (!couple) {
+                throw new NotFoundException("You are not in a couple");
+            }
+
+            const lockIds: string[] = [couple.user1Id];
+            if (couple.user2Id) {
+                lockIds.push(couple.user2Id);
+            }
+            await this.lockUsersForUpdate(lockIds, userRepo);
+
+            const lockedCouple = await this.findActiveCoupleByUserId(userId, coupleRepo);
+            if (!lockedCouple) {
+                throw new NotFoundException("You are not in a couple");
+            }
+
+            const partnerId = lockedCouple.user1Id === userId ? lockedCouple.user2Id : lockedCouple.user1Id;
+
+            if (dto.startDate === undefined) {
+                return { couple: lockedCouple, partnerId, startDateUpdated: false };
+            }
+
+            lockedCouple.startDate = new Date(dto.startDate);
+            lockedCouple.startDateAt = new Date();
+            const saved = await coupleRepo.save(lockedCouple);
+            return { couple: saved, partnerId, startDateUpdated: true };
+        });
+
+        if (result.startDateUpdated) {
+            await this.notifyStartDateUpdated(result.partnerId, result.couple.startDate);
         }
 
-        return saved;
+        return result.couple;
     }
 
     private async joinCoupleInternal(userId: string, inviteCode: string) {
@@ -169,7 +197,9 @@ export class CoupleService {
             const couple = coupleRepo.create({
                 user1Id: partner.id,
                 user2Id: userId,
-                status: CoupleStatus.ACTIVE
+                status: CoupleStatus.ACTIVE,
+                startDate: new Date(),
+                startDateAt: new Date()
             });
 
             await coupleRepo.save(couple);
@@ -273,7 +303,7 @@ export class CoupleService {
                 inviterId,
                 "Ghep doi thanh cong",
                 "Ban va doi cua ban da ket noi thanh cong",
-                "couple"
+                NotificationType.COUPLE
             )
         );
         tasks.push(
@@ -281,7 +311,7 @@ export class CoupleService {
                 partnerId,
                 "Ghep doi thanh cong",
                 "Ban va doi cua ban da ket noi thanh cong",
-                "couple"
+                NotificationType.COUPLE
             )
         );
 
@@ -303,7 +333,7 @@ export class CoupleService {
                 partnerId,
                 "Cap nhat ghep doi",
                 "Doi cua ban vua ngat ket noi ghep doi",
-                "couple"
+                NotificationType.COUPLE
             );
         } catch (error) {
             this.logger.warn(`Create disconnect notification failed: ${(error as Error)?.message || "unknown"}`);
@@ -322,7 +352,12 @@ export class CoupleService {
             : "Doi cua ban vua cap nhat ngay bat dau";
 
         try {
-            await this.notificationsService.createNotification(partnerId, "Cap nhat ghep doi", content, "couple");
+            await this.notificationsService.createNotification(
+                partnerId,
+                "Cap nhat ghep doi",
+                content,
+                NotificationType.COUPLE_START_DATE
+            );
         } catch (error) {
             this.logger.warn(`Create start-date notification failed: ${(error as Error)?.message || "unknown"}`);
         }

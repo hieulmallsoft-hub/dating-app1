@@ -187,6 +187,7 @@ export class User {
   @Column({ type: "double precision", nullable: true })
   speed: number | null;
 
+
   @Column({ nullable: true, type: "timestamp" })
   lastActiveAt: Date | null;
 

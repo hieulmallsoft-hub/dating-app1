@@ -83,6 +83,20 @@ export class CoupleProfileResponseDto {
     status: CoupleStatus;
 
     @ApiPropertyOptional({
+        description: "Relationship start date",
+        example: "2026-03-09",
+        nullable: true
+    })
+    startDate?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Last updated time of relationship start date (ISO-8601)",
+        example: "2026-03-16T10:12:00.000Z",
+        nullable: true
+    })
+    startDateAt?: string | null;
+
+    @ApiPropertyOptional({
         description: "Partner birth date (YYYY-MM-DD)",
         example: "2000-01-01",
         nullable: true
@@ -142,6 +156,13 @@ export class CoupleResponseDto {
         nullable: true
     })
     startDate?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Last updated time of relationship start date (ISO-8601)",
+        example: "2026-03-16T10:12:00.000Z",
+        nullable: true
+    })
+    startDateAt?: string | null;
 }
 
 export class CoupleLocationUserResponseDto {

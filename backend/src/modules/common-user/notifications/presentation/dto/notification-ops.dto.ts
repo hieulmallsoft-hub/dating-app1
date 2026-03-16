@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 import { Transform } from "class-transformer";
+import { NotificationType, normalizeNotificationType } from "../../domain/entities/notification.entity";
 
 export class NotificationResponseDto {
     
@@ -28,12 +29,12 @@ export class NotificationResponseDto {
     })
     content: string;
 
-    @ApiPropertyOptional({
+    @ApiProperty({
         description: "Notification type",
-        example: "chat",
-        nullable: true
+        enum: NotificationType,
+        example: NotificationType.CHAT
     })
-    type?: string | null;
+    type: NotificationType;
 
     @ApiProperty({
         description: "Read status",
@@ -79,11 +80,11 @@ export class CreateTestNotificationDto {
 
     @ApiPropertyOptional({
         description: "Notification type",
-        example: "test"
+        enum: NotificationType,
+        example: NotificationType.TEST
     })
-    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @Transform(({ value }) => (typeof value === "string" ? normalizeNotificationType(value) : value))
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
-    type?: string;
+    @IsEnum(NotificationType)
+    type?: NotificationType;
 }

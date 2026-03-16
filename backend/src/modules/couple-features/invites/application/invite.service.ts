@@ -3,6 +3,7 @@ import { InviteRepository } from "../infrastructure/persistence/invite.repositor
 import { Invite, InviteStatus } from "../domain/entities/invite.entity";
 import * as crypto from "crypto";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 @Injectable()
 export class InviteService {
@@ -65,7 +66,7 @@ export class InviteService {
                 invite.inviterId,
                 "Loi moi da duoc chap nhan",
                 "Mot loi moi ghep doi cua ban vua duoc chap nhan",
-                "invite",
+                NotificationType.INVITE,
                 900
             );
         } catch (error) {

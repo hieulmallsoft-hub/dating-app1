@@ -34,6 +34,11 @@ type UpdateUserPayload = UpdateUserDto & {
     provider?: AuthProvider;
 };
 
+type UserProfilePayload = User & {
+    startDate: Date | null;
+    startDateAt: Date | null;
+};
+
 @Injectable()
 export class UsersService {
     constructor(
@@ -113,6 +118,11 @@ export class UsersService {
         throw new ConflictException("Could not generate unique account code");
     }
 
+    async getProfile(userId: string): Promise<UserProfilePayload> {
+        const user = await this.ensureAccountCode(userId);
+        return this.withCoupleDates(userId, user);
+    }
+
     async updateUser(id: string, dto: UpdateUserPayload) {
         const existed = await this.userRepository.findById(id);
         if (!existed) throw new NotFoundException("User not found");
@@ -151,6 +161,11 @@ export class UsersService {
 
         await this.userRepository.updateById(id, payload);
         return this.getUserById(id);
+    }
+
+    async updateProfile(id: string, dto: UpdateUserDto): Promise<UserProfilePayload> {
+        const user = await this.updateUser(id, dto);
+        return this.withCoupleDates(id, user);
     }
 
     async updateMyLocation(
@@ -307,6 +322,30 @@ export class UsersService {
             select: ["id"]
         });
         return couple?.id || null;
+    }
+
+    private async resolveActiveCoupleDates(userId: string) {
+        const coupleRepository = this.dataSource.getRepository(Couple);
+        const couple = await coupleRepository.findOne({
+            where: [
+                { user1Id: userId, user2Id: Not(IsNull()), status: CoupleStatus.ACTIVE },
+                { user2Id: userId, status: CoupleStatus.ACTIVE }
+            ],
+            select: ["startDate", "startDateAt"]
+        });
+        return {
+            startDate: couple?.startDate ?? null,
+            startDateAt: couple?.startDateAt ?? null
+        };
+    }
+
+    private async withCoupleDates(userId: string, user: User): Promise<UserProfilePayload> {
+        const { startDate, startDateAt } = await this.resolveActiveCoupleDates(userId);
+        return {
+            ...user,
+            startDate,
+            startDateAt
+        };
     }
 
     private generateAccountCode() {
