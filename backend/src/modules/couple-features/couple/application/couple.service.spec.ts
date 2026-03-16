@@ -219,7 +219,7 @@ describe("CoupleService", () => {
             })
         );
 
-        const updateTime = new Date("2026-03-20T12:00:00.000Z").getTime();
+        const updateTime = "2026-03-20T12:00:00.000Z";
         const result = await service.updateCouple("user-1", { startDate: "2026-03-20", updateTime });
 
         expect(coupleRepo.save).toHaveBeenCalledTimes(1);
@@ -279,7 +279,7 @@ describe("CoupleService", () => {
         await expect(
             service.updateCouple("user-1", {
                 startDate: "2026-03-19",
-                updateTime: new Date("2026-03-20T11:59:59.000Z").getTime()
+                updateTime: "2026-03-20T11:59:59.000Z"
             })
         ).rejects.toBeInstanceOf(ConflictException);
         expect(coupleRepo.save).not.toHaveBeenCalled();

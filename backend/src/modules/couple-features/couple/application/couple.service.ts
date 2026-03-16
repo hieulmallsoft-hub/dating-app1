@@ -152,7 +152,7 @@ export class CoupleService {
                 return { couple: lockedCouple, partnerId, startDateUpdated: false };
             }
 
-            if (typeof dto.updateTime !== "number" || !Number.isFinite(dto.updateTime) || dto.updateTime < 0) {
+            if (typeof dto.updateTime !== "string" || dto.updateTime.trim().length === 0) {
                 throw new BadRequestException("updateTime is required when updating startDate");
             }
 
