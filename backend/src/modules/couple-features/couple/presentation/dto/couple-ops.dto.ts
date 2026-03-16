@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsNumber, Min } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { CoupleStatus } from "../../domain/entities/couple.entity";
 import { InviteStatus } from "../../../invites/domain/entities/invite.entity";
@@ -21,6 +21,15 @@ export class UpdateCoupleDto {
     @IsDateString()
     @IsOptional()
     startDate?: string;
+
+    @ApiPropertyOptional({
+        description: "Client update time (Unix milliseconds, UTC). Required when startDate is sent.",
+        example: 1773651600000
+    })
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    updateTime?: number;
 }
 
 export class CouplePartnerResponseDto {

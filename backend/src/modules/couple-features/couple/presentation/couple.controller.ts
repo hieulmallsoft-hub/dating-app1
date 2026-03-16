@@ -171,7 +171,10 @@ export class CoupleController {
         type: CoupleResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid date format"
+        description: "Invalid date format or missing/invalid updateTime"
+    })
+    @ApiConflictResponse({
+        description: "Stale updateTime (newer startDate already exists)"
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -181,7 +184,8 @@ export class CoupleController {
     })
     async updateCoupleStartDate(@Req() req, @Body() updateCoupleDto: UpdateCoupleDto) {
         const couple = await this.coupleService.updateCouple(this.getCurrentUserId(req), {
-            startDate: updateCoupleDto.startDate
+            startDate: updateCoupleDto.startDate,
+            updateTime: updateCoupleDto.updateTime
         });
         return toCoupleResponse(couple);
     }

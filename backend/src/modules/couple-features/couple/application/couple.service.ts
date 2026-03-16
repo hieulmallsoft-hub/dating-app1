@@ -152,8 +152,21 @@ export class CoupleService {
                 return { couple: lockedCouple, partnerId, startDateUpdated: false };
             }
 
+            if (typeof dto.updateTime !== "number" || !Number.isFinite(dto.updateTime) || dto.updateTime < 0) {
+                throw new BadRequestException("updateTime is required when updating startDate");
+            }
+
+            const incomingUpdateTime = new Date(dto.updateTime);
+            if (Number.isNaN(incomingUpdateTime.getTime())) {
+                throw new BadRequestException("updateTime is invalid");
+            }
+
+            if (lockedCouple.startDateAt && incomingUpdateTime.getTime() <= new Date(lockedCouple.startDateAt).getTime()) {
+                throw new ConflictException("Stale updateTime");
+            }
+
             lockedCouple.startDate = new Date(dto.startDate);
-            lockedCouple.startDateAt = new Date();
+            lockedCouple.startDateAt = incomingUpdateTime;
             const saved = await coupleRepo.save(lockedCouple);
             return { couple: saved, partnerId, startDateUpdated: true };
         });
@@ -199,7 +212,7 @@ export class CoupleService {
                 user2Id: userId,
                 status: CoupleStatus.ACTIVE,
                 startDate: new Date(),
-                startDateAt: new Date()
+                startDateAt: null
             });
 
             await coupleRepo.save(couple);

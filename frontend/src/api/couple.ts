@@ -60,8 +60,8 @@ export async function joinCouple(inviteCode: string) {
   return data;
 }
 
-export async function setStartDate(startDate: string) {
-  const { data } = await http.put<CoupleMutationResponse>("/couple/start-date", { startDate });
+export async function setStartDate(startDate: string, updateTime: number) {
+  const { data } = await http.put<CoupleMutationResponse>("/couple/start-date", { startDate, updateTime });
   return data;
 }
 

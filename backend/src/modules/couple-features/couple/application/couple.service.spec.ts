@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 import { CoupleService } from "./couple.service";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { User } from "../../../common-user/user/domain/entities/user.entity";
@@ -96,7 +96,7 @@ describe("CoupleService", () => {
             user2Id: "user-2",
             status: CoupleStatus.ACTIVE,
             startDate: expect.any(Date),
-            startDateAt: expect.any(Date)
+            startDateAt: null
         });
         expect(result).toEqual(
             expect.objectContaining({
@@ -219,24 +219,69 @@ describe("CoupleService", () => {
             })
         );
 
-        const result = await service.updateCouple("user-1", { startDate: "2026-03-20" });
+        const updateTime = new Date("2026-03-20T12:00:00.000Z").getTime();
+        const result = await service.updateCouple("user-1", { startDate: "2026-03-20", updateTime });
 
         expect(coupleRepo.save).toHaveBeenCalledTimes(1);
         expect(coupleRepo.save).toHaveBeenCalledWith(
             expect.objectContaining({
                 startDate: expect.any(Date),
-                startDateAt: expect.any(Date)
+                startDateAt: new Date(updateTime)
             })
         );
         expect(result.startDate).toBeInstanceOf(Date);
         expect(result.startDateAt).toBeInstanceOf(Date);
         expect((result.startDate as Date).toISOString().slice(0, 10)).toBe("2026-03-20");
-        expect((result.startDateAt as Date).getTime()).toBeGreaterThanOrEqual(existingUpdatedAt.getTime());
+        expect((result.startDateAt as Date).toISOString()).toBe(new Date(updateTime).toISOString());
         expect(result).toEqual(
             expect.objectContaining({
                 status: CoupleStatus.ACTIVE
             })
         );
         expect(notificationsService.createNotification).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects stale updateTime", async () => {
+        const userLockQueryBuilder = {
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            setLock: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([{ id: "user-1" }, { id: "user-2" }])
+        };
+
+        const coupleRepo = {
+            findOne: jest.fn().mockResolvedValue({
+                id: "couple-1",
+                user1Id: "user-1",
+                user2Id: "user-2",
+                status: CoupleStatus.ACTIVE,
+                startDate: new Date("2026-03-20T00:00:00.000Z"),
+                startDateAt: new Date("2026-03-20T12:00:00.000Z")
+            }),
+            save: jest.fn()
+        };
+
+        const userRepo = {
+            createQueryBuilder: jest.fn().mockReturnValue(userLockQueryBuilder)
+        };
+
+        dataSource.transaction.mockImplementation(async (callback) =>
+            callback({
+                getRepository: (entity: unknown) => {
+                    if (entity === Couple) return coupleRepo;
+                    if (entity === User) return userRepo;
+                    throw new Error("Unexpected repository");
+                }
+            })
+        );
+
+        await expect(
+            service.updateCouple("user-1", {
+                startDate: "2026-03-19",
+                updateTime: new Date("2026-03-20T11:59:59.000Z").getTime()
+            })
+        ).rejects.toBeInstanceOf(ConflictException);
+        expect(coupleRepo.save).not.toHaveBeenCalled();
     });
 });

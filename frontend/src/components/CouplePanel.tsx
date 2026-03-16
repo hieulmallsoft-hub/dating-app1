@@ -122,7 +122,7 @@ export default function CouplePanel({ onAuthInvalid }: Props) {
     setError(null);
     setSuccess(null);
     try {
-      const updated = await coupleApi.setStartDate(startDateDraft);
+      const updated = await coupleApi.setStartDate(startDateDraft, Date.now());
       const nextStartDate = updated.startDate || startDateDraft;
       setSavedStartDate(nextStartDate);
       setStartDateDraft(nextStartDate);
