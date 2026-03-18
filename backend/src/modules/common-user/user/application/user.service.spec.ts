@@ -102,3 +102,142 @@ describe("UsersService.deleteUser", () => {
         expect(userEntityRepo.delete).toHaveBeenCalledWith({ id: "user-1" });
     });
 });
+
+describe("UsersService.updateMyLocation", () => {
+    it("uses client timestamp when updating latest location", async () => {
+        const timestamp = 1762677600000;
+        const eventTime = new Date(timestamp);
+        const userRepository = {
+            findById: jest.fn().mockResolvedValue({
+                id: "user-1",
+                accountCode: "123456",
+                latitude: null,
+                longitude: null,
+                batteryLevel: null,
+                isCharging: null,
+                speed: null,
+                lastActiveAt: new Date(timestamp - 60_000)
+            }),
+            updateById: jest.fn().mockResolvedValue(undefined)
+        };
+        const locationHistoryRepository = {
+            findOne: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockImplementation((value) => value),
+            save: jest.fn().mockResolvedValue(undefined)
+        };
+        const coupleRepo = {
+            findOne: jest.fn().mockResolvedValue({ id: "couple-1" })
+        };
+        const dataSource = {
+            getRepository: jest.fn((entity: { name?: string }) => {
+                if (entity?.name === "Couple") return coupleRepo;
+                return null;
+            })
+        };
+
+        const service = new UsersService(
+            userRepository as any,
+            locationHistoryRepository as any,
+            dataSource as any
+        );
+
+        const result = await service.updateMyLocation(
+            "user-1",
+            10.123456789,
+            106.987654321,
+            8.8,
+            90,
+            true,
+            5,
+            timestamp
+        );
+
+        expect(userRepository.updateById).toHaveBeenCalledWith(
+            "user-1",
+            expect.objectContaining({
+                latitude: 10.1234568,
+                longitude: 106.9876543,
+                lastActiveAt: eventTime,
+                batteryLevel: 90,
+                isCharging: true,
+                speed: 5
+            })
+        );
+        expect(locationHistoryRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: "user-1",
+                coupleId: "couple-1",
+                latitude: 10.1234568,
+                longitude: 106.9876543,
+                recordedAt: eventTime
+            })
+        );
+        expect(result).toEqual(
+            expect.objectContaining({
+                userId: "user-1",
+                accountCode: "123456",
+                latitude: 10.1234568,
+                longitude: 106.9876543,
+                batteryLevel: 90,
+                isCharging: true,
+                speed: 5
+            })
+        );
+    });
+
+    it("ignores stale location timestamp to avoid overriding newer position", async () => {
+        const latestTime = new Date("2026-03-17T10:00:00.000Z");
+        const userRepository = {
+            findById: jest.fn().mockResolvedValue({
+                id: "user-1",
+                accountCode: "123456",
+                latitude: 10.7654321,
+                longitude: 106.654321,
+                batteryLevel: 80,
+                isCharging: false,
+                speed: 3,
+                lastActiveAt: latestTime
+            }),
+            updateById: jest.fn()
+        };
+        const locationHistoryRepository = {
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn()
+        };
+        const dataSource = {
+            getRepository: jest.fn()
+        };
+
+        const service = new UsersService(
+            userRepository as any,
+            locationHistoryRepository as any,
+            dataSource as any
+        );
+
+        const result = await service.updateMyLocation(
+            "user-1",
+            10.1111111,
+            106.2222222,
+            9,
+            70,
+            true,
+            9,
+            latestTime.getTime() - 60_000
+        );
+
+        expect(userRepository.updateById).not.toHaveBeenCalled();
+        expect(locationHistoryRepository.save).not.toHaveBeenCalled();
+        expect(dataSource.getRepository).not.toHaveBeenCalled();
+        expect(result).toEqual(
+            expect.objectContaining({
+                userId: "user-1",
+                latitude: 10.7654321,
+                longitude: 106.654321,
+                batteryLevel: 80,
+                isCharging: false,
+                speed: 3
+            })
+        );
+    });
+});

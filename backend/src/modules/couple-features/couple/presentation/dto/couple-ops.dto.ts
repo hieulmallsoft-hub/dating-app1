@@ -5,6 +5,9 @@ import { CoupleStatus } from "../../domain/entities/couple.entity";
 import { InviteStatus } from "../../../invites/domain/entities/invite.entity";
 
 export class JoinCoupleDto {
+    accountCode(userId: string, accountCode: any) {
+        throw new Error("Method not implemented.");
+    }
     @ApiProperty({
         description: "Partner 6-digit account code",
         example: "123456"

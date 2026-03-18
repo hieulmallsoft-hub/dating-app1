@@ -77,6 +77,10 @@ export async function getPartnerRealtimeLocation() {
   const partner = data.partner;
   const rawLastUpdated = partner?.lastActiveAt ? new Date(partner.lastActiveAt).getTime() : null;
   const lastUpdated = typeof rawLastUpdated === "number" && Number.isFinite(rawLastUpdated) ? rawLastUpdated : null;
+  const now = Date.now();
+  const ageMs = lastUpdated === null ? Number.POSITIVE_INFINITY : now - lastUpdated;
+  const status: PresenceStatus =
+    ageMs <= 90_000 ? "online" : ageMs <= 30 * 60 * 1000 ? "background" : "offline";
 
   return {
     partner: {
@@ -88,7 +92,7 @@ export async function getPartnerRealtimeLocation() {
       speed: partner?.speed ?? null,
       lastUpdated,
     },
-    status: lastUpdated !== null && Date.now() - lastUpdated <= 30 * 60 * 1000 ? "background" : "offline",
+    status,
     statusTimestamp: lastUpdated,
   } satisfies PartnerRealtimeLocationResponse;
 }

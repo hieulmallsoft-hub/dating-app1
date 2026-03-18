@@ -92,14 +92,14 @@ export class CoupleService {
         const [myHistory, partnerHistory] = await Promise.all([
             me?.id
                 ? historyRepository.find({
-                      where: { userId: me.id },
+                      where: { userId: me.id, coupleId: couple.id },
                       order: { recordedAt: "DESC" },
                       take: limit
                   })
                 : Promise.resolve([]),
             partner?.id
                 ? historyRepository.find({
-                      where: { userId: partner.id },
+                      where: { userId: partner.id, coupleId: couple.id },
                       order: { recordedAt: "DESC" },
                       take: limit
                   })
@@ -138,8 +138,9 @@ export class CoupleService {
         return result.couple;
     }
 
-    async updateCouple(userId: string, dto: UpdateCoupleDto) {
-        const result = await this.dataSource.transaction(async (manager) => {
+    async updateCouple(userId: string, dto: UpdateCoupleDto): Promise<Couple> {
+        const result: { couple: Couple; partnerId: string | null; startDateUpdated: boolean } =
+            await this.dataSource.transaction(async (manager) => {
             const coupleRepo = manager.getRepository(Couple);
             const userRepo = manager.getRepository(User);
             const couple = await this.findActiveCoupleByUserId(userId, coupleRepo);
@@ -207,7 +208,7 @@ export class CoupleService {
             if (partner.id === userId) {
                 throw new BadRequestException("You cannot connect using your own account code");
             }
-
+            //Khóa 2 user để tránh join trùng cùng lúc với 1 partner      
             await this.lockUsersForUpdate([partner.id, userId], userRepo);
 
             const partnerCouple = await this.findActiveCoupleByUserId(partner.id, coupleRepo);
@@ -359,7 +360,7 @@ export class CoupleService {
                 partnerId,
                 "Cap nhat ghep doi",
                 "Doi cua ban vua ngat ket noi ghep doi",
-                NotificationType.COUPLE
+                NotificationType.COUPLE_DISCONNECT
             );
         } catch (error) {
             this.logger.warn(`Create disconnect notification failed: ${(error as Error)?.message || "unknown"}`);

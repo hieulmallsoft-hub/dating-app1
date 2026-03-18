@@ -175,7 +175,8 @@ export class UsersService {
         accuracy?: number,
         batteryLevel?: number,
         isCharging?: boolean,
-        speed?: number
+        speed?: number,
+        timestamp?: number
     ) {
         const existed = await this.userRepository.findById(id);
         if (!existed) throw new NotFoundException("User not found");
@@ -193,12 +194,47 @@ export class UsersService {
         const nextIsCharging = typeof isCharging === "boolean" ? isCharging : undefined;
         const nextSpeed =
             typeof speed === "number" && Number.isFinite(speed) ? Math.max(0, speed) : undefined;
-        const now = new Date();
+        const eventTime = this.normalizeLocationEventTime(timestamp);
+        const currentLastActiveAt = existed.lastActiveAt ? new Date(existed.lastActiveAt) : null;
+        const isStaleUpdate =
+            Boolean(currentLastActiveAt) &&
+            eventTime.getTime() <= (currentLastActiveAt as Date).getTime();
+
+        if (isStaleUpdate) {
+            return {
+                userId: id,
+                accountCode:
+                    typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
+                        ? existed.accountCode.trim()
+                        : null,
+                latitude:
+                    existed.latitude !== null && existed.latitude !== undefined
+                        ? Number(existed.latitude)
+                        : nextLatitude,
+                longitude:
+                    existed.longitude !== null && existed.longitude !== undefined
+                        ? Number(existed.longitude)
+                        : nextLongitude,
+                accuracy: nextAccuracy,
+                batteryLevel:
+                    existed.batteryLevel !== null && existed.batteryLevel !== undefined
+                        ? existed.batteryLevel
+                        : null,
+                isCharging:
+                    existed.isCharging !== null && existed.isCharging !== undefined
+                        ? existed.isCharging
+                        : null,
+                speed:
+                    existed.speed !== null && existed.speed !== undefined
+                        ? Number(existed.speed)
+                        : null
+            };
+        }
 
         const updatePayload: Record<string, unknown> = {
             latitude: nextLatitude,
             longitude: nextLongitude,
-            lastActiveAt: now
+            lastActiveAt: eventTime
         };
 
         if (nextBatteryLevel !== undefined) updatePayload.batteryLevel = nextBatteryLevel;
@@ -220,7 +256,7 @@ export class UsersService {
                 nextLatitude,
                 nextLongitude
             ) >= 10 ||
-            now.getTime() - new Date(latest.recordedAt).getTime() >= 30_000;
+            eventTime.getTime() - new Date(latest.recordedAt).getTime() >= 30_000;
 
         if (shouldPersist) {
             const coupleId = await this.resolveActiveCoupleId(id);
@@ -234,7 +270,7 @@ export class UsersService {
                         accuracy: nextAccuracy,
                         speed: nextSpeed ?? null,
                         heading: null,
-                        recordedAt: now,
+                        recordedAt: eventTime,
                         source: LocationSource.REALTIME
                     })
                 );
@@ -310,6 +346,19 @@ export class UsersService {
                 Math.sin(deltaLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
         return 6_371_000 * c;
+    }
+
+    private normalizeLocationEventTime(timestamp?: number) {
+        if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
+            return new Date();
+        }
+
+        const parsed = new Date(timestamp);
+        if (Number.isNaN(parsed.getTime())) {
+            return new Date();
+        }
+
+        return parsed;
     }
 
     private async resolveActiveCoupleId(userId: string) {

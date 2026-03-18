@@ -1,20 +1,7 @@
+import { BadRequestException, Body, Controller, Get, Param, Post, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Post,
-    Put,
-    Req,
-    UnauthorizedException,
-    UseGuards
-} from "@nestjs/common";
-import {
-    ApiBadRequestResponse,
-    ApiBearerAuth,
     ApiBody,
+    ApiBearerAuth,
     ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
@@ -24,12 +11,19 @@ import {
 } from "@nestjs/swagger";
 import { NotificationsService } from "../application/notifications.service";
 import { JwtAuthGuard } from "../../auth/infrastructure/strategies/jwt-auth-guard";
-import { CreateTestNotificationDto, NotificationResponseDto } from "./dto/notification-ops.dto";
+import { AuthService } from "../../auth/application/auth.service";
+import { NotificationResponseDto } from "./dto/notification-ops.dto";
+import {
+    FcmTokenBodyDto,
+    FcmTokenRegisterResponseDto,
+    LogoutResponseDto,
+    RegisterFcmTokenDto
+} from "../../auth/presentation/dto/auth-ops.dto";
 import {
     toNotificationResponse,
     toNotificationResponseList
 } from "./mappers/notification-response.mapper";
-import { NotificationType } from "../domain/entities/notification.entity";
+import { PUSH_TOKEN_PLATFORMS, type PushTokenPlatform } from "../domain/entities/push-token.entity";
 
 type JwtRequestLike = { user?: { sub?: string; id?: string; user_Id?: string } };
 
@@ -38,7 +32,10 @@ type JwtRequestLike = { user?: { sub?: string; id?: string; user_Id?: string } }
 @Controller("notifications")
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-    constructor(private readonly notificationsService: NotificationsService) {}
+    constructor(
+        private readonly notificationsService: NotificationsService,
+        private readonly authService: AuthService
+    ) {}
 
     @Get()
     @ApiOperation({
@@ -83,55 +80,47 @@ export class NotificationsController {
         return toNotificationResponse(notification);
     }
 
-    @Post("test")
-    @HttpCode(HttpStatus.OK)
+    @Post("push-tokens/register")
     @ApiOperation({
-        summary: "Create test notification",
+        summary: "Legacy register push token (deprecated)",
         description:
-            "Create a notification manually for testing. It goes through DB save, realtime socket emit, and push send."
+            "Backward-compatible endpoint. Prefer POST /auth/fcm-token/register for new mobile/web clients."
     })
-    @ApiBody({
-        type: CreateTestNotificationDto,
-        examples: {
-            self: {
-                summary: "Send to current user",
-                value: {
-                    title: "Test thong bao",
-                    content: "Backend test tu Swagger",
-                    type: NotificationType.TEST
-                }
-            },
-            partner: {
-                summary: "Send to partner by user id",
-                value: {
-                    targetUserId: "4f8cc6d9-ccf3-4e1e-ae3d-0f23db4be0d7",
-                    title: "Tin nhan moi",
-                    content: "Demo push/socket",
-                    type: NotificationType.CHAT
-                }
-            }
-        }
-    })
+    @ApiBody({ type: RegisterFcmTokenDto })
     @ApiOkResponse({
-        description: "Notification created and dispatched",
-        type: NotificationResponseDto
-    })
-    @ApiBadRequestResponse({
-        description: "Invalid request body"
+        description: "FCM token saved successfully",
+        type: FcmTokenRegisterResponseDto
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async createTestNotification(@Req() req: JwtRequestLike, @Body() body: CreateTestNotificationDto) {
-        const actorId = this.getCurrentUserId(req);
-        const targetUserId = body.targetUserId?.trim() || actorId;
-        const created = await this.notificationsService.createNotification(
-            targetUserId,
-            body.title,
-            body.content,
-            body.type
-        );
-        return toNotificationResponse(created);
+    async registerLegacyPushToken(@Req() req, @Body() body: RegisterFcmTokenDto) {
+        const userId = this.getCurrentUserId(req);
+        const fcmToken = this.extractFcmToken(body);
+        const platform = this.normalizePlatform(body.platform, "web");
+        const deviceId = await this.authService.saveFcmToken(userId, fcmToken, platform);
+        return { success: true, deviceId, idDevice: deviceId, iddevice: deviceId };
+    }
+
+    @Post("push-tokens/unregister")
+    @ApiOperation({
+        summary: "Legacy unregister push token (deprecated)",
+        description:
+            "Backward-compatible endpoint. Prefer POST /auth/fcm-token/unregister for new mobile/web clients."
+    })
+    @ApiBody({ type: FcmTokenBodyDto })
+    @ApiOkResponse({
+        description: "FCM token removed successfully",
+        type: LogoutResponseDto
+    })
+    @ApiUnauthorizedResponse({
+        description: "Missing/invalid access token"
+    })
+    async unregisterLegacyPushToken(@Req() req, @Body() body: FcmTokenBodyDto) {
+        const userId = this.getCurrentUserId(req);
+        const fcmToken = this.extractFcmToken(body);
+        await this.authService.removeFcmToken(userId, fcmToken);
+        return { success: true };
     }
 
     private getCurrentUserId(req: JwtRequestLike) {
@@ -140,5 +129,25 @@ export class NotificationsController {
             throw new UnauthorizedException("Invalid access token payload");
         }
         return userId;
+    }
+
+    private extractFcmToken(body: Partial<FcmTokenBodyDto>) {
+        const candidate = body.fcmToken ?? body.fcm_token ?? body.token ?? body.idDevice ?? body.iddevice;
+        const token = typeof candidate === "string" ? candidate.trim() : "";
+        if (!token) {
+            throw new BadRequestException("fcmToken is required");
+        }
+        if (token.length < 20 || token.length > 4096) {
+            throw new BadRequestException("fcmToken length must be between 20 and 4096");
+        }
+        return token;
+    }
+
+    private normalizePlatform(value: unknown, fallback: PushTokenPlatform): PushTokenPlatform {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+        if (PUSH_TOKEN_PLATFORMS.includes(normalized as PushTokenPlatform)) {          
+            return normalized as PushTokenPlatform;
+        }
+        return fallback;
     }
 }

@@ -321,9 +321,10 @@ Ca lỗi:
 2. `fullName` > 15 ký tự -> `400`.
 3. `avatar` không đúng URL -> `400`.
 
-### PUT `/users/me/location`
+### PUT `/profile/location`
 
 Mục đích: cập nhật vị trí hiện tại.
+- Legacy compatibility endpoint: `PUT /users/me/location`.
 
 Payload mẫu:
 
@@ -967,7 +968,7 @@ Payload mẫu:
 
 Kỳ vọng:
 - `201`
-- `{ "success": true, "partnerId": "...", "placeId": "...", "transition": "ENTER", "timestamp": 1760000000000 }`
+- `{ "success": true, "placeId": "...", "transition": "ENTER", "timestamp": 1760000000000 }`
 
 Ca lỗi:
 1. `placeId` sai format UUID -> `400`.
@@ -1207,7 +1208,7 @@ Cách test:
 2. `POST /auth/login` A, B.
 3. `POST /couple/invite` bằng A.
 4. `POST /couple/join` bằng B.
-5. `PUT /users/me/location` cho cả A và B.
+5. `PUT /profile/location` cho cả A và B.
 6. `POST /places` tạo địa điểm.
 7. `POST /events` tạo sự kiện.
 8. `POST /moments` tạo moment có ảnh.

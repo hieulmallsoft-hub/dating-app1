@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException } from "@nestjs/common";
 import { CoupleService } from "./couple.service";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { User } from "../../../common-user/user/domain/entities/user.entity";
+import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 describe("CoupleService", () => {
     let service: CoupleService;
@@ -162,6 +163,18 @@ describe("CoupleService", () => {
         const result = await service.getCoupleLocationHistory("user-1", 80);
 
         expect(historyRepository.find).toHaveBeenCalledTimes(2);
+        expect(historyRepository.find).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                where: { userId: "user-1", coupleId: "couple-1" }
+            })
+        );
+        expect(historyRepository.find).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                where: { userId: "user-2", coupleId: "couple-1" }
+            })
+        );
         expect(result.me).toHaveLength(2);
         expect(result.partner).toHaveLength(1);
         expect(result.me[0]).toEqual(
@@ -175,6 +188,53 @@ describe("CoupleService", () => {
                 id: "hist-me-2",
                 accuracy: 9.5
             })
+        );
+    });
+
+    it("uses a dedicated notification type for disconnect", async () => {
+        const userLockQueryBuilder = {
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            setLock: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([{ id: "user-1" }])
+        };
+
+        const mutableCouple = {
+            id: "couple-1",
+            user1Id: "user-1",
+            user2Id: "user-2",
+            status: CoupleStatus.ACTIVE
+        };
+
+        const coupleRepo = {
+            findOne: jest.fn().mockResolvedValue(mutableCouple),
+            save: jest.fn().mockImplementation(async (value) => value)
+        };
+
+        const userRepo = {
+            createQueryBuilder: jest.fn().mockReturnValue(userLockQueryBuilder)
+        };
+
+        dataSource.transaction.mockImplementation(async (callback) =>
+            callback({
+                getRepository: (entity: unknown) => {
+                    if (entity === Couple) return coupleRepo;
+                    if (entity === User) return userRepo;
+                    throw new Error("Unexpected repository");
+                }
+            })
+        );
+
+        const result = await service.disconnect("user-1");
+
+        expect(result).toEqual(expect.objectContaining({ status: CoupleStatus.DISCONNECTED }));
+        expect(notificationsService.createNotification).toHaveBeenCalledTimes(1);
+        expect(notificationsService.createNotification).toHaveBeenCalledWith(
+            "user-2",
+            "Cap nhat ghep doi",
+            "Doi cua ban vua ngat ket noi ghep doi",
+            NotificationType.COUPLE_DISCONNECT
         );
     });
 

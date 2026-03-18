@@ -75,42 +75,17 @@ function escapeAttr(value: string) {
   return value.replace(/"/g, "&quot;");
 }
 
-function toLatLng(latitude: number, longitude: number): LatLngTuple {
-  return [Number(latitude), Number(longitude)];
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-function mergePartnerRealtime(
-  base: coupleApi.CoupleLocationsResponse,
-  realtime: locationApi.PartnerRealtimeLocationResponse | null
-) {
-  if (!realtime?.partner) {
-    return base;
-  }
-
-  const fallbackPartner: coupleApi.CoupleLocationUser = {
-    id: realtime.partner.userId,
-    fullName: null,
-    email: "",
-    avatar: null,
-    latitude: null,
-    longitude: null,
-    lastActiveAt: null,
-  };
-
-  const existingPartner = base.partner ?? fallbackPartner;
-  return {
-    ...base,
-    partner: {
-      ...existingPartner,
-      id: existingPartner.id || realtime.partner.userId,
-      latitude: realtime.partner.lat ?? existingPartner.latitude,
-      longitude: realtime.partner.lng ?? existingPartner.longitude,
-      lastActiveAt:
-        typeof realtime.partner.lastUpdated === "number"
-          ? new Date(realtime.partner.lastUpdated).toISOString()
-          : existingPartner.lastActiveAt,
-    },
-  };
+function toLatLng(latitude: number, longitude: number): LatLngTuple {
+  return [Number(latitude), Number(longitude)];
 }
 
 function haversineMeters(a: LatLngTuple, b: LatLngTuple) {
@@ -297,20 +272,7 @@ export default function PlacesPanel({ onAuthInvalid }: Props) {
   const loadLocations = useCallback(async () => {
     try {
       const data = await coupleApi.getCoupleLocations();
-      let merged = data;
-
-      try {
-        const realtime = await locationApi.getPartnerRealtimeLocation();
-        merged = mergePartnerRealtime(data, realtime);
-      } catch (partnerErr: unknown) {
-        const partnerStatus = getHttpStatus(partnerErr);
-        if (partnerStatus === 401) {
-          onAuthInvalid();
-          return;
-        }
-      }
-
-      setLocations(merged);
+      setLocations(data);
       setError(null);
     } catch (err: unknown) {
       const status = getHttpStatus(err);
@@ -737,6 +699,7 @@ export default function PlacesPanel({ onAuthInvalid }: Props) {
 
     if (mePoint) {
       const meUser = locations?.me;
+      const meName = escapeHtml(getDisplayName(meUser, "Ban"));
       if (!meMarkerRef.current) {
         meMarkerRef.current = L.marker(mePoint, {
           icon: createAvatarMarker(meUser, "me"),
@@ -747,7 +710,7 @@ export default function PlacesPanel({ onAuthInvalid }: Props) {
         meMarkerRef.current.setIcon(createAvatarMarker(meUser, "me"));
       }
       meMarkerRef.current.bindPopup(
-        `<b>Me</b><br/>${getDisplayName(meUser, "Ban")}<br/>${formatCoord(mePoint[0])}, ${formatCoord(
+        `<b>Me</b><br/>${meName}<br/>${formatCoord(mePoint[0])}, ${formatCoord(
           mePoint[1]
         )}`
       );
@@ -758,6 +721,7 @@ export default function PlacesPanel({ onAuthInvalid }: Props) {
 
     if (partnerPoint) {
       const partnerUser = locations?.partner;
+      const partnerName = escapeHtml(getDisplayName(partnerUser, "Nguoi ay"));
       if (!partnerMarkerRef.current) {
         partnerMarkerRef.current = L.marker(partnerPoint, {
           icon: createAvatarMarker(partnerUser, "partner"),
@@ -768,7 +732,7 @@ export default function PlacesPanel({ onAuthInvalid }: Props) {
         partnerMarkerRef.current.setIcon(createAvatarMarker(partnerUser, "partner"));
       }
       partnerMarkerRef.current.bindPopup(
-        `<b>Partner</b><br/>${getDisplayName(partnerUser, "Nguoi ay")}<br/>${formatCoord(
+        `<b>Partner</b><br/>${partnerName}<br/>${formatCoord(
           partnerPoint[0]
         )}, ${formatCoord(partnerPoint[1])}`
       );

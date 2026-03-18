@@ -16,6 +16,7 @@ const NOTIFICATION_TYPES: notificationsApi.NotificationType[] = [
   "GENERAL",
   "CHAT",
   "COUPLE",
+  "COUPLE_DISCONNECT",
   "COUPLE_START_DATE",
   "EVENT",
   "MOMENT",

@@ -49,7 +49,7 @@ Mục tiêu: xác nhận toàn bộ dependency chính đều thông.
 4. `POST /couple/join` (B, dùng `INVITE_CODE`)
 5. `GET /users/me`
 6. `PUT /users/me`
-7. `PUT /users/me/location`
+7. `PUT /profile/location`
 8. `POST /places`
 9. `POST /events`
 10. `POST /moments`
@@ -78,7 +78,8 @@ Mục tiêu: test đủ happy path + auth fail + validation fail + business fail
 2. Users (chỉ phần cần thiết mobile)
    - `GET /users/me`
    - `PUT /users/me`
-   - `PUT /users/me/location`
+   - `PUT /profile/location`
+   - Legacy compatibility: `PUT /users/me/location`
 3. Couple
    - `GET /couple`
    - `GET /couple/locations`

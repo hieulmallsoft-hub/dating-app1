@@ -64,9 +64,10 @@ Mục tiêu: đọc/sửa profile của chính mình.
 1. `GET /users/me`
 2. `PUT /users/me`
    - Body: `fullName`, `bio`, `avatar`, `gender`, ...
-3. `PUT /users/me/location`
+3. `PUT /profile/location`
    - Body bắt buộc: `lat`, `lng`
    - Optional: `accuracy`, `batteryLevel`, `isCharging`, `speed`
+   - Legacy compatibility: `PUT /users/me/location`
 
 Ghi chú:
 - Không dùng flow mobile:
@@ -182,7 +183,7 @@ Mục tiêu: hoàn tất vòng đời phiên đăng nhập.
 3. `POST /couple/invite` (A)
 4. `POST /couple/join` (B)
 5. `GET /couple`
-6. `PUT /users/me/location`
+6. `PUT /profile/location`
 7. `POST /places`
 8. `POST /events`
 9. `POST /moments`

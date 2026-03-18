@@ -73,4 +73,15 @@ export class UpdateUserLocationDto {
     @Min(0)
     @Max(200)
     speed?: number;
+
+    @ApiPropertyOptional({
+        description: "Client event time in epoch milliseconds (UTC)",
+        example: 1762677600000,
+        minimum: 0
+    })
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    @Min(0)
+    timestamp?: number;
 }

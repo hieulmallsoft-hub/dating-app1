@@ -91,7 +91,8 @@ export class ProfileController {
             dto.accuracy,
             dto.batteryLevel,
             dto.isCharging,
-            dto.speed
+            dto.speed,
+            dto.timestamp
         );
     }
 
