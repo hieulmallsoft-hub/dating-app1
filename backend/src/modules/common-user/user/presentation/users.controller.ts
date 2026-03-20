@@ -4,8 +4,8 @@ import {
     Controller,
     Delete,
     Get,
+    Patch,
     Param,
-    Put,
     Req,
     UnauthorizedException,
     UploadedFiles,
@@ -111,7 +111,7 @@ export class UsersController {
         return toApiUser(user);
     }
 
-    @Put("me")
+    @Patch("me")
     @UseInterceptors(
         FileFieldsInterceptor(
             [
@@ -146,7 +146,7 @@ export class UsersController {
         return toApiUser(user);
     }
 
-    @Put("me/location")
+    @Patch("me/location")
     @ApiOperation({
         summary: "Update current user location",
         description: "Submit latest GPS location and device state for couple tracking."

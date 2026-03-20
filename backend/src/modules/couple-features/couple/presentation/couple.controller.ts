@@ -2,7 +2,7 @@ import {
     Controller,
     Get,
     Post,
-    Put,
+    Patch,
     Body,
     Req,
     UseGuards,
@@ -188,7 +188,7 @@ export class CoupleController {
         return toCoupleResponse(couple);
     }
 
-    @Put("start-date")
+    @Patch("start-date")
     @ApiOperation({
         summary: "Update relationship start date",
         description: "Set relationship start date."
@@ -225,5 +225,4 @@ export class CoupleController {
         return userId;
     }
 }
-
 

@@ -4,7 +4,7 @@ import {
     Controller,
     Delete,
     Get,
-    Put,
+    Patch,
     Req,
     UnauthorizedException,
     UploadedFiles,
@@ -86,7 +86,7 @@ export class ProfileController {
         return toApiUser(user);
     }
 
-    @Put()
+    @Patch()
     @UseInterceptors(
         FileFieldsInterceptor(
             [
@@ -137,7 +137,7 @@ export class ProfileController {
         return toApiUser(user);
     }
 
-    @Put("location")
+    @Patch("location")
     @ApiOperation({
         summary: "updateProfileLocation",
         description: "Update current user live location."

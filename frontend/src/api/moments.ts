@@ -38,7 +38,7 @@ export async function createMoment(payload: MomentPayload) {
 }
 
 export async function updateMoment(id: string, payload: MomentPayload) {
-  const { data } = await http.put<MomentItem>(`/moments/${id}`, payload);
+  const { data } = await http.patch<MomentItem>(`/moments/${id}`, payload);
   return data;
 }
 

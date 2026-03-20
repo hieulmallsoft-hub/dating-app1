@@ -2,7 +2,7 @@ import {
     Controller,
     Get,
     Post,
-    Put,
+    Patch,
     Delete,
     Body,
     Req,
@@ -87,7 +87,7 @@ export class PlacesController {
         return toPlaceResponse(place);
     }
 
-    @Put(":id")
+    @Patch(":id")
     @ApiOperation({
         summary: "Update place",
         description: "Update place by id."

@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsDateString, IsBoolean } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 
 export class CreateEventDto {
     @ApiProperty({
@@ -35,7 +35,7 @@ export class CreateEventDto {
     isAnniversary?: boolean;
 }
 
-export class UpdateEventDto extends CreateEventDto {}
+export class UpdateEventDto extends PartialType(CreateEventDto) {}
 
 export class EventResponseDto {
     @ApiProperty({

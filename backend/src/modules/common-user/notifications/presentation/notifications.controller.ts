@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import {
     ApiBody,
     ApiBearerAuth,
@@ -55,7 +55,7 @@ export class NotificationsController {
         return toNotificationResponseList(notifications);
     }
 
-    @Put(":id/read")
+    @Patch(":id/read")
     @ApiOperation({
         summary: "Mark notification as read",
         description: "Mark one notification as read for current user."

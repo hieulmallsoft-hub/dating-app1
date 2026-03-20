@@ -60,7 +60,7 @@ type CoupleLocationsApiResponse = {
 };
 
 export async function updateRealtimeLocation(payload: UpdateRealtimeLocationPayload) {
-  const { data } = await http.put<UpdateUserLocationApiResponse>("/profile/location", payload);
+  const { data } = await http.patch<UpdateUserLocationApiResponse>("/profile/location", payload);
   return {
     lat: data.latitude,
     lng: data.longitude,

@@ -21,6 +21,6 @@ export async function getSettings() {
 }
 
 export async function updateSettings(payload: UpdateSettingsPayload) {
-  const { data } = await http.put<AppSettings>("/settings", payload);
+  const { data } = await http.patch<AppSettings>("/settings", payload);
   return data;
 }

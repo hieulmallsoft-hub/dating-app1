@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Req, UseGuards, Param, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Req, UseGuards, Param, UnauthorizedException } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
@@ -72,7 +72,7 @@ export class EventsController {
         return toEventResponse(event);
     }
 
-    @Put(":id")
+    @Patch(":id")
     @ApiOperation({
         summary: "Update event",
         description: "Update event by id."

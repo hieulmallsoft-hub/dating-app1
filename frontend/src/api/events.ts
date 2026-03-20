@@ -30,7 +30,7 @@ export async function createEvent(payload: EventPayload) {
 }
 
 export async function updateEvent(id: string, payload: EventPayload) {
-  const { data } = await http.put<CoupleEvent>(`/events/${id}`, payload);
+  const { data } = await http.patch<CoupleEvent>(`/events/${id}`, payload);
   return data;
 }
 
@@ -38,4 +38,3 @@ export async function deleteEvent(id: string) {
   const { data } = await http.delete<{ success: boolean }>(`/events/${id}`);
   return data;
 }
-

@@ -62,7 +62,7 @@ export async function createPlace(payload: PlacePayload) {
 }
 
 export async function updatePlace(id: string, payload: PlacePayload) {
-  const { data } = await http.put<PlaceItem>(`/places/${id}`, payload);
+  const { data } = await http.patch<PlaceItem>(`/places/${id}`, payload);
   return data;
 }
 

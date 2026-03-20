@@ -65,7 +65,7 @@ export async function joinCouple(inviteCode: string) {
 }
 
 export async function setStartDate(startDate: string, updateTime: string) {
-  const { data } = await http.put<CoupleMutationResponse>("/couple/start-date", { startDate, updateTime });
+  const { data } = await http.patch<CoupleMutationResponse>("/couple/start-date", { startDate, updateTime });
   return data;
 }
 

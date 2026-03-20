@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Req, UseGuards, UnauthorizedException } from "@nestjs/common";
+import { Controller, Get, Patch, Body, Req, UseGuards, UnauthorizedException } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
@@ -37,7 +37,7 @@ export class SettingsController {
         return toSettingsResponse(settings);
     }
 
-    @Put()
+    @Patch()
     @ApiOperation({
         summary: "Update current user settings",
         description: "Update notification, theme, and privacy preferences."

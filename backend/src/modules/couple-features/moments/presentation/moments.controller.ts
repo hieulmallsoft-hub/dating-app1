@@ -2,7 +2,7 @@ import {
     Controller,
     Get,
     Post,
-    Put,
+    Patch,
     Delete,
     Body,
     Req,
@@ -83,7 +83,7 @@ export class MomentsController {
         return toMomentResponse(moment);
     }
 
-    @Put(":id")
+    @Patch(":id")
     @ApiOperation({
         summary: "Update moment",
         description: "Update moment by id."

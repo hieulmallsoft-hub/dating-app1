@@ -34,7 +34,7 @@ export async function getMe() {
 }
 
 export async function updateMe(payload: UpdateMePayload) {
-  const { data } = await http.put<UserMe>("/profile", payload);
+  const { data } = await http.patch<UserMe>("/profile", payload);
   return data;
 }
 

@@ -37,7 +37,7 @@ export async function getNotifications() {
 }
 
 export async function markNotificationAsRead(id: string) {
-  const { data } = await http.put<AppNotification>(`/notifications/${id}/read`);
+  const { data } = await http.patch<AppNotification>(`/notifications/${id}/read`);
   return data;
 }
 
