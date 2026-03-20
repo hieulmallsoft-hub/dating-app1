@@ -124,7 +124,7 @@ export class UsersController {
     @ApiOperation({
         summary: "Update current user profile",
         description:
-            "Update editable profile fields for current user. Supports application/json and multipart/form-data (avatar image file)."
+            "Update editable profile fields for current user. For mobile avatar upload, send multipart/form-data with file field `avatar` (or `file`)."
     })
     @ApiOkResponse({
         description: "Profile updated",

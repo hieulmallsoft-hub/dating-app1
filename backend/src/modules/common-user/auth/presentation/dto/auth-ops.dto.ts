@@ -91,6 +91,62 @@ export class SocialLoginDto {
     platform?: PushTokenPlatform;
 }
 
+export class LocalEmailRegisterDto {
+    @ApiProperty({
+        description: "Email for local debug auth",
+        example: "test.user@example.com"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+    @IsEmail()
+    @IsNotEmpty()
+    @MaxLength(255)
+    email: string;
+
+    @ApiProperty({
+        description: "Password for local debug auth (min 6 chars)",
+        example: "123456"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @IsString()
+    @IsNotEmpty()
+    @MinLength(6)
+    @MaxLength(72)
+    password: string;
+
+    @ApiPropertyOptional({
+        description: "Display name (optional)",
+        example: "Test User"
+    })
+    @Transform(({ value }) => normalizeOptionalString(value))
+    @IsOptional()
+    @IsString()
+    @MaxLength(80)
+    fullName?: string;
+}
+
+export class LocalEmailLoginDto {
+    @ApiProperty({
+        description: "Email for local debug auth",
+        example: "test.user@example.com"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+    @IsEmail()
+    @IsNotEmpty()
+    @MaxLength(255)
+    email: string;
+
+    @ApiProperty({
+        description: "Password for local debug auth (min 6 chars)",
+        example: "123456"
+    })
+    @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+    @IsString()
+    @IsNotEmpty()
+    @MinLength(6)
+    @MaxLength(72)
+    password: string;
+}
+
 export class DevIssueTokenDto {
     @ApiPropertyOptional({
         description: "Target user id to issue access token for local/staging debug.",

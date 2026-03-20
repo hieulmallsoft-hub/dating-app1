@@ -1,13 +1,69 @@
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { Heart } from "lucide-react";
+import * as authApi from "../api/auth";
+import { getHttpMessage } from "../api/error";
 import { BACKEND_URL } from "../api/http";
+import { setTokens } from "../lib/authStorage";
 
 type Props = {
   onAuthSuccess: () => void;
 };
 
-export default function AuthScreen({ onAuthSuccess: _onAuthSuccess }: Props) {
+type AuthMode = "login" | "register";
+
+export default function AuthScreen({ onAuthSuccess }: Props) {
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canSubmit = useMemo(() => {
+    return !isSubmitting && email.trim().length > 0 && password.trim().length >= 6;
+  }, [email, isSubmitting, password]);
+
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_URL}/auth/google`;
+  };
+
+  const handleLocalAuth = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
+      const normalizedFullName = fullName.trim();
+
+      const result =
+        mode === "register"
+          ? await authApi.localRegister({
+              email: normalizedEmail,
+              password: normalizedPassword,
+              fullName: normalizedFullName || undefined
+            })
+          : await authApi.localLogin({
+              email: normalizedEmail,
+              password: normalizedPassword
+            });
+
+      setTokens(result.tokens);
+      onAuthSuccess();
+    } catch (err: unknown) {
+      setError(
+        getHttpMessage(
+          err,
+          mode === "register" ? "Khong tao duoc tai khoan test" : "Dang nhap that bai"
+        )
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -17,7 +73,73 @@ export default function AuthScreen({ onAuthSuccess: _onAuthSuccess }: Props) {
       </div>
 
       <h1>Fozi</h1>
-      <p>Dang nhap / dang ky bang Google</p>
+      <p>Dang nhap test nhanh bang email/password hoac Google</p>
+
+      <div className="auth-tabs">
+        <button
+          className={`auth-tab ${mode === "login" ? "active" : ""}`}
+          type="button"
+          onClick={() => setMode("login")}
+        >
+          Dang nhap test
+        </button>
+        <button
+          className={`auth-tab ${mode === "register" ? "active" : ""}`}
+          type="button"
+          onClick={() => setMode("register")}
+        >
+          Dang ky test
+        </button>
+      </div>
+
+      <form className="auth-form" onSubmit={handleLocalAuth}>
+        {mode === "register" ? (
+          <label className="auth-field">
+            <span>Full name (optional)</span>
+            <input
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              maxLength={80}
+              autoComplete="name"
+              placeholder="Test User"
+            />
+          </label>
+        ) : null}
+
+        <label className="auth-field">
+          <span>Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            placeholder="test.user@example.com"
+          />
+        </label>
+
+        <label className="auth-field">
+          <span>Password (toi thieu 6 ky tu)</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            placeholder="123456"
+          />
+        </label>
+
+        {error ? <div className="auth-error">{error}</div> : null}
+
+        <button className="btn btn-primary" type="submit" disabled={!canSubmit}>
+          {isSubmitting
+            ? "Dang xu ly..."
+            : mode === "register"
+              ? "Tao tai khoan test"
+              : "Dang nhap test"}
+        </button>
+      </form>
+
+      <div className="auth-divider">Hoac</div>
 
       <div className="button-group" style={{ maxWidth: 360 }}>
         <button className="btn btn-google" onClick={handleGoogleLogin} type="button">

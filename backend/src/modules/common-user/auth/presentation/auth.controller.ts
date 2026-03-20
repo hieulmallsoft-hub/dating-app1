@@ -31,6 +31,8 @@ import {
     DevIssueTokenDto,
     FcmTokenRegisterResponseDto,
     FcmTokenBodyDto,
+    LocalEmailLoginDto,
+    LocalEmailRegisterDto,
     LogoutResponseDto,
     RegisterFcmTokenDto,
     RefreshTokenDto,
@@ -135,6 +137,68 @@ export class AuthController {
             idDevice: deviceId,
             iddevice: deviceId
         };
+    }
+
+    @Public()
+    @Post("local/register")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Local register for web/local testing",
+        description:
+            "Creates LOCAL account and returns access+refresh token. Enabled in non-production by default; can be forced by LOCAL_AUTH_ENABLED=true."
+    })
+    @ApiBody({
+        type: LocalEmailRegisterDto
+    })
+    @ApiOkResponse({
+        description: "Local registration successful",
+        type: AuthSessionResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid email/password payload"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Endpoint disabled in production"
+    })
+    async registerWithEmail(
+        @Body() body: LocalEmailRegisterDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        this.assertLocalEmailAuthEnabled();
+        const result = await this.authService.registerWithEmail(body.email, body.password, body.fullName);
+        this.setTokensCookie(res, result.tokens);
+        return result;
+    }
+
+    @Public()
+    @Post("local/login")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: "Local login for web/local testing",
+        description:
+            "Login with LOCAL email/password and returns access+refresh token. Enabled in non-production by default; can be forced by LOCAL_AUTH_ENABLED=true."
+    })
+    @ApiBody({
+        type: LocalEmailLoginDto
+    })
+    @ApiOkResponse({
+        description: "Local login successful",
+        type: AuthSessionResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid email/password payload"
+    })
+    @ApiUnauthorizedResponse({
+        description: "Invalid credentials or endpoint disabled in production"
+    })
+    async loginWithEmail(
+        @Body() body: LocalEmailLoginDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        this.assertLocalEmailAuthEnabled();
+        const result = await this.authService.loginWithEmail(body.email, body.password);
+        this.setTokensCookie(res, result.tokens);
+        return result;
     }
 
     @Public()
@@ -389,6 +453,32 @@ export class AuthController {
             return normalized as PushTokenPlatform;
         }
         return fallback;
+    }
+
+    private assertLocalEmailAuthEnabled() {
+        const enabledRaw = (
+            this.configService.get<string>("LOCAL_AUTH_ENABLED") ??
+            process.env.LOCAL_AUTH_ENABLED ??
+            ""
+        )
+            .trim()
+            .toLowerCase();
+        const forceEnabled = enabledRaw === "true" || enabledRaw === "1" || enabledRaw === "yes";
+        if (forceEnabled) {
+            return;
+        }
+
+        const environment = (
+            this.configService.get<string>("NODE_ENV") ??
+            process.env.NODE_ENV ??
+            "development"
+        )
+            .trim()
+            .toLowerCase();
+
+        if (environment === "production") {
+            throw new UnauthorizedException("Local email auth endpoint is disabled in production");
+        }
     }
 
     private assertDevTokenIssuingEnabled(devAuthKey: string | undefined) {

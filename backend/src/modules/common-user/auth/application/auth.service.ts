@@ -7,6 +7,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as crypto from "crypto";
+import * as bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import { UsersService } from "../../user/application/user.service";
 import { AuthProvider } from "../../user/domain/entities/user.entity";
@@ -202,6 +203,47 @@ export class AuthService {
         }
     }
 
+    async registerWithEmail(email: string, password: string, fullName?: string): Promise<AuthResult> {
+        const normalizedEmail = this.normalizeEmail(email);
+        const normalizedPassword = this.normalizePassword(password);
+        if (!normalizedEmail) {
+            throw new UnauthorizedException("Email is required");
+        }
+        if (!normalizedPassword || normalizedPassword.length < 6) {
+            throw new UnauthorizedException("Password must be at least 6 characters");
+        }
+
+        const normalizedFullName =
+            typeof fullName === "string" ? fullName.trim() || undefined : undefined;
+        const user = await this.usersService.createUser({
+            email: normalizedEmail,
+            fullName: normalizedFullName,
+            password: normalizedPassword,
+            provider: AuthProvider.LOCAL
+        });
+        return this.createSession(user, true);
+    }
+
+    async loginWithEmail(email: string, password: string): Promise<AuthResult> {
+        const normalizedEmail = this.normalizeEmail(email);
+        const normalizedPassword = this.normalizePassword(password);
+        if (!normalizedEmail || !normalizedPassword) {
+            throw new UnauthorizedException("Email and password are required");
+        }
+
+        const user = await this.usersService.getUserWithPassword(normalizedEmail);
+        if (!user?.password) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
+        const isPasswordMatched = await bcrypt.compare(normalizedPassword, user.password);
+        if (!isPasswordMatched) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
+        return this.createSession(user, false);
+    }
+
     async logout(userId: string): Promise<void> {
         await this.usersService.clearSession(userId);
     }
@@ -367,6 +409,14 @@ export class AuthService {
             return undefined;
         }
         const normalized = email.trim().toLowerCase();
+        return normalized || undefined;
+    }
+
+    private normalizePassword(password: unknown): string | undefined {
+        if (typeof password !== "string") {
+            return undefined;
+        }
+        const normalized = password.trim();
         return normalized || undefined;
     }
 

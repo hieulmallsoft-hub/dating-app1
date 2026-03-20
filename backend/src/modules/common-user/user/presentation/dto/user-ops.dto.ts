@@ -58,7 +58,7 @@ export class UserProfileResponseDto {
     startDateAt?: string | null;
 
     @ApiPropertyOptional({
-        description: "Avatar URL",
+        description: "Avatar URL in response only (backend returns this after upload)",
         example: "https://cdn.example.com/avatars/me.jpg",
         nullable: true
     })

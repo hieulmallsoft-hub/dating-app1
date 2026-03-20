@@ -59,7 +59,9 @@ function shouldSkipRefresh(url?: string) {
   if (!url) return false;
   return (
     url.includes("/auth/refresh") ||
-    url.includes("/auth/google")
+    url.includes("/auth/google") ||
+    url.includes("/auth/local/login") ||
+    url.includes("/auth/local/register")
   );
 }
 

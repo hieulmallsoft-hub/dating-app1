@@ -37,7 +37,7 @@ export class UpdateUserDto {
     @ApiPropertyOptional({
         description:
             "Avatar value. For mobile, use multipart/form-data with file field `avatar` on PUT /profile or PUT /users/me.",
-        example: "https://cdn.example.com/avatars/me.jpg"
+        example: "upload-via-multipart-file"
     })
     @IsString()
     @IsOptional()

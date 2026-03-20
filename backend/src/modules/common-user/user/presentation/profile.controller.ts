@@ -99,7 +99,7 @@ export class ProfileController {
     @ApiOperation({
         summary: "updateProfile",
         description:
-            "Update current user profile fields. Supports application/json and multipart/form-data (avatar image file)."
+            "Update current user profile fields. For mobile avatar upload, send multipart/form-data with file field `avatar` (or `file`)."
     })
     @ApiConsumes("application/json", "multipart/form-data")
     @ApiBody({
