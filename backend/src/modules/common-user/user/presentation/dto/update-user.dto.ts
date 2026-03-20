@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDate, MaxLength, IsUrl, IsIn } from "class-validator";
+import { IsString, IsOptional, IsDate, MaxLength, IsIn } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Gender } from "../../domain/entities/user.entity";
@@ -35,10 +35,11 @@ export class UpdateUserDto {
     birthDate?: Date;
 
     @ApiPropertyOptional({
-        description: "Avatar URL",
+        description:
+            "Avatar value. For mobile, use multipart/form-data with file field `avatar` on PUT /profile or PUT /users/me.",
         example: "https://cdn.example.com/avatars/me.jpg"
     })
-    @IsUrl({ require_tld: false })
+    @IsString()
     @IsOptional()
     avatar?: string;
 

@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import { CoupleStatus } from "../../domain/entities/couple.entity";
 import { InviteStatus } from "../../../invites/domain/entities/invite.entity";
+import { LocationSource } from "../../../../common-user/user/domain/entities/location-history.entity";
 
 export class JoinCoupleDto {
     accountCode(userId: string, accountCode: any) {
@@ -267,6 +268,29 @@ export class CoupleLocationUserResponseDto {
         nullable: true
     })
     lastActiveAt?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Battery percent",
+        type: Number,
+        example: 82,
+        nullable: true
+    })
+    batteryLevel?: number | null;
+
+    @ApiPropertyOptional({
+        description: "Charging state",
+        example: false,
+        nullable: true
+    })
+    isCharging?: boolean | null;
+
+    @ApiPropertyOptional({
+        description: "Speed in km/h",
+        type: Number,
+        example: 12.4,
+        nullable: true
+    })
+    speed?: number | null;
 }
 
 export class CoupleLocationsResponseDto {
@@ -325,6 +349,35 @@ export class CoupleLocationHistoryPointResponseDto {
         example: "2026-03-09T09:00:00.000Z"
     })
     createdAt: string;
+
+    @ApiProperty({
+        description: "Original GPS event time (ISO-8601)",
+        example: "2026-03-09T09:00:00.000Z"
+    })
+    recordedAt: string;
+
+    @ApiPropertyOptional({
+        description: "Speed in km/h",
+        type: Number,
+        example: 5.6,
+        nullable: true
+    })
+    speed?: number | null;
+
+    @ApiPropertyOptional({
+        description: "Heading in degrees",
+        type: Number,
+        example: 120,
+        nullable: true
+    })
+    heading?: number | null;
+
+    @ApiProperty({
+        description: "Location source",
+        enum: LocationSource,
+        example: LocationSource.REALTIME
+    })
+    source: LocationSource;
 }
 
 export class CoupleLocationHistoryResponseDto {

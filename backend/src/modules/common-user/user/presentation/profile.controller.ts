@@ -1,21 +1,29 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
     Get,
     Put,
     Req,
-    UnauthorizedException
+    UnauthorizedException,
+    UploadedFiles,
+    UseInterceptors
 } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
+    ApiBody,
+    ApiConsumes,
     ApiOkResponse,
     ApiOperation,
     ApiTags,
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { UsersService } from "../application/user.service";
+import { UploadsService } from "../../uploads/application/uploads.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
 import {
@@ -25,11 +33,41 @@ import {
 } from "./dto/user-ops.dto";
 import { toApiUser } from "./mappers/user-response.mapper";
 
+const ALLOWED_AVATAR_MIME_TYPES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "image/heif"
+]);
+
+type UploadedAvatarFiles = {
+    avatar?: Array<any>;
+    file?: Array<any>;
+};
+
+const avatarUploadOptions = {
+    storage: memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_AVATAR_MIME_TYPES.has(file.mimetype)) {
+            return cb(new BadRequestException("Unsupported avatar file type") as any, false);
+        }
+
+        return cb(null, true);
+    }
+};
+
 @ApiTags("profile")
 @ApiBearerAuth("JWT-auth")
 @Controller("profile")
 export class ProfileController {
-    constructor(private readonly usersService: UsersService) {}
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly uploadsService: UploadsService
+    ) {}
 
     @Get()
     @ApiOperation({
@@ -49,22 +87,53 @@ export class ProfileController {
     }
 
     @Put()
+    @UseInterceptors(
+        FileFieldsInterceptor(
+            [
+                { name: "avatar", maxCount: 1 },
+                { name: "file", maxCount: 1 }
+            ],
+            avatarUploadOptions
+        )
+    )
     @ApiOperation({
         summary: "updateProfile",
-        description: "Update current user profile fields."
+        description:
+            "Update current user profile fields. Supports application/json and multipart/form-data (avatar image file)."
+    })
+    @ApiConsumes("application/json", "multipart/form-data")
+    @ApiBody({
+        schema: {
+            type: "object",
+            properties: {
+                fullName: { type: "string", example: "Mai Nguyen" },
+                gender: { type: "number", enum: [0, 1, 2], example: 1 },
+                birthDate: { type: "string", format: "date-time", example: "2000-01-01T00:00:00.000Z" },
+                avatar: {
+                    type: "string",
+                    format: "binary",
+                    description: "Avatar image file for multipart/form-data"
+                }
+            }
+        }
     })
     @ApiOkResponse({
         description: "Profile updated",
         type: UserProfileResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid payload or protected fields provided"
+        description: "Invalid payload, invalid avatar file, or protected fields provided"
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async updateProfile(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-        const user = await this.usersService.updateProfile(this.getCurrentUserId(req), updateUserDto);
+    async updateProfile(
+        @Req() req,
+        @Body() updateUserDto: UpdateUserDto,
+        @UploadedFiles() files?: UploadedAvatarFiles
+    ) {
+        const payload = await this.withUploadedAvatar(updateUserDto, files);
+        const user = await this.usersService.updateProfile(this.getCurrentUserId(req), payload);
         return toApiUser(user);
     }
 
@@ -118,5 +187,18 @@ export class ProfileController {
             throw new UnauthorizedException("Invalid access token payload");
         }
         return userId;
+    }
+
+    private async withUploadedAvatar(updateUserDto: UpdateUserDto, files?: UploadedAvatarFiles) {
+        const avatarFile = files?.avatar?.[0] ?? files?.file?.[0];
+        if (!avatarFile) {
+            return updateUserDto;
+        }
+
+        const uploaded = await this.uploadsService.uploadFile(avatarFile);
+        return {
+            ...updateUserDto,
+            avatar: uploaded.fileUrl
+        };
     }
 }

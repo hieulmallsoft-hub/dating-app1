@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    ParseUUIDPipe,
+    Post,
+    Query,
+    Req,
+    UnauthorizedException,
+    UseGuards
+} from "@nestjs/common";
 import {
     ApiExcludeEndpoint,
     ApiBadRequestResponse,
@@ -49,9 +60,27 @@ export class TripsController {
         description: "Records per page",
         example: 20
     })
+    @ApiQuery({
+        name: "from",
+        required: false,
+        type: Number,
+        description:
+            "Start time (epoch milliseconds, inclusive). If both from/to are omitted, backend defaults to last 30 days.",
+        example: 1762677600000
+    })
+    @ApiQuery({
+        name: "to",
+        required: false,
+        type: Number,
+        description: "End time (epoch milliseconds, inclusive)",
+        example: 1762764000000
+    })
     @ApiOkResponse({
         description: "Returns trip list",
         type: TripListResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Invalid query params (page/limit/from/to)"
     })
     @ApiNotFoundResponse({
         description: "Requested userId is not in current couple"
@@ -63,13 +92,22 @@ export class TripsController {
         @Req() req,
         @Query("userId") userId?: string,
         @Query("page") page?: string,
-        @Query("limit") limit?: string
+        @Query("limit") limit?: string,
+        @Query("from") from?: string,
+        @Query("to") to?: string
     ) {
         const requesterId = this.getCurrentUserId(req);
         const parsedPage = page ? Number(page) : 1;
         const parsedLimit = limit ? Number(limit) : 20;
         const targetUserId = userId || requesterId;
-        const response = await this.tripsService.listTrips(requesterId, targetUserId, parsedPage, parsedLimit);
+        const response = await this.tripsService.listTrips(
+            requesterId,
+            targetUserId,
+            parsedPage,
+            parsedLimit,
+            from,
+            to
+        );
         return {
             data: toTripResponseList(response.data),
             page: response.page,
@@ -86,11 +124,14 @@ export class TripsController {
     @ApiParam({
         name: "id",
         description: "Trip ID",
-        example: "trip_20260309_001"
+        example: "6c70bc74-61ee-4f6f-b965-2a977f4d9ab7"
     })
     @ApiOkResponse({
         description: "Returns trip detail",
         type: TripResponseDto
+    })
+    @ApiBadRequestResponse({
+        description: "Trip id must be UUID"
     })
     @ApiNotFoundResponse({
         description: "Trip not found or does not belong to current couple"
@@ -98,14 +139,14 @@ export class TripsController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getTripById(@Req() req, @Param("id") id: string) {
+    async getTripById(@Req() req, @Param("id", new ParseUUIDPipe()) id: string) {
         const trip = await this.tripsService.getTripDetail(this.getCurrentUserId(req), id);
         return toTripResponse(trip, true);
     }
 
     @Get(":id/detail")
     @ApiExcludeEndpoint()
-    async getTripDetailLegacy(@Req() req, @Param("id") id: string) {
+    async getTripDetailLegacy(@Req() req, @Param("id", new ParseUUIDPipe()) id: string) {
         return this.getTripById(req, id);
     }
 

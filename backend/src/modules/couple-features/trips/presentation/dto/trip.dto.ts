@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class RoutePointDto {
@@ -23,9 +23,9 @@ export class RoutePointDto {
 export class TripSyncItemDto {
     @ApiProperty({
         description: "Client trip id",
-        example: "trip_20260309_001"
+        example: "6c70bc74-61ee-4f6f-b965-2a977f4d9ab7"
     })
-    @IsString()
+    @IsUUID()
     @IsNotEmpty()
     id: string;
 
@@ -95,7 +95,7 @@ export class TripSyncDto {
 export class TripResponseDto {
     @ApiProperty({
         description: "Trip id",
-        example: "trip_20260309_001"
+        example: "6c70bc74-61ee-4f6f-b965-2a977f4d9ab7"
     })
     id: string;
 

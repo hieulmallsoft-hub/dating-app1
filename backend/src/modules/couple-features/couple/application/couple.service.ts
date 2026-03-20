@@ -1,10 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from "@nestjs/common";
-import { DataSource, IsNull, Not, Repository } from "typeorm";
+import {
+    Between,
+    DataSource,
+    FindOptionsWhere,
+    IsNull,
+    LessThanOrEqual,
+    MoreThanOrEqual,
+    Not,
+    Repository
+} from "typeorm";
 import { CoupleRepository } from "../infrastructure/persistence/couple.repository";
 import { Couple, CoupleStatus } from "../domain/entities/couple.entity";
 import { UpdateCoupleDto } from "../presentation/dto/couple-ops.dto";
 import { User } from "../../../common-user/user/domain/entities/user.entity";
-import { LocationHistory } from "../../../common-user/user/domain/entities/location-history.entity";
+import { LocationHistory, LocationSource } from "../../../common-user/user/domain/entities/location-history.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
@@ -82,24 +91,47 @@ export class CoupleService {
         };
     }
 
-    async getCoupleLocationHistory(userId: string, limitInput?: number) {
+    async getCoupleLocationHistory(
+        userId: string,
+        limitInput?: number,
+        fromInput?: number,
+        toInput?: number
+    ) {
         const couple = await this.getMyCouple(userId);
         const me = this.getMeFromCouple(couple, userId);
         const partner = this.getPartnerFromCouple(couple, userId);
         const limit = this.normalizeHistoryLimit(limitInput);
+        const { from, to } = this.normalizeHistoryRange(fromInput, toInput);
         const historyRepository = this.dataSource.getRepository(LocationHistory);
+
+        const buildWhere = (targetUserId: string): FindOptionsWhere<LocationHistory> & { recordedAt?: any } => {
+            const where: FindOptionsWhere<LocationHistory> & { recordedAt?: any } = {
+                userId: targetUserId,
+                coupleId: couple.id
+            };
+
+            if (from && to) {
+                where.recordedAt = Between(from, to);
+            } else if (from) {
+                where.recordedAt = MoreThanOrEqual(from);
+            } else if (to) {
+                where.recordedAt = LessThanOrEqual(to);
+            }
+
+            return where;
+        };
 
         const [myHistory, partnerHistory] = await Promise.all([
             me?.id
                 ? historyRepository.find({
-                      where: { userId: me.id, coupleId: couple.id },
+                      where: buildWhere(me.id),
                       order: { recordedAt: "DESC" },
                       take: limit
                   })
                 : Promise.resolve([]),
             partner?.id
                 ? historyRepository.find({
-                      where: { userId: partner.id, coupleId: couple.id },
+                      where: buildWhere(partner.id),
                       order: { recordedAt: "DESC" },
                       take: limit
                   })
@@ -297,7 +329,10 @@ export class CoupleService {
             avatar: user.avatar,
             latitude: user.latitude !== null && user.latitude !== undefined ? Number(user.latitude) : null,
             longitude: user.longitude !== null && user.longitude !== undefined ? Number(user.longitude) : null,
-            lastActiveAt: user.lastActiveAt ? new Date(user.lastActiveAt).toISOString() : null
+            lastActiveAt: user.lastActiveAt ? new Date(user.lastActiveAt).toISOString() : null,
+            batteryLevel: user.batteryLevel !== null && user.batteryLevel !== undefined ? user.batteryLevel : null,
+            isCharging: user.isCharging !== null && user.isCharging !== undefined ? user.isCharging : null,
+            speed: user.speed !== null && user.speed !== undefined ? Number(user.speed) : null
         };
     }
 
@@ -312,7 +347,11 @@ export class CoupleService {
                 entry.accuracy !== null && entry.accuracy !== undefined
                     ? Number(entry.accuracy)
                     : null,
-            createdAt: new Date(pointTime).toISOString()
+            createdAt: new Date(pointTime).toISOString(),
+            recordedAt: new Date(pointTime).toISOString(),
+            speed: entry.speed !== null && entry.speed !== undefined ? Number(entry.speed) : null,
+            heading: entry.heading !== null && entry.heading !== undefined ? Number(entry.heading) : null,
+            source: entry.source ?? LocationSource.REALTIME
         };
     }
 
@@ -321,6 +360,44 @@ export class CoupleService {
             return 120;
         }
         return Math.max(1, Math.min(500, Math.floor(limitInput)));
+    }
+
+    private normalizeHistoryRange(fromInput?: number, toInput?: number) {
+        const from = this.toOptionalDate(fromInput, "from");
+        const to = this.toOptionalDate(toInput, "to");
+
+        if (!from && !to) {
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return { from: thirtyDaysAgo, to: now };
+        }
+
+        if (from && to && from.getTime() > to.getTime()) {
+            throw new BadRequestException("from must be less than or equal to to");
+        }
+
+        return { from, to };
+    }
+
+    private toOptionalDate(value: number | undefined, field: "from" | "to") {
+        if (value === undefined) {
+            return null;
+        }
+
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+            throw new BadRequestException(`${field} must be a valid epoch milliseconds number`);
+        }
+
+        if (value < 0) {
+            throw new BadRequestException(`${field} must be greater than or equal to 0`);
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new BadRequestException(`${field} is invalid`);
+        }
+
+        return parsed;
     }
 
     private async notifyPairingSuccess(inviterId: string, partnerId: string) {
@@ -404,6 +481,7 @@ export class CoupleService {
         });
     }
 }
+
 
 
 

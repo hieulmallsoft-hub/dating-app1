@@ -166,13 +166,19 @@ describe("CoupleService", () => {
         expect(historyRepository.find).toHaveBeenNthCalledWith(
             1,
             expect.objectContaining({
-                where: { userId: "user-1", coupleId: "couple-1" }
+                where: expect.objectContaining({
+                    userId: "user-1",
+                    coupleId: "couple-1"
+                })
             })
         );
         expect(historyRepository.find).toHaveBeenNthCalledWith(
             2,
             expect.objectContaining({
-                where: { userId: "user-2", coupleId: "couple-1" }
+                where: expect.objectContaining({
+                    userId: "user-2",
+                    coupleId: "couple-1"
+                })
             })
         );
         expect(result.me).toHaveLength(2);

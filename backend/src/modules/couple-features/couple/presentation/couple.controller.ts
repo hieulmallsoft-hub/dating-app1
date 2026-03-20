@@ -98,6 +98,20 @@ export class CoupleController {
         description: "Limit of history points",
         example: 120
     })
+    @ApiQuery({
+        name: "from",
+        required: false,
+        type: Number,
+        description: "Start time in epoch milliseconds (inclusive)",
+        example: 1762677600000
+    })
+    @ApiQuery({
+        name: "to",
+        required: false,
+        type: Number,
+        description: "End time in epoch milliseconds (inclusive)",
+        example: 1762764000000
+    })
     @ApiOkResponse({
         description: "Returns location history",
         type: CoupleLocationHistoryResponseDto
@@ -108,9 +122,21 @@ export class CoupleController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getCoupleLocationHistory(@Req() req, @Query("limit") limit?: string) {
+    async getCoupleLocationHistory(
+        @Req() req,
+        @Query("limit") limit?: string,
+        @Query("from") from?: string,
+        @Query("to") to?: string
+    ) {
         const parsedLimit = limit ? Number(limit) : undefined;
-        return this.coupleService.getCoupleLocationHistory(this.getCurrentUserId(req), parsedLimit);
+        const parsedFrom = from ? Number(from) : undefined;
+        const parsedTo = to ? Number(to) : undefined;
+        return this.coupleService.getCoupleLocationHistory(
+            this.getCurrentUserId(req),
+            parsedLimit,
+            parsedFrom,
+            parsedTo
+        );
     }
 
     @Post("join")
@@ -199,6 +225,5 @@ export class CoupleController {
         return userId;
     }
 }
-
 
 

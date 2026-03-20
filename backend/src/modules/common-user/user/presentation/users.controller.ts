@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
@@ -6,21 +7,25 @@ import {
     Param,
     Put,
     Req,
-    UnauthorizedException
+    UnauthorizedException,
+    UploadedFiles,
+    UseInterceptors
 } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiExcludeController,
     ApiExcludeEndpoint,
-    ApiNotFoundResponse,
     ApiOkResponse,
     ApiOperation,
     ApiParam,
     ApiTags,
     ApiUnauthorizedResponse
 } from "@nestjs/swagger";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { UsersService } from "../application/user.service";
+import { UploadsService } from "../../uploads/application/uploads.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserLocationDto } from "./dto/update-user-location.dto";
 import {
@@ -31,12 +36,42 @@ import {
 import { toApiUser } from "./mappers/user-response.mapper";
 import { Public } from "src/common/decorators/customize";
 
+const ALLOWED_AVATAR_MIME_TYPES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "image/heif"
+]);
+
+type UploadedAvatarFiles = {
+    avatar?: Array<any>;
+    file?: Array<any>;
+};
+
+const avatarUploadOptions = {
+    storage: memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_AVATAR_MIME_TYPES.has(file.mimetype)) {
+            return cb(new BadRequestException("Unsupported avatar file type") as any, false);
+        }
+
+        return cb(null, true);
+    }
+};
+
 @ApiTags("users")
 @ApiBearerAuth("JWT-auth")
 @ApiExcludeController()
 @Controller("users")
 export class UsersController {
-    constructor(private readonly usersService: UsersService) {}
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly uploadsService: UploadsService
+    ) {}
 
     @Get("me")
     @ApiOperation({
@@ -77,22 +112,37 @@ export class UsersController {
     }
 
     @Put("me")
+    @UseInterceptors(
+        FileFieldsInterceptor(
+            [
+                { name: "avatar", maxCount: 1 },
+                { name: "file", maxCount: 1 }
+            ],
+            avatarUploadOptions
+        )
+    )
     @ApiOperation({
         summary: "Update current user profile",
-        description: "Update editable profile fields for current user."
+        description:
+            "Update editable profile fields for current user. Supports application/json and multipart/form-data (avatar image file)."
     })
     @ApiOkResponse({
         description: "Profile updated",
         type: UserProfileResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid payload or protected fields provided"
+        description: "Invalid payload, invalid avatar file, or protected fields provided"
     })
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async updateProfile(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-        const user = await this.usersService.updateProfile(this.getCurrentUserId(req), updateUserDto);
+    async updateProfile(
+        @Req() req,
+        @Body() updateUserDto: UpdateUserDto,
+        @UploadedFiles() files?: UploadedAvatarFiles
+    ) {
+        const payload = await this.withUploadedAvatar(updateUserDto, files);
+        const user = await this.usersService.updateProfile(this.getCurrentUserId(req), payload);
         return toApiUser(user);
     }
 
@@ -148,5 +198,16 @@ export class UsersController {
         return userId;
     }
 
-}
+    private async withUploadedAvatar(updateUserDto: UpdateUserDto, files?: UploadedAvatarFiles) {
+        const avatarFile = files?.avatar?.[0] ?? files?.file?.[0];
+        if (!avatarFile) {
+            return updateUserDto;
+        }
 
+        const uploaded = await this.uploadsService.uploadFile(avatarFile);
+        return {
+            ...updateUserDto,
+            avatar: uploaded.fileUrl
+        };
+    }
+}
