@@ -97,6 +97,12 @@ export class MomentResponseDto {
         example: "2026-03-09T08:00:00.000Z"
     })
     createdAt: string;
+
+    @ApiProperty({
+        description: "Updated time (ISO-8601)",
+        example: "2026-03-09T09:00:00.000Z"
+    })
+    updatedAt: string;
 }
 
 export class MomentActionResponseDto {

@@ -10,6 +10,7 @@ export type MomentItem = {
   photos: string[] | null;
   isPrivate: MomentVisibility;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type MomentPayload = {

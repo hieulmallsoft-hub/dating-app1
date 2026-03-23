@@ -64,6 +64,7 @@ export class MomentsService {
                 "moment.photos",
                 "moment.privacy",
                 "moment.createdAt",
+                "moment.updatedAt",
                 "creator.id",
                 "creator.email",
                 "creator.fullName"
@@ -165,6 +166,7 @@ export class MomentsService {
                 "moment.photos",
                 "moment.privacy",
                 "moment.createdAt",
+                "moment.updatedAt",
                 "creator.id",
                 "creator.email",
                 "creator.fullName"

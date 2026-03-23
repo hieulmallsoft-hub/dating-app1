@@ -6,6 +6,7 @@ type MomentLike = {
     photos?: string[] | null;
     privacy: "COUPLE" | "PRIVATE";
     createdAt: Date | string;
+    updatedAt: Date | string;
     creator?: {
         id: string;
         email: string;
@@ -30,7 +31,8 @@ export function toMomentResponse(moment: MomentLike, currentUserId?: string) {
         content: moment.content ?? null,
         photos: Array.isArray(moment.photos) ? moment.photos : null,
         isPrivate,
-        createdAt: toIsoString(moment.createdAt)
+        createdAt: toIsoString(moment.createdAt),
+        updatedAt: toIsoString(moment.updatedAt)
     };
 }
 
