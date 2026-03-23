@@ -20,9 +20,12 @@ export class MomentsService {
 
     async createMoment(userId: string, dto: CreateMomentDto) {
         const couple = await this.coupleService.getMyCouple(userId);
+        const { isPrivate, privacy: legacyPrivacy, ...restDto } = dto;
+        const normalizedIsPrivate = isPrivate ?? legacyPrivacy;
 
         const moment = this.momentRepository.create({
-            ...dto,
+            ...restDto,
+            privacy: this.toEntityPrivacy(normalizedIsPrivate),
             coupleId: couple.id,
             creatorId: userId
         });
@@ -40,40 +43,69 @@ export class MomentsService {
             await this.notifyPartnerForMoment(couple, userId, "created", savedMoment);
         }
 
-        return savedMoment;
+        return (await this.findMomentForResponse(savedMoment.id)) || savedMoment;
     }
 
     async getFeed(userId: string) {
         const couple = await this.coupleService.getMyCouple(userId);
 
-        return this.momentRepository.find({
-            where: { coupleId: couple.id },
-            order: { createdAt: "DESC" }
-        });
+        return this.momentRepository
+            .createQueryBuilder("moment")
+            .leftJoinAndSelect("moment.creator", "creator")
+            .where("moment.coupleId = :coupleId", { coupleId: couple.id })
+            .andWhere("(moment.privacy = :couplePrivacy OR moment.creatorId = :userId)", {
+                couplePrivacy: MomentPrivacy.COUPLE,
+                userId
+            })
+            .select([
+                "moment.id",
+                "moment.coupleId",
+                "moment.creatorId",
+                "moment.content",
+                "moment.photos",
+                "moment.privacy",
+                "moment.createdAt",
+                "moment.updatedAt",
+                "creator.id",
+                "creator.email",
+                "creator.fullName",
+                "creator.avatar"
+            ])
+            .orderBy("moment.createdAt", "DESC")
+            .getMany();
     }
 
     async updateMoment(userId: string, id: string, dto: UpdateMomentDto) {
-        const moment = await this.momentRepository.findOne({ where: { id } });
+        const couple = await this.coupleService.getMyCouple(userId);
+        const moment = await this.momentRepository.findOne({ where: { id, coupleId: couple.id } });
         if (!moment) throw new NotFoundException("Moment not found");
         if (moment.creatorId !== userId) throw new ForbiddenException("Not your moment");
 
-        const couple = await this.coupleService.getMyCouple(userId);
-        Object.assign(moment, dto);
+        if (dto.content !== undefined) {
+            moment.content = dto.content;
+        }
+        if (dto.photos !== undefined) {
+            moment.photos = dto.photos;
+        }
+        const normalizedIsPrivate = dto.isPrivate ?? dto.privacy;
+        if (normalizedIsPrivate !== undefined) {
+            moment.privacy = this.toEntityPrivacy(normalizedIsPrivate);
+        }
         const saved = await this.momentRepository.save(moment);
 
         if (saved.privacy === MomentPrivacy.COUPLE) {
             await this.notifyPartnerForMoment(couple, userId, "updated", saved);
         }
 
-        return saved;
+        return (await this.findMomentForResponse(saved.id)) || saved;
     }
 
     async deleteMoment(userId: string, id: string) {
-        const moment = await this.momentRepository.findOne({ where: { id } });
+        const couple = await this.coupleService.getMyCouple(userId);
+        const moment = await this.momentRepository.findOne({ where: { id, coupleId: couple.id } });
         if (!moment) throw new NotFoundException("Moment not found");
         if (moment.creatorId !== userId) throw new ForbiddenException("Not your moment");
 
-        const couple = await this.coupleService.getMyCouple(userId);
         const deletedSnapshot = {
             content: moment.content,
             photos: moment.photos,
@@ -122,5 +154,34 @@ export class MomentsService {
         } catch (error) {
             this.logger.warn(`Create moment notification failed: ${(error as Error)?.message || "unknown"}`);
         }
+    }
+
+    private findMomentForResponse(momentId: string) {
+        return this.momentRepository
+            .createQueryBuilder("moment")
+            .leftJoinAndSelect("moment.creator", "creator")
+            .where("moment.id = :momentId", { momentId })
+            .select([
+                "moment.id",
+                "moment.coupleId",
+                "moment.creatorId",
+                "moment.content",
+                "moment.photos",
+                "moment.privacy",
+                "moment.createdAt",
+                "moment.updatedAt",
+                "creator.id",
+                "creator.email",
+                "creator.fullName",
+                "creator.avatar"
+            ])
+            .getOne();
+    }
+
+    private toEntityPrivacy(isPrivate?: boolean): MomentPrivacy {
+        if (isPrivate === undefined) {
+            return MomentPrivacy.COUPLE;
+        }
+        return isPrivate ? MomentPrivacy.PRIVATE : MomentPrivacy.COUPLE;
     }
 }

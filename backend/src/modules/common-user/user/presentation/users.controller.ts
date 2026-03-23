@@ -141,7 +141,7 @@ export class UsersController {
         @Body() updateUserDto: UpdateUserDto,
         @UploadedFiles() files?: UploadedAvatarFiles
     ) {
-        const payload = await this.withUploadedAvatar(updateUserDto, files);
+        const payload = await this.withUploadedAvatar(updateUserDto, files, req);
         const user = await this.usersService.updateProfile(this.getCurrentUserId(req), payload);
         return toApiUser(user);
     }
@@ -198,13 +198,19 @@ export class UsersController {
         return userId;
     }
 
-    private async withUploadedAvatar(updateUserDto: UpdateUserDto, files?: UploadedAvatarFiles) {
+    private async withUploadedAvatar(
+        updateUserDto: UpdateUserDto,
+        files: UploadedAvatarFiles | undefined,
+        req: { protocol?: string; headers?: Record<string, string | string[] | undefined> }
+    ) {
         const avatarFile = files?.avatar?.[0] ?? files?.file?.[0];
         if (!avatarFile) {
             return updateUserDto;
         }
 
-        const uploaded = await this.uploadsService.uploadFile(avatarFile);
+        const uploaded = await this.uploadsService.uploadFile(avatarFile, {
+            requestBaseUrl: this.uploadsService.resolveRequestBaseUrl(req)
+        });
         return {
             ...updateUserDto,
             avatar: uploaded.fileUrl

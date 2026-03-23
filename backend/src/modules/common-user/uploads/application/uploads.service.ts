@@ -4,6 +4,11 @@ import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import { extname, join, resolve } from "path";
 
+type RequestLike = {
+    protocol?: string;
+    headers?: Record<string, string | string[] | undefined>;
+};
+
 @Injectable()
 export class UploadsService {
     constructor(private readonly configService: ConfigService) {}
@@ -19,7 +24,7 @@ export class UploadsService {
         mimetype: string;
         size: number;
         buffer: Buffer;
-    }) {
+    }, options?: { requestBaseUrl?: string | null }) {
         const kind = this.resolveKindByMimeType(file.mimetype);
         const objectKey = this.buildObjectKey(kind, file.originalname);
         const fullPath = this.resolveObjectPath(objectKey);
@@ -34,13 +39,27 @@ export class UploadsService {
         }
 
         return {
-            fileUrl: this.buildFileUrl(objectKey),
+            fileUrl: this.buildFileUrl(objectKey, options?.requestBaseUrl),
             type: kind,
             mimeType: file.mimetype,
             size: file.size,
             originalName: file.originalname,
             fileName: objectKey
         };
+    }
+
+    resolveRequestBaseUrl(req?: RequestLike | null) {
+        if (!req) return null;
+        const headers = req.headers ?? {};
+        const forwardedProto = this.getFirstHeaderValue(headers["x-forwarded-proto"]);
+        const forwardedHost = this.getFirstHeaderValue(headers["x-forwarded-host"]);
+        const host = this.getFirstHeaderValue(headers.host);
+
+        const protocol = (forwardedProto || req.protocol || "http").split(",")[0].trim();
+        const resolvedHost = (forwardedHost || host || "").split(",")[0].trim();
+
+        if (!resolvedHost) return null;
+        return `${protocol}://${resolvedHost}`;
     }
 
     private resolveKindByMimeType(mimeType: string) {
@@ -70,13 +89,13 @@ export class UploadsService {
         return "image";
     }
 
-    private buildFileUrl(objectKey: string) {
+    private buildFileUrl(objectKey: string, requestBaseUrl?: string | null) {
         const publicBaseUrl = this.configService.get<string>("UPLOAD_PUBLIC_BASE_URL");
         if (publicBaseUrl) {
             return `${publicBaseUrl.replace(/\/+$/, "")}/${objectKey}`;
         }
 
-        const baseUrl = this.resolveBaseUrl();
+        const baseUrl = this.resolveBaseUrl(requestBaseUrl);
         return `${baseUrl}/uploads/${objectKey}`;
     }
 
@@ -93,7 +112,11 @@ export class UploadsService {
         return resolve(process.cwd(), uploadPath);
     }
 
-    private resolveBaseUrl() {
+    private resolveBaseUrl(requestBaseUrl?: string | null) {
+        if (requestBaseUrl) {
+            return requestBaseUrl.replace(/\/+$/, "");
+        }
+
         const explicitBaseUrl =
             this.configService.get<string>("AUTH_BASE_URL") || this.configService.get<string>("APP_URL");
         if (explicitBaseUrl) {
@@ -102,5 +125,12 @@ export class UploadsService {
 
         const port = this.configService.get<string>("PORT") || this.configService.get<string>("APP_PORT") || "3000";
         return `http://localhost:${port}`;
+    }
+
+    private getFirstHeaderValue(value: string | string[] | undefined) {
+        if (Array.isArray(value)) {
+            return value[0];
+        }
+        return value;
     }
 }

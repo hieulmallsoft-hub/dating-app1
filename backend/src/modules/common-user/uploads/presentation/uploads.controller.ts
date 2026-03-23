@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Post, Body, UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from "@nestjs/common";
+import { BadRequestException, Controller, Post, Body, UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile, Req } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
@@ -96,9 +96,11 @@ export class UploadsController {
             }
         })
     )
-    async uploadFile(@UploadedFile() file: any) {
+    async uploadFile(@Req() req, @UploadedFile() file: any) {
         if (!file) throw new BadRequestException("File is required");
-        return this.uploadsService.uploadFile(file);
+        return this.uploadsService.uploadFile(file, {
+            requestBaseUrl: this.uploadsService.resolveRequestBaseUrl(req)
+        });
     }
 }
 

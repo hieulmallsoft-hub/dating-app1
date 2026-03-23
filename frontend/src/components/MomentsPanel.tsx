@@ -21,7 +21,7 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
   const [items, setItems] = useState<momentsApi.MomentItem[]>([]);
   const [content, setContent] = useState("");
   const [photosText, setPhotosText] = useState("");
-  const [privacy, setPrivacy] = useState<momentsApi.MomentPrivacy>("COUPLE");
+  const [isPrivate, setIsPrivate] = useState<momentsApi.MomentVisibility>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,12 +64,12 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
       const created = await momentsApi.createMoment({
         content: content.trim() || undefined,
         photos: photos.length ? photos : undefined,
-        privacy,
+        isPrivate,
       });
       setItems((prev) => [created, ...prev]);
       setContent("");
       setPhotosText("");
-      setPrivacy("COUPLE");
+      setIsPrivate(false);
       setSuccess("Da tao moment");
     } catch (err: unknown) {
       const status = getHttpStatus(err);
@@ -87,13 +87,17 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
     const nextContent = window.prompt("Content", item.content || "");
     if (nextContent === null) return;
 
-    const nextPrivacyInput = window.prompt("Privacy (COUPLE/PRIVATE)", item.privacy);
-    if (nextPrivacyInput === null) return;
-    const nextPrivacy = nextPrivacyInput.trim().toUpperCase();
-    if (nextPrivacy !== "COUPLE" && nextPrivacy !== "PRIVATE") {
-      setError("Privacy phai la COUPLE hoac PRIVATE");
+    const nextIsPrivateInput = window.prompt(
+      "isPrivate true/false (true = chi minh toi, false = ca 2 nguoi)",
+      String(item.isPrivate)
+    );
+    if (nextIsPrivateInput === null) return;
+    const normalizedPrivacy = nextIsPrivateInput.trim().toLowerCase();
+    if (normalizedPrivacy !== "true" && normalizedPrivacy !== "false") {
+      setError("Privacy phai la true hoac false");
       return;
     }
+    const nextIsPrivate = normalizedPrivacy === "true";
 
     const nextPhotosInput = window.prompt(
       "Photos (moi dong 1 URL)",
@@ -107,7 +111,7 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
     try {
       const updated = await momentsApi.updateMoment(item.id, {
         content: nextContent.trim() || undefined,
-        privacy: nextPrivacy as momentsApi.MomentPrivacy,
+        isPrivate: nextIsPrivate,
         photos: parsePhotos(nextPhotosInput),
       });
       setItems((prev) => prev.map((moment) => (moment.id === updated.id ? updated : moment)));
@@ -179,14 +183,14 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
         </label>
 
         <label className="auth-field">
-          <span>Privacy</span>
+          <span>isPrivate</span>
           <select
             className="select"
-            value={privacy}
-            onChange={(e) => setPrivacy(e.target.value as momentsApi.MomentPrivacy)}
+            value={String(isPrivate)}
+            onChange={(e) => setIsPrivate(e.target.value === "true")}
           >
-            <option value="COUPLE">COUPLE</option>
-            <option value="PRIVATE">PRIVATE</option>
+            <option value="false">false (ca 2 nguoi xem)</option>
+            <option value="true">true (chi minh toi xem)</option>
           </select>
         </label>
 
@@ -209,9 +213,12 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
             <div className="event-item" key={item.id}>
               <div className="event-head">
                 <div className="event-title">
-                  {item.creator?.fullName || item.creator?.email || "Moment"}
+                  {item.creatorName || item.creator?.fullName || item.creator?.email || item.creatorId || "Moment"}
                 </div>
-                <span className="event-badge">{item.privacy}</span>
+                <span className="event-badge">
+                  {item.creatorRole ? `${item.creatorRole} - ` : ""}
+                  {item.isPrivate ? "PRIVATE" : "COUPLE"}
+                </span>
               </div>
 
               {item.content ? <div className="event-desc">{item.content}</div> : null}
@@ -227,22 +234,26 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
               <div className="event-date">{new Date(item.createdAt).toLocaleString()}</div>
 
               <div className="event-actions">
-                <button
-                  className="btn btn-small"
-                  type="button"
-                  disabled={isWorking}
-                  onClick={() => void editMoment(item)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-small"
-                  type="button"
-                  disabled={isWorking}
-                  onClick={() => void removeMoment(item.id)}
-                >
-                  Delete
-                </button>
+                {item.isUpdate ? (
+                  <>
+                    <button
+                      className="btn btn-small"
+                      type="button"
+                      disabled={isWorking}
+                      onClick={() => void editMoment(item)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-small"
+                      type="button"
+                      disabled={isWorking}
+                      onClick={() => void removeMoment(item.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : null}
               </div>
             </div>
           ))}

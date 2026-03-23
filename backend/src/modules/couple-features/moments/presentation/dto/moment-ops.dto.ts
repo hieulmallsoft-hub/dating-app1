@@ -1,6 +1,12 @@
-import { IsString, IsOptional, IsArray, IsEnum, IsNotEmpty } from "class-validator";
+import { Transform } from "class-transformer";
+import { IsString, IsOptional, IsArray, IsBoolean } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { MomentPrivacy } from "../../domain/entities/moment.entity";
+
+function toBoolean(value: unknown) {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return value;
+}
 
 export class CreateMomentDto {
     @ApiPropertyOptional({
@@ -22,16 +28,56 @@ export class CreateMomentDto {
     photos?: string[];
 
     @ApiPropertyOptional({
-        description: "Visibility of moment",
-        enum: MomentPrivacy,
-        example: MomentPrivacy.COUPLE
+        description: "Visibility flag (true = only creator can view, false = both in couple can view)",
+        type: Boolean,
+        example: true
     })
-    @IsEnum(MomentPrivacy)
+    @Transform(({ value }) => toBoolean(value))
+    @IsBoolean()
     @IsOptional()
-    privacy?: MomentPrivacy;
+    isPrivate?: boolean;
+
+    @ApiPropertyOptional({
+        description: "Deprecated alias of isPrivate",
+        type: Boolean,
+        example: true,
+        deprecated: true
+    })
+    @Transform(({ value }) => toBoolean(value))
+    @IsBoolean()
+    @IsOptional()
+    privacy?: boolean;
 }
 
 export class UpdateMomentDto extends CreateMomentDto {}
+
+export class MomentCreatorResponseDto {
+    @ApiProperty({
+        description: "Creator user id",
+        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
+    })
+    id: string;
+
+    @ApiProperty({
+        description: "Creator email",
+        example: "mobile.user@example.com"
+    })
+    email: string;
+
+    @ApiPropertyOptional({
+        description: "Creator display name",
+        example: "Mai Nguyen",
+        nullable: true
+    })
+    fullName?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Creator avatar URL",
+        example: "https://cdn.example.com/avatars/me.jpg",
+        nullable: true
+    })
+    avatar?: string | null;
+}
 
 export class MomentResponseDto {
     @ApiProperty({
@@ -53,6 +99,24 @@ export class MomentResponseDto {
     creatorId: string;
 
     @ApiPropertyOptional({
+        description: "Creator display name ready for UI",
+        example: "Mai Nguyen"
+    })
+    creatorName?: string;
+
+    @ApiPropertyOptional({
+        description: "Creator role relative to current user",
+        example: "ME"
+    })
+    creatorRole?: "ME" | "PARTNER";
+
+    @ApiPropertyOptional({
+        description: "True if current authenticated user can update this moment (owner post)",
+        example: true
+    })
+    isUpdate?: boolean;
+
+    @ApiPropertyOptional({
         description: "Moment content",
         example: "Today was a beautiful day together.",
         nullable: true
@@ -68,11 +132,19 @@ export class MomentResponseDto {
     photos?: string[] | null;
 
     @ApiProperty({
-        description: "Privacy option",
-        enum: MomentPrivacy,
-        example: MomentPrivacy.COUPLE
+        description: "Visibility flag (true = only creator can view, false = both in couple can view)",
+        type: Boolean,
+        example: true
     })
-    privacy: MomentPrivacy;
+    isPrivate: boolean;
+
+    @ApiPropertyOptional({
+        description: "Deprecated alias of isPrivate",
+        type: Boolean,
+        example: true,
+        deprecated: true
+    })
+    privacy?: boolean;
 
     @ApiProperty({
         description: "Created time (ISO-8601)",
@@ -85,6 +157,12 @@ export class MomentResponseDto {
         example: "2026-03-09T09:00:00.000Z"
     })
     updatedAt: string;
+
+    @ApiPropertyOptional({
+        description: "Creator profile",
+        type: () => MomentCreatorResponseDto
+    })
+    creator?: MomentCreatorResponseDto;
 }
 
 export class MomentActionResponseDto {

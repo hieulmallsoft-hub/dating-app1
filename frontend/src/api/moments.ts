@@ -1,6 +1,6 @@
 import { http } from "./http";
 
-export type MomentPrivacy = "COUPLE" | "PRIVATE";
+export type MomentVisibility = boolean;
 
 export type MomentCreator = {
   id: string;
@@ -13,9 +13,13 @@ export type MomentItem = {
   id: string;
   coupleId: string;
   creatorId: string;
+  creatorName?: string;
+  creatorRole?: "ME" | "PARTNER";
+  isUpdate?: boolean;
   content: string | null;
   photos: string[] | null;
-  privacy: MomentPrivacy;
+  isPrivate: MomentVisibility;
+  privacy?: MomentVisibility;
   createdAt: string;
   updatedAt: string;
   creator?: MomentCreator;
@@ -24,7 +28,8 @@ export type MomentItem = {
 export type MomentPayload = {
   content?: string;
   photos?: string[];
-  privacy?: MomentPrivacy;
+  isPrivate?: MomentVisibility;
+  privacy?: MomentVisibility;
 };
 
 export async function getMoments() {

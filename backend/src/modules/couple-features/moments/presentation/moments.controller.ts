@@ -56,8 +56,9 @@ export class MomentsController {
         description: "Missing/invalid access token"
     })
     async getMomentFeed(@Req() req) {
-        const moments = await this.momentsService.getFeed(this.getCurrentUserId(req));
-        return toMomentResponseList(moments);
+        const userId = this.getCurrentUserId(req);
+        const moments = await this.momentsService.getFeed(userId);
+        return toMomentResponseList(moments, userId);
     }
 
     @Post()
@@ -70,7 +71,7 @@ export class MomentsController {
         type: MomentResponseDto
     })
     @ApiBadRequestResponse({
-        description: "Invalid payload (privacy or payload format)"
+        description: "Invalid payload (isPrivate or payload format)"
     })
     @ApiNotFoundResponse({
         description: "Current user is not in a couple"
@@ -79,8 +80,9 @@ export class MomentsController {
         description: "Missing/invalid access token"
     })
     async createMoment(@Req() req, @Body() dto: CreateMomentDto) {
-        const moment = await this.momentsService.createMoment(this.getCurrentUserId(req), dto);
-        return toMomentResponse(moment);
+        const userId = this.getCurrentUserId(req);
+        const moment = await this.momentsService.createMoment(userId, dto);
+        return toMomentResponse(moment, userId);
     }
 
     @Patch(":id")
@@ -110,8 +112,9 @@ export class MomentsController {
         description: "Missing/invalid access token"
     })
     async updateMoment(@Req() req, @Param("id") id: string, @Body() dto: UpdateMomentDto) {
-        const moment = await this.momentsService.updateMoment(this.getCurrentUserId(req), id, dto);
-        return toMomentResponse(moment);
+        const userId = this.getCurrentUserId(req);
+        const moment = await this.momentsService.updateMoment(userId, id, dto);
+        return toMomentResponse(moment, userId);
     }
 
     @Delete(":id")
