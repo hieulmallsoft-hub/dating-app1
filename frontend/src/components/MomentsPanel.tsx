@@ -94,7 +94,7 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
     if (nextIsPrivateInput === null) return;
     const normalizedPrivacy = nextIsPrivateInput.trim().toLowerCase();
     if (normalizedPrivacy !== "true" && normalizedPrivacy !== "false") {
-      setError("Privacy phai la true hoac false");
+      setError("isPrivate phai la true hoac false");
       return;
     }
     const nextIsPrivate = normalizedPrivacy === "true";
@@ -213,10 +213,9 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
             <div className="event-item" key={item.id}>
               <div className="event-head">
                 <div className="event-title">
-                  {item.creatorName || item.creator?.fullName || item.creator?.email || item.creatorId || "Moment"}
+                  {item.creatorName || "Moment"}
                 </div>
                 <span className="event-badge">
-                  {item.creatorRole ? `${item.creatorRole} - ` : ""}
                   {item.isPrivate ? "PRIVATE" : "COUPLE"}
                 </span>
               </div>

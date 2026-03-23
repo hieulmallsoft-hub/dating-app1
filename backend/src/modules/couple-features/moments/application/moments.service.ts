@@ -59,17 +59,14 @@ export class MomentsService {
             })
             .select([
                 "moment.id",
-                "moment.coupleId",
                 "moment.creatorId",
                 "moment.content",
                 "moment.photos",
                 "moment.privacy",
                 "moment.createdAt",
-                "moment.updatedAt",
                 "creator.id",
                 "creator.email",
-                "creator.fullName",
-                "creator.avatar"
+                "creator.fullName"
             ])
             .orderBy("moment.createdAt", "DESC")
             .getMany();
@@ -163,17 +160,14 @@ export class MomentsService {
             .where("moment.id = :momentId", { momentId })
             .select([
                 "moment.id",
-                "moment.coupleId",
                 "moment.creatorId",
                 "moment.content",
                 "moment.photos",
                 "moment.privacy",
                 "moment.createdAt",
-                "moment.updatedAt",
                 "creator.id",
                 "creator.email",
-                "creator.fullName",
-                "creator.avatar"
+                "creator.fullName"
             ])
             .getOne();
     }

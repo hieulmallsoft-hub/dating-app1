@@ -51,34 +51,6 @@ export class CreateMomentDto {
 
 export class UpdateMomentDto extends CreateMomentDto {}
 
-export class MomentCreatorResponseDto {
-    @ApiProperty({
-        description: "Creator user id",
-        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
-    })
-    id: string;
-
-    @ApiProperty({
-        description: "Creator email",
-        example: "mobile.user@example.com"
-    })
-    email: string;
-
-    @ApiPropertyOptional({
-        description: "Creator display name",
-        example: "Mai Nguyen",
-        nullable: true
-    })
-    fullName?: string | null;
-
-    @ApiPropertyOptional({
-        description: "Creator avatar URL",
-        example: "https://cdn.example.com/avatars/me.jpg",
-        nullable: true
-    })
-    avatar?: string | null;
-}
-
 export class MomentResponseDto {
     @ApiProperty({
         description: "Moment id",
@@ -86,29 +58,11 @@ export class MomentResponseDto {
     })
     id: string;
 
-    @ApiProperty({
-        description: "Couple id",
-        example: "9fbc526f-9d1a-4141-b377-53e5fb6a0b69"
-    })
-    coupleId: string;
-
-    @ApiProperty({
-        description: "Creator user id",
-        example: "7ad1fd3e-30ec-4cca-bfb9-9b8cb857ccf8"
-    })
-    creatorId: string;
-
     @ApiPropertyOptional({
         description: "Creator display name ready for UI",
         example: "Mai Nguyen"
     })
     creatorName?: string;
-
-    @ApiPropertyOptional({
-        description: "Creator role relative to current user",
-        example: "ME"
-    })
-    creatorRole?: "ME" | "PARTNER";
 
     @ApiPropertyOptional({
         description: "True if current authenticated user can update this moment (owner post)",
@@ -138,31 +92,11 @@ export class MomentResponseDto {
     })
     isPrivate: boolean;
 
-    @ApiPropertyOptional({
-        description: "Deprecated alias of isPrivate",
-        type: Boolean,
-        example: true,
-        deprecated: true
-    })
-    privacy?: boolean;
-
     @ApiProperty({
         description: "Created time (ISO-8601)",
         example: "2026-03-09T08:00:00.000Z"
     })
     createdAt: string;
-
-    @ApiProperty({
-        description: "Updated time (ISO-8601)",
-        example: "2026-03-09T09:00:00.000Z"
-    })
-    updatedAt: string;
-
-    @ApiPropertyOptional({
-        description: "Creator profile",
-        type: () => MomentCreatorResponseDto
-    })
-    creator?: MomentCreatorResponseDto;
 }
 
 export class MomentActionResponseDto {
