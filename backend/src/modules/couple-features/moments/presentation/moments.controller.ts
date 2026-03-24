@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Controller,
     Get,
     Post,
@@ -8,7 +9,9 @@ import {
     Req,
     UseGuards,
     Param,
-    UnauthorizedException
+    UnauthorizedException,
+    UploadedFiles,
+    UseInterceptors
 } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
@@ -20,8 +23,12 @@ import {
     ApiOperation,
     ApiParam,
     ApiTags,
-    ApiUnauthorizedResponse
+    ApiUnauthorizedResponse,
+    ApiBody,
+    ApiConsumes
 } from "@nestjs/swagger";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { MomentsService } from "../application/moments.service";
 import {
     CreateMomentDto,
@@ -31,13 +38,17 @@ import {
 } from "./dto/moment-ops.dto";
 import { JwtAuthGuard } from "../../../common-user/auth/infrastructure/strategies/jwt-auth-guard";
 import { toMomentResponse, toMomentResponseList } from "./mappers/moment-response.mapper";
+import { UploadsService } from "../../../common-user/uploads/application/uploads.service";
 
 @ApiTags("moments")
 @ApiBearerAuth("JWT-auth")
 @Controller("moments")
 @UseGuards(JwtAuthGuard)
 export class MomentsController {
-    constructor(private readonly momentsService: MomentsService) {}
+    constructor(
+        private readonly momentsService: MomentsService,
+        private readonly uploadsService: UploadsService
+    ) {}
 
     @Get()
     @ApiOperation({
@@ -64,7 +75,39 @@ export class MomentsController {
     @Post()
     @ApiOperation({
         summary: "Create moment",
-        description: "Create moment. If photos exist, media album is synced automatically."
+        description:
+            "Create moment. Supports both application/json (photos is URL list) and multipart/form-data (photos is image files). If photos exist, media album is synced automatically."
+    })
+    @ApiConsumes("application/json", "multipart/form-data")
+    @ApiBody({
+        schema: {
+            oneOf: [
+                {
+                    type: "object",
+                    properties: {
+                        content: { type: "string", example: "Today was a beautiful day together." },
+                        photos: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: ["https://cdn.example.com/photos/1.jpg", "https://cdn.example.com/photos/2.jpg"]
+                        },
+                        isPrivate: { type: "boolean", example: true }
+                    }
+                },
+                {
+                    type: "object",
+                    properties: {
+                        content: { type: "string" },
+                        isPrivate: { type: "boolean" },
+                        photos: {
+                            type: "array",
+                            items: { type: "string", format: "binary" },
+                            description: "Attach one or more image files"
+                        }
+                    }
+                }
+            ]
+        }
     })
     @ApiCreatedResponse({
         description: "Moment created",
@@ -79,9 +122,50 @@ export class MomentsController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async createMoment(@Req() req, @Body() dto: CreateMomentDto) {
+    @UseInterceptors(
+        FilesInterceptor("photos", 10, {
+            storage: memoryStorage(),
+            limits: { fileSize: 50 * 1024 * 1024 },
+            fileFilter: (_req, file, cb) => {
+                const allowedImageMimeTypes = new Set([
+                    "image/jpeg",
+                    "image/jpg",
+                    "image/png",
+                    "image/webp",
+                    "image/gif",
+                    "image/heic",
+                    "image/heif",
+                    "image/heic-sequence",
+                    "image/heif-sequence"
+                ]);
+                if (!allowedImageMimeTypes.has(file.mimetype)) {
+                    return cb(new BadRequestException("Unsupported image type") as any, false);
+                }
+                return cb(null, true);
+            }
+        })
+    )
+    async createMoment(@Req() req, @Body() dto: CreateMomentDto, @UploadedFiles() photoFiles: any[] = []) {
         const userId = this.getCurrentUserId(req);
-        const moment = await this.momentsService.createMoment(userId, dto);
+        const uploadedPhotoUrls: string[] = [];
+
+        for (const file of photoFiles) {
+            const uploaded = await this.uploadsService.uploadFile(file, {
+                requestBaseUrl: this.uploadsService.resolveRequestBaseUrl(req)
+            });
+            if (uploaded.type !== "image") {
+                throw new BadRequestException("Moment only supports image files");
+            }
+            uploadedPhotoUrls.push(uploaded.fileUrl);
+        }
+
+        const mergedPhotos = Array.from(new Set([...(dto.photos || []), ...uploadedPhotoUrls]));
+        const payload: CreateMomentDto = {
+            ...dto,
+            photos: mergedPhotos.length > 0 ? mergedPhotos : dto.photos
+        };
+
+        const moment = await this.momentsService.createMoment(userId, payload);
         return toMomentResponse(moment, userId);
     }
 

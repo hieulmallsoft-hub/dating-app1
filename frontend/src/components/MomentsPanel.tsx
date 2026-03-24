@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getHttpMessage, getHttpStatus } from "../api/error";
 import * as momentsApi from "../api/moments";
+import * as uploadsApi from "../api/uploads";
 
 type Props = {
   onAuthInvalid: () => void;
@@ -17,6 +18,10 @@ function parsePhotos(text: string) {
   );
 }
 
+function mergePhotoText(currentText: string, incomingUrls: string[]) {
+  return Array.from(new Set([...parsePhotos(currentText), ...incomingUrls])).join("\n");
+}
+
 export default function MomentsPanel({ onAuthInvalid }: Props) {
   const [items, setItems] = useState<momentsApi.MomentItem[]>([]);
   const [content, setContent] = useState("");
@@ -24,13 +29,14 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
   const [isPrivate, setIsPrivate] = useState<momentsApi.MomentVisibility>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const photos = useMemo(() => parsePhotos(photosText), [photosText]);
   const canCreate = useMemo(
-    () => !isWorking && (content.trim().length > 0 || photos.length > 0),
-    [isWorking, content, photos.length]
+    () => !isWorking && !isUploadingPhotos && (content.trim().length > 0 || photos.length > 0),
+    [isWorking, isUploadingPhotos, content, photos.length]
   );
 
   const load = useCallback(async () => {
@@ -81,6 +87,42 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
     } finally {
       setIsWorking(false);
     }
+  };
+
+  const uploadPhotos = async (files: File[]) => {
+    if (!files.length) return;
+    setIsUploadingPhotos(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const uploaded = await uploadsApi.uploadFile(file);
+        if (uploaded.type !== "image") {
+          throw new Error("Moment chi ho tro upload anh");
+        }
+        uploadedUrls.push(uploaded.fileUrl);
+      }
+
+      setPhotosText((prev) => mergePhotoText(prev, uploadedUrls));
+      setSuccess(`Da tai len ${uploadedUrls.length} anh, bam Tao moment de dang`);
+    } catch (err: unknown) {
+      const status = getHttpStatus(err);
+      if (status === 401) {
+        onAuthInvalid();
+      } else {
+        setError(getHttpMessage(err, "Upload moment photos failed"));
+      }
+    } finally {
+      setIsUploadingPhotos(false);
+    }
+  };
+
+  const onPickPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = "";
+    if (!files.length) return;
+    void uploadPhotos(files);
   };
 
   const editMoment = async (item: momentsApi.MomentItem) => {
@@ -180,6 +222,30 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
             onChange={(e) => setPhotosText(e.target.value)}
             placeholder="https://..."
           />
+          <div className="join-row" style={{ marginTop: 8 }}>
+            <label className={`btn btn-small ${isUploadingPhotos ? "btn-outline" : "btn-primary"}`}>
+              {isUploadingPhotos ? "Dang tai anh..." : "Tai anh tu dien thoai"}
+              <input
+                type="file"
+                accept="image/*,.heic,.heif"
+                onChange={onPickPhotos}
+                hidden
+                multiple
+                disabled={isWorking || isUploadingPhotos}
+              />
+            </label>
+            {photos.length ? (
+              <button
+                className="btn btn-small"
+                type="button"
+                disabled={isWorking || isUploadingPhotos}
+                onClick={() => setPhotosText("")}
+              >
+                Clear photos
+              </button>
+            ) : null}
+          </div>
+          <div className="hint">Co the chon nhieu anh mot lan tren dien thoai</div>
         </label>
 
         <label className="auth-field">
@@ -200,7 +266,7 @@ export default function MomentsPanel({ onAuthInvalid }: Props) {
           disabled={!canCreate}
           onClick={() => void createMoment()}
         >
-          {isWorking ? "Dang xu ly..." : "Tao moment"}
+          {isWorking ? "Dang xu ly..." : isUploadingPhotos ? "Dang tai anh..." : "Tao moment"}
         </button>
       </div>
 

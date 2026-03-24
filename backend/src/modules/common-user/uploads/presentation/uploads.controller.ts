@@ -76,9 +76,14 @@ export class UploadsController {
             fileFilter: (_req, file, cb) => {
                 const allowedMimeTypes = new Set([
                     "image/jpeg",
+                    "image/jpg",
                     "image/png",
                     "image/webp",
                     "image/gif",
+                    "image/heic",
+                    "image/heif",
+                    "image/heic-sequence",
+                    "image/heif-sequence",
                     "audio/mpeg",
                     "audio/wav",
                     "audio/ogg",
