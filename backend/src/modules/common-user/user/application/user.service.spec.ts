@@ -1,5 +1,6 @@
 import { NotFoundException } from "@nestjs/common";
 import { UsersService } from "./user.service";
+import type { LocationGateway } from "../presentation/location.gateway";
 
 type MockRepo = {
     find: jest.Mock;
@@ -22,10 +23,12 @@ describe("UsersService.deleteUser", () => {
             transaction: jest.fn()
         };
 
+        const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
-            dataSource as any
+            dataSource as any,
+            locationGateway
         );
 
         await expect(service.deleteUser("missing-user")).rejects.toBeInstanceOf(NotFoundException);
@@ -77,10 +80,12 @@ describe("UsersService.deleteUser", () => {
         };
         const locationHistoryRepository = {};
 
+        const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
-            dataSource as any
+            dataSource as any,
+            locationGateway
         );
 
         const result = await service.deleteUser("user-1");
@@ -135,10 +140,12 @@ describe("UsersService.updateMyLocation", () => {
             })
         };
 
+        const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
-            dataSource as any
+            dataSource as any,
+            locationGateway
         );
 
         const result = await service.updateMyLocation(
@@ -209,10 +216,12 @@ describe("UsersService.updateMyLocation", () => {
             getRepository: jest.fn()
         };
 
+        const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
-            dataSource as any
+            dataSource as any,
+            locationGateway
         );
 
         const result = await service.updateMyLocation(

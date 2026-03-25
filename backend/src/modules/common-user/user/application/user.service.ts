@@ -9,6 +9,7 @@ import { LocationHistoryRepository } from "../infrastructure/persistence/locatio
 import { AuthProvider, User } from "../domain/entities/user.entity";
 import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
 import { LocationSource } from "../domain/entities/location-history.entity";
+import { LocationGateway } from "../presentation/location.gateway";
 import { Event } from "../../../couple-features/events/domain/entities/event.entity";
 import { Moment } from "../../../couple-features/moments/domain/entities/moment.entity";
 import { Place } from "../../../couple-features/places/domain/entities/place.entity";
@@ -44,7 +45,8 @@ export class UsersService {
     constructor(
         private readonly userRepository: UserRepository,
         private readonly locationHistoryRepository: LocationHistoryRepository,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly locationGateway: LocationGateway
     ) {}
 
     async getUserById(id: string) {
@@ -243,6 +245,21 @@ export class UsersService {
 
         await this.userRepository.updateById(id, updatePayload);
 
+        const coupleId = await this.resolveActiveCoupleId(id);
+        if (coupleId) {
+            this.locationGateway.emitLocationUpdated({
+                coupleId,
+                userId: id,
+                latitude: nextLatitude,
+                longitude: nextLongitude,
+                accuracy: nextAccuracy,
+                batteryLevel: nextBatteryLevel ?? null,
+                isCharging: nextIsCharging ?? null,
+                speed: nextSpeed ?? null,
+                lastActiveAt: eventTime.toISOString()
+            });
+        }
+
         const latest = await this.locationHistoryRepository.findOne({
             where: { userId: id },
             order: { recordedAt: "DESC" }
@@ -259,7 +276,6 @@ export class UsersService {
             eventTime.getTime() - new Date(latest.recordedAt).getTime() >= 30_000;
 
         if (shouldPersist) {
-            const coupleId = await this.resolveActiveCoupleId(id);
             if (coupleId) {
                 await this.locationHistoryRepository.save(
                     this.locationHistoryRepository.create({

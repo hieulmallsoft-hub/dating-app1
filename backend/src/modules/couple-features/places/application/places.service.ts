@@ -8,6 +8,8 @@ import { Place, PlaceType } from "../domain/entities/place.entity";
 import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
 import { UsersService } from "../../../common-user/user/application/user.service";
 import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
+import { PlacesGateway } from "../presentation/places.gateway";
+import { toPlaceResponse } from "../presentation/mappers/place-response.mapper";
 
 @Injectable()
 export class PlacesService {
@@ -17,7 +19,8 @@ export class PlacesService {
         private readonly placeRepository: PlaceRepository,
         private readonly coupleService: CoupleService,
         private readonly notificationsService: NotificationsService,
-        private readonly usersService: UsersService
+        private readonly usersService: UsersService,
+        private readonly placesGateway: PlacesGateway
     ) {}
 
     async createPlace(userId: string, dto: CreatePlaceDto) {
@@ -37,7 +40,9 @@ export class PlacesService {
             sharedBy: userId
         });
 
-        return this.placeRepository.save(place);
+        const saved = await this.placeRepository.save(place);
+        this.placesGateway.emitToCouple(couple.id, "places:created", toPlaceResponse(saved));
+        return saved;
     }
 
     async getPlaces(userId: string, since?: number) {
@@ -76,7 +81,9 @@ export class PlacesService {
         if (dto.isDeleted !== undefined) place.isDeleted = dto.isDeleted;
         if (dto.isSynced !== undefined) place.isSynced = dto.isSynced;
 
-        return this.placeRepository.save(place);
+        const saved = await this.placeRepository.save(place);
+        this.placesGateway.emitToCouple(couple.id, "places:updated", toPlaceResponse(saved));
+        return saved;
     }
 
     async deletePlace(userId: string, placeId: string) {
@@ -91,7 +98,9 @@ export class PlacesService {
 
         place.isDeleted = true;
         place.isSynced = true;
-        return this.placeRepository.save(place);
+        const saved = await this.placeRepository.save(place);
+        this.placesGateway.emitToCouple(couple.id, "places:deleted", toPlaceResponse(saved));
+        return saved;
     }
 
     async handleGeofenceEvent(
