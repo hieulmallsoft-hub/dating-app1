@@ -30,7 +30,9 @@ export class LocationsGateway {
         const couple = await this.coupleService.getMyCouple(userId);
         const room = this.roomForCouple(couple.id);
         await client.join(room);
-        return { event: "locations:joined", data: { coupleId: couple.id } };
+        // Emit explicit event for listeners and return ACK for clients using callbacks.
+        client.emit("locations:joined", { coupleId: couple.id });
+        return { ok: true, coupleId: couple.id };
     }
 
     emitToCouple(coupleId: string, event: LocationsRealtimeEvent, payload: unknown) {
