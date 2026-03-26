@@ -1,8 +1,10 @@
 import {
+    Inject,
     Injectable,
     Logger,
     ServiceUnavailableException,
-    UnauthorizedException
+    UnauthorizedException,
+    forwardRef
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -51,6 +53,7 @@ export class AuthService {
     private readonly googleClientId?: string;
 
     constructor(
+        @Inject(forwardRef(() => UsersService))
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,

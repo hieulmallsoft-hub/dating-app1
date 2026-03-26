@@ -73,7 +73,7 @@ Tài liệu này hướng dẫn cách kiểm tra toàn bộ các chức năng c�
 
 ---
 
-## 7. Sự Kiện & Địa Điểm (Module Events & Places)
+## 7. Sự Kiện & Địa Điểm (Module Events & Locations)
 
 ### Events
 
@@ -84,13 +84,13 @@ Tài liệu này hướng dẫn cách kiểm tra toàn bộ các chức năng c�
 | `PUT`    | `/events/:id` | Cập nhật sự kiện      |                             |
 | `DELETE` | `/events/:id` | Xóa sự kiện           |                             |
 
-### Places
+### Locations
 
 | Method | Endpoint         | Mô tả                         | Params            |
 | :----- | :--------------- | :---------------------------- | :---------------- |
-| `GET`  | `/places`        | Lấy danh sách địa điểm đã lưu |                   |
-| `GET`  | `/places/search` | Tìm kiếm địa điểm             | `?q=ten_dia_diem` |
-| `POST` | `/places`        | Lưu địa điểm mới              |                   |
+| `GET`  | `/locations`        | Lấy danh sách địa điểm đã lưu |                   |
+| `GET`  | `/locations/search` | Tìm kiếm địa điểm             | `?q=ten_dia_diem` |
+| `POST` | `/locations`        | Lưu địa điểm mới              |                   |
 
 ---
 

@@ -1,34 +1,34 @@
-﻿# Tài liệu test toàn bộ API (Swagger) - Dating App Backend
+# T�i li?u test to�n b? API (Swagger) - Dating App Backend
 
-Cập nhật theo source code hiện tại ngày **09/03/2026**.
+C?p nh?t theo source code hi?n t?i ng�y **09/03/2026**.
 
-Nếu team mobile/frontend chỉ cần flow Google login bằng `POST`, xem nhanh:
+N?u team mobile/frontend ch? c?n flow Google login b?ng `POST`, xem nhanh:
 - `MOBILE_GOOGLE_LOGIN_POST_ONLY.md`
 
-## 0. Kết quả rà soát API trước khi viết tài liệu
+## 0. K?t qu? r� so�t API tru?c khi vi?t t�i li?u
 
-Đã rà lại backend trước khi cập nhật docs:
+�� r� l?i backend tru?c khi c?p nh?t docs:
 
 - `npm run build`: **PASS**
 - `npm test`: **PASS** (9/9 test)
 
-Các điểm cần lưu ý (rủi ro/lỗi tiềm ẩn từ code hiện tại):
+C�c di?m c?n luu � (r?i ro/l?i ti?m ?n t? code hi?n t?i):
 
-1. `POST /security/pin` và `POST /security/verify-pin` đang nhận `pin` trực tiếp từ `@Body("pin")` (không DTO validation). Nếu không gửi `pin`, service có thể phát sinh lỗi runtime (500) thay vì trả 400 chuẩn.
-2. `POST /auth/register` cho phép thiếu `password` (DTO đang `@IsOptional()`), có thể tạo user local không đăng nhập được bằng mật khẩu.
-3. `GET /users/:id` và `DELETE /users/:id` chưa có kiểm soát role/ownership; người dùng đã login có thể truy cập/xóa user khác.
-4. `GET /` không `@Public()`, nên hiện tại cần JWT (nếu dùng làm health-check thì chưa hợp lý).
+1. `POST /security/pin` v� `POST /security/verify-pin` dang nh?n `pin` tr?c ti?p t? `@Body("pin")` (kh�ng DTO validation). N?u kh�ng g?i `pin`, service c� th? ph�t sinh l?i runtime (500) thay v� tr? 400 chu?n.
+2. `POST /auth/register` cho ph�p thi?u `password` (DTO dang `@IsOptional()`), c� th? t?o user local kh�ng dang nh?p du?c b?ng m?t kh?u.
+3. `GET /users/:id` v� `DELETE /users/:id` chua c� ki?m so�t role/ownership; ngu?i d�ng d� login c� th? truy c?p/x�a user kh�c.
+4. `GET /` kh�ng `@Public()`, n�n hi?n t?i c?n JWT (n?u d�ng l�m health-check th� chua h?p l�).
 
-Lưu ý: Tài liệu bên dưới mô tả đúng hành vi API **đang chạy theo code hiện tại** (kể cả các điểm chưa tối ưu ở trên).
+Luu �: T�i li?u b�n du?i m� t? d�ng h�nh vi API **dang ch?y theo code hi?n t?i** (k? c? c�c di?m chua t?i uu ? tr�n).
 
 ---
 
-## 1. Chuẩn bị môi trường test
+## 1. Chu?n b? m�i tru?ng test
 
-### 1.1 Chạy backend
+### 1.1 Ch?y backend
 
-1. Mở terminal tại thư mục dự án.
-2. Chạy:
+1. M? terminal t?i thu m?c d? �n.
+2. Ch?y:
 
 ```bash
 cd backend
@@ -36,79 +36,79 @@ npm install
 npm run start:dev
 ```
 
-3. Mở Swagger: `http://localhost:3000/api/docs`
+3. M? Swagger: `http://localhost:3000/api/docs`
 
-### 1.2 Lưu ý quan trọng
+### 1.2 Luu � quan tr?ng
 
-- Dự án **không** set global prefix `api`, nên endpoint thực tế là:
+- D? �n **kh�ng** set global prefix `api`, n�n endpoint th?c t? l�:
   - `/auth/login`
   - `/users/me`
   - ...
-- JWT Guard đang bật toàn cục. Mặc định endpoint nào không có `@Public()` đều cần token.
+- JWT Guard dang b?t to�n c?c. M?c d?nh endpoint n�o kh�ng c� `@Public()` d?u c?n token.
 - Trong Swagger:
-  - Bấm **Authorize**.
-  - Dán `access_token` vào ô Bearer token.
+  - B?m **Authorize**.
+  - D�n `access_token` v�o � Bearer token.
 
-### 1.3 Dữ liệu test nên chuẩn bị
+### 1.3 D? li?u test n�n chu?n b?
 
-- 2 tài khoản:
+- 2 t�i kho?n:
   - `USER_A_EMAIL`, `USER_A_PASSWORD`
   - `USER_B_EMAIL`, `USER_B_PASSWORD`
 - Token:
   - `ACCESS_A`, `REFRESH_A`
   - `ACCESS_B`, `REFRESH_B`
-- ID dùng lại:
+- ID d�ng l?i:
   - `USER_A_ID`, `USER_B_ID`
   - `INVITE_CODE`, `COUPLE_ID`
   - `EVENT_ID`, `MOMENT_ID`, `PLACE_ID`, `MEDIA_ID`, `TRIP_ID`, `NOTIFICATION_ID`
 
 ---
 
-## 1.4 Luồng đăng nhập dùng cho tài liệu này (đã rút gọn)
+## 1.4 Lu?ng dang nh?p d�ng cho t�i li?u n�y (d� r�t g?n)
 
-Để team dễ tích hợp và test, tài liệu này chỉ giữ **1 flow social login chính**:
+�? team d? t�ch h?p v� test, t�i li?u n�y ch? gi? **1 flow social login ch�nh**:
 
-1. Mobile/client lấy `idToken` từ Google SDK.
-2. Gọi `POST /auth/google` với body `{ "idToken": "..." }`.
-3. Backend verify token với Google và trả `user`, `tokens`.
+1. Mobile/client l?y `idToken` t? Google SDK.
+2. G?i `POST /auth/google` v?i body `{ "idToken": "..." }`.
+3. Backend verify token v?i Google v� tr? `user`, `tokens`.
 
-Luồng OAuth redirect không dùng trong flow test rút gọn này.
-
----
-
-## 2. Quy ước test cho mọi API
-
-Với mỗi API nên test tối thiểu 4 nhóm ca:
-
-1. **Happy path**: request hợp lệ, đúng precondition.
-2. **Auth fail**: thiếu token/sai token (nếu endpoint cần auth).
-3. **Validation fail**: sai kiểu dữ liệu, thiếu field bắt buộc, enum sai.
-4. **Business fail**: không đủ điều kiện nghiệp vụ (không thuộc quyền, không tồn tại dữ liệu, chưa ghép đôi...).
+Lu?ng OAuth redirect kh�ng d�ng trong flow test r�t g?n n�y.
 
 ---
 
-## 3. Hướng dẫn test chi tiết từng API
+## 2. Quy u?c test cho m?i API
+
+V?i m?i API n�n test t?i thi?u 4 nh�m ca:
+
+1. **Happy path**: request h?p l?, d�ng precondition.
+2. **Auth fail**: thi?u token/sai token (n?u endpoint c?n auth).
+3. **Validation fail**: sai ki?u d? li?u, thi?u field b?t bu?c, enum sai.
+4. **Business fail**: kh�ng d? di?u ki?n nghi?p v? (kh�ng thu?c quy?n, kh�ng t?n t?i d? li?u, chua gh�p d�i...).
+
+---
+
+## 3. Hu?ng d?n test chi ti?t t?ng API
 
 ## 3.1 Root
 
 ### GET `/`
 
-Mục đích: API test nhanh server.
+M?c d�ch: API test nhanh server.
 
-Tiền điều kiện:
-- Có JWT hợp lệ (do route này đang bị bảo vệ).
+Ti?n di?u ki?n:
+- C� JWT h?p l? (do route n�y dang b? b?o v?).
 
-Các bước test (Swagger):
-1. Authorize bằng token.
-2. Mở endpoint `GET /`.
-3. Bấm `Try it out` -> `Execute`.
+C�c bu?c test (Swagger):
+1. Authorize b?ng token.
+2. M? endpoint `GET /`.
+3. B?m `Try it out` -> `Execute`.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
 - Body: `Hello World!11111`
 
-Ca lỗi nên test:
-- Không token -> `401`.
+Ca l?i n�n test:
+- Kh�ng token -> `401`.
 
 ---
 
@@ -116,38 +116,38 @@ Ca lỗi nên test:
 
 ### POST `/auth/register`
 
-Mục đích: đăng ký tài khoản mới.
+M?c d�ch: dang k� t�i kho?n m?i.
 
-Các bước test:
-1. Mở `POST /auth/register`.
+C�c bu?c test:
+1. M? `POST /auth/register`.
 2. `Try it out`.
-3. Dùng payload:
+3. D�ng payload:
 
 ```json
 {
   "email": "usera_test@example.com",
   "password": "123456",
-  "fullName": "Nguyễn A"
+  "fullName": "Nguy?n A"
 }
 ```
 
 4. `Execute`.
 
-Kỳ vọng:
+K? v?ng:
 - `201 Created`
-- Response có `user`, `tokens`
+- Response c� `user`, `tokens`
 - Set-Cookie: `access_token`, `refresh_token`
 
-Ca lỗi nên test:
-1. Email trùng -> `409`.
+Ca l?i n�n test:
+1. Email tr�ng -> `409`.
 2. Email sai format -> `400`.
-3. Thiếu password (do DTO đang optional) -> có thể vẫn tạo user, cần ghi nhận hành vi hiện tại.
+3. Thi?u password (do DTO dang optional) -> c� th? v?n t?o user, c?n ghi nh?n h�nh vi hi?n t?i.
 
 ### POST `/auth/login`
 
-Mục đích: đăng nhập local account.
+M?c d�ch: dang nh?p local account.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -156,36 +156,36 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Có `user`, `tokens`
-- Có cookie token
+- C� `user`, `tokens`
+- C� cookie token
 
-Ca lỗi:
+Ca l?i:
 1. Sai email/password -> `401`.
-2. Password < 6 ký tự -> `400`.
-3. Account bị khóa/inactive -> `401`.
+2. Password < 6 k� t? -> `400`.
+3. Account b? kh�a/inactive -> `401`.
 
 ### GET `/auth/profile`
 
-Mục đích: lấy thông tin user từ access token hiện tại.
+M?c d�ch: l?y th�ng tin user t? access token hi?n t?i.
 
-Các bước:
-1. Authorize bằng token.
+C�c bu?c:
+1. Authorize b?ng token.
 2. Execute `GET /auth/profile`.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả payload user đã xác thực.
+- Tr? payload user d� x�c th?c.
 
-Ca lỗi:
-- Token sai/hết hạn -> `401`.
+Ca l?i:
+- Token sai/h?t h?n -> `401`.
 
 ### POST `/auth/google`
 
-Mục đích: login Google kiểu mobile/API bằng `idToken` (flow social login chính).
+M?c d�ch: login Google ki?u mobile/API b?ng `idToken` (flow social login ch�nh).
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -193,18 +193,18 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Có `user`, `tokens`
+- C� `user`, `tokens`
 
-Ca lỗi:
-- Token Google sai/hết hạn -> `401`.
+Ca l?i:
+- Token Google sai/h?t h?n -> `401`.
 
 ### POST `/auth/refresh`
 
-Mục đích: cấp lại access token bằng refresh token.
+M?c d�ch: c?p l?i access token b?ng refresh token.
 
-Cách test 1 (body):
+C�ch test 1 (body):
 
 ```json
 {
@@ -212,32 +212,32 @@ Cách test 1 (body):
 }
 ```
 
-Cách test 2 (cookie):
-- Không cần body, dùng cookie `refresh_token`.
+C�ch test 2 (cookie):
+- Kh�ng c?n body, d�ng cookie `refresh_token`.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả token mới + set lại cookie.
+- Tr? token m?i + set l?i cookie.
 
-Ca lỗi:
-1. Thiếu refresh token -> `401`.
-2. Refresh token sai/hết hạn -> `401`.
+Ca l?i:
+1. Thi?u refresh token -> `401`.
+2. Refresh token sai/h?t h?n -> `401`.
 
 ### POST `/auth/logout`
 
-Mục đích: đăng xuất và xóa session token.
+M?c d�ch: dang xu?t v� x�a session token.
 
-Các bước:
+C�c bu?c:
 1. Authorize.
 2. Execute `POST /auth/logout`.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
 - `{ "success": true }`
-- Cookie token được clear.
+- Cookie token du?c clear.
 
-Ca lỗi:
-- Token không hợp lệ -> `401`.
+Ca l?i:
+- Token kh�ng h?p l? -> `401`.
 
 ---
 
@@ -245,58 +245,58 @@ Ca lỗi:
 
 ### GET `/users`
 
-Mục đích: lấy danh sách user.
+M?c d�ch: l?y danh s�ch user.
 
-Bước test:
-1. Mở endpoint.
-2. Execute trực tiếp (public).
+Bu?c test:
+1. M? endpoint.
+2. Execute tr?c ti?p (public).
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Mảng user.
+- M?ng user.
 
 ### GET `/users/me`
 
-Mục đích: lấy profile user hiện tại.
+M?c d�ch: l?y profile user hi?n t?i.
 
-Bước test:
+Bu?c test:
 1. Authorize.
 2. Execute.
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-Ca lỗi: thiếu/sai token -> `401`.
+Ca l?i: thi?u/sai token -> `401`.
 
 ### GET `/users/email/:email`
 
-Mục đích: tìm user theo email.
+M?c d�ch: t�m user theo email.
 
-Ví dụ param:
-- `email = usera_test@example.com` (nên URL encode nếu cần).
+V� d? param:
+- `email = usera_test@example.com` (n�n URL encode n?u c?n).
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả user hoặc `null`.
+- Tr? user ho?c `null`.
 
 ### GET `/users/:id`
 
-Mục đích: lấy user theo id.
+M?c d�ch: l?y user theo id.
 
-Tiền điều kiện: có token.
+Ti?n di?u ki?n: c� token.
 
-Kỳ vọng:
-- `200` nếu tồn tại.
-- `404` nếu không tồn tại.
+K? v?ng:
+- `200` n?u t?n t?i.
+- `404` n?u kh�ng t?n t?i.
 
 ### PUT `/users/me`
 
-Mục đích: cập nhật thông tin cá nhân.
+M?c d�ch: c?p nh?t th�ng tin c� nh�n.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "fullName": "Nguyễn Văn A",
+  "fullName": "Nguy?n Van A",
   "gender": "MALE",
   "birthDate": "1998-01-20",
   "avatar": "http://localhost:3000/uploads/image/avatar.jpg",
@@ -305,28 +305,28 @@ Payload mẫu:
     "http://localhost:3000/uploads/image/p2.jpg"
   ],
   "genderPreference": "BOTH",
-  "bio": "Xin chào",
+  "bio": "Xin ch�o",
   "jobTitle": "Developer",
   "company": "ACME",
   "school": "HCMUT"
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả user đã cập nhật.
+- Tr? user d� c?p nh?t.
 
-Ca lỗi:
-1. Gửi field bị cấm (`role`, `isBanned`, ...) -> `400`.
-2. `fullName` > 15 ký tự -> `400`.
-3. `avatar` không đúng URL -> `400`.
+Ca l?i:
+1. G?i field b? c?m (`role`, `isBanned`, ...) -> `400`.
+2. `fullName` > 15 k� t? -> `400`.
+3. `avatar` kh�ng d�ng URL -> `400`.
 
 ### PUT `/profile/location`
 
-Mục đích: cập nhật vị trí hiện tại.
+M?c d�ch: c?p nh?t v? tr� hi?n t?i.
 - Legacy compatibility endpoint: `PUT /users/me/location`.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -339,33 +339,33 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả object location đã normalize.
+- Tr? object location d� normalize.
 
-Ca lỗi:
-1. `lat` ngoài [-90,90] -> `400`.
-2. `lng` ngoài [-180,180] -> `400`.
-3. `batteryLevel` ngoài [0,100] -> `400`.
+Ca l?i:
+1. `lat` ngo�i [-90,90] -> `400`.
+2. `lng` ngo�i [-180,180] -> `400`.
+3. `batteryLevel` ngo�i [0,100] -> `400`.
 
 ### DELETE `/users/:id`
 
-Mục đích: xóa user theo id.
+M?c d�ch: x�a user theo id.
 
-Bước test:
+Bu?c test:
 1. Authorize.
-2. Điền `id` user test.
+2. �i?n `id` user test.
 3. Execute.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
 - `{ "message": "User deleted successfully" }`
 
-Ca lỗi:
-- ID không tồn tại -> `404`.
+Ca l?i:
+- ID kh�ng t?n t?i -> `404`.
 
-Lưu ý bảo mật:
-- Hiện chưa có role guard cho API này.
+Luu � b?o m?t:
+- Hi?n chua c� role guard cho API n�y.
 
 ---
 
@@ -373,17 +373,17 @@ Lưu ý bảo mật:
 
 ### GET `/settings`
 
-Mục đích: lấy cài đặt của user.
+M?c d�ch: l?y c�i d?t c?a user.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Nếu chưa có settings, hệ thống tự tạo mặc định.
+- N?u chua c� settings, h? th?ng t? t?o m?c d?nh.
 
 ### PUT `/settings`
 
-Mục đích: cập nhật cài đặt.
+M?c d�ch: c?p nh?t c�i d?t.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -393,11 +393,11 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng: `200 OK`.
+K? v?ng: `200 OK`.
 
-Ca lỗi:
-1. `theme` không thuộc `light|dark|system` -> `400`.
-2. `privacy` không thuộc `public|friends|private` -> `400`.
+Ca l?i:
+1. `theme` kh�ng thu?c `light|dark|system` -> `400`.
+2. `privacy` kh�ng thu?c `public|friends|private` -> `400`.
 
 ---
 
@@ -405,9 +405,9 @@ Ca lỗi:
 
 ### POST `/security/pin`
 
-Mục đích: đặt PIN 4 chữ số.
+M?c d�ch: d?t PIN 4 ch? s?.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -415,20 +415,20 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả security record.
+- Tr? security record.
 
-Ca lỗi:
+Ca l?i:
 1. `pin = "12"` -> `400`.
 2. `pin = "abcd"` -> `400`.
-3. Thiếu `pin` -> hiện có thể gây lỗi 500 (điểm cần sửa code).
+3. Thi?u `pin` -> hi?n c� th? g�y l?i 500 (di?m c?n s?a code).
 
 ### POST `/security/verify-pin`
 
-Mục đích: xác thực PIN.
+M?c d�ch: x�c th?c PIN.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -436,14 +436,14 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
 - `{ "success": true }`
 
-Ca lỗi:
-1. Chưa set PIN -> `400`.
+Ca l?i:
+1. Chua set PIN -> `400`.
 2. PIN sai -> `400`.
-3. Thiếu `pin` -> có thể phát sinh lỗi runtime (cần harden validation).
+3. Thi?u `pin` -> c� th? ph�t sinh l?i runtime (c?n harden validation).
 
 ---
 
@@ -451,46 +451,46 @@ Ca lỗi:
 
 ### GET `/notifications`
 
-Mục đích: lấy danh sách thông báo của user hiện tại.
+M?c d�ch: l?y danh s�ch th�ng b�o c?a user hi?n t?i.
 
-Kỳ vọng: `200 OK`, danh sách theo thời gian giảm dần.
+K? v?ng: `200 OK`, danh s�ch theo th?i gian gi?m d?n.
 
 ### PUT `/notifications/:id/read`
 
-Mục đích: đánh dấu đã đọc.
+M?c d�ch: d�nh d?u d� d?c.
 
-Bước test:
-1. Tạo notification trước (dùng `/notifications/test`).
-2. Lấy `NOTIFICATION_ID`.
-3. Gọi `/notifications/{id}/read`.
+Bu?c test:
+1. T?o notification tru?c (d�ng `/notifications/test`).
+2. L?y `NOTIFICATION_ID`.
+3. G?i `/notifications/{id}/read`.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
 - `isRead = true`.
 
-Ca lỗi:
-- ID không tồn tại/không thuộc user -> `404`.
+Ca l?i:
+- ID kh�ng t?n t?i/kh�ng thu?c user -> `404`.
 
 ### POST `/notifications/test`
 
-Mục đích: tạo thông báo test.
+M?c d�ch: t?o th�ng b�o test.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "title": "Thông báo thử",
-  "content": "Nội dung thử",
+  "title": "Th�ng b�o th?",
+  "content": "N?i dung th?",
   "type": "test"
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Tạo notification thành công.
+- T?o notification th�nh c�ng.
 
-Ca kiểm tra thêm:
-- Để trống body -> vẫn tạo được với giá trị fallback.
+Ca ki?m tra th�m:
+- �? tr?ng body -> v?n t?o du?c v?i gi� tr? fallback.
 
 ---
 
@@ -498,9 +498,9 @@ Ca kiểm tra thêm:
 
 ### POST `/uploads/presign`
 
-Mục đích: endpoint cũ cho presigned upload.
+M?c d�ch: endpoint cu cho presigned upload.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -509,35 +509,35 @@ Payload mẫu:
 }
 ```
 
-Hành vi hiện tại theo code:
-- Trả `400` với thông báo presigned upload đang bị tắt trong local mode.
+H�nh vi hi?n t?i theo code:
+- Tr? `400` v?i th�ng b�o presigned upload dang b? t?t trong local mode.
 
 ### POST `/uploads/file`
 
-Mục đích: upload file trực tiếp (multipart/form-data).
+M?c d�ch: upload file tr?c ti?p (multipart/form-data).
 
-Các bước test trên Swagger:
+C�c bu?c test tr�n Swagger:
 1. Authorize.
-2. Mở `POST /uploads/file`.
+2. M? `POST /uploads/file`.
 3. `Try it out`.
-4. Chọn file tại field `file`.
+4. Ch?n file t?i field `file`.
 5. Execute.
 
-Kỳ vọng:
+K? v?ng:
 - `200 OK`
-- Trả `fileUrl`, `type`, `mimeType`, `size`, `fileName`.
+- Tr? `fileUrl`, `type`, `mimeType`, `size`, `fileName`.
 
-Giới hạn:
-- Tối đa 50MB.
-- MIME hỗ trợ:
+Gi?i h?n:
+- T?i da 50MB.
+- MIME h? tr?:
   - Image: jpeg/png/webp/gif
   - Audio: mpeg/wav/ogg/webm
   - Video: mp4/webm/quicktime
 
-Ca lỗi:
-1. Không gửi file -> `400`.
-2. File type không hỗ trợ -> `400`.
-3. Quá 50MB -> `400`.
+Ca l?i:
+1. Kh�ng g?i file -> `400`.
+2. File type kh�ng h? tr? -> `400`.
+3. Qu� 50MB -> `400`.
 
 ---
 
@@ -545,50 +545,50 @@ Ca lỗi:
 
 ### GET `/couple`
 
-Mục đích: lấy thông tin cặp đôi hiện tại + partner.
+M?c d�ch: l?y th�ng tin c?p d�i hi?n t?i + partner.
 
-Kỳ vọng:
-- `200` nếu user đang trong couple.
-- `404` nếu chưa ghép đôi.
+K? v?ng:
+- `200` n?u user dang trong couple.
+- `404` n?u chua gh�p d�i.
 
 ### GET `/couple/locations`
 
-Mục đích: lấy vị trí hiện tại của `me` và `partner`.
+M?c d�ch: l?y v? tr� hi?n t?i c?a `me` v� `partner`.
 
-Kỳ vọng:
-- `200` với object `{ me, partner }`.
+K? v?ng:
+- `200` v?i object `{ me, partner }`.
 
 ### GET `/couple/location-history?limit=`
 
-Mục đích: lấy lịch sử vị trí của hai người.
+M?c d�ch: l?y l?ch s? v? tr� c?a hai ngu?i.
 
-Ví dụ:
+V� d?:
 - `limit=100`
 
-Kỳ vọng:
+K? v?ng:
 - `200`
-- `limit` được clamp trong [1..500], mặc định 120.
+- `limit` du?c clamp trong [1..500], m?c d?nh 120.
 
 ### POST `/couple/invite`
 
-Mục đích: tạo mã mời ghép đôi.
+M?c d�ch: t?o m� m?i gh�p d�i.
 
-Bước test:
-1. Đăng nhập bằng user A (chưa có couple).
-2. Gọi endpoint.
+Bu?c test:
+1. �ang nh?p b?ng user A (chua c� couple).
+2. G?i endpoint.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
-- Trả invite có `inviteCode` (HEX 8 ký tự), hết hạn sau 7 ngày.
+- Tr? invite c� `inviteCode` (HEX 8 k� t?), h?t h?n sau 7 ng�y.
 
-Ca lỗi:
-- User đã có couple -> `409`.
+Ca l?i:
+- User d� c� couple -> `409`.
 
 ### POST `/couple/join`
 
-Mục đích: user B tham gia bằng mã mời.
+M?c d�ch: user B tham gia b?ng m� m?i.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -596,40 +596,40 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
-- `200` tạo couple mới.
+K? v?ng:
+- `200` t?o couple m?i.
 
-Ca lỗi:
+Ca l?i:
 1. Sai format code -> `400`.
-2. Code không tồn tại -> `404`.
-3. Code hết hạn/đã dùng -> `400`.
-4. Join code của chính mình -> `400`.
-5. User đã có couple -> `409`.
+2. Code kh�ng t?n t?i -> `404`.
+3. Code h?t h?n/d� d�ng -> `400`.
+4. Join code c?a ch�nh m�nh -> `400`.
+5. User d� c� couple -> `409`.
 
 ### POST `/couple/connect-new`
 
-Mục đích: ngắt couple hiện tại (nếu có) và kết nối couple mới từ invite code.
+M?c d�ch: ng?t couple hi?n t?i (n?u c�) v� k?t n?i couple m?i t? invite code.
 
-Payload giống `/couple/join`.
+Payload gi?ng `/couple/join`.
 
-Kỳ vọng:
+K? v?ng:
 - `200`.
 
 ### POST `/couple/disconnect`
 
-Mục đích: ngắt kết nối couple hiện tại.
+M?c d�ch: ng?t k?t n?i couple hi?n t?i.
 
-Kỳ vọng:
-- `200`, status couple chuyển `DISCONNECTED`.
+K? v?ng:
+- `200`, status couple chuy?n `DISCONNECTED`.
 
-Ca lỗi:
-- Chưa có couple -> `404`.
+Ca l?i:
+- Chua c� couple -> `404`.
 
 ### PUT `/couple/start-date`
 
-Mục đích: cập nhật ngày bắt đầu yêu.
+M?c d�ch: c?p nh?t ng�y b?t d?u y�u.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -637,15 +637,15 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-Ca lỗi: sai định dạng date -> `400`.
+Ca l?i: sai d?nh d?ng date -> `400`.
 
 ### PUT `/couple/theme`
 
-Mục đích: cập nhật theme couple.
+M?c d�ch: c?p nh?t theme couple.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -653,7 +653,7 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
 ---
 
@@ -661,28 +661,28 @@ Kỳ vọng: `200`.
 
 ### GET `/chat/messages?limit=&offset=`
 
-Mục đích: lấy lịch sử chat.
+M?c d�ch: l?y l?ch s? chat.
 
-Ví dụ:
+V� d?:
 - `limit=50`
 - `offset=0`
 
-Kỳ vọng:
-- `200`, danh sách message theo `createdAt DESC`.
+K? v?ng:
+- `200`, danh s�ch message theo `createdAt DESC`.
 
-Ca lỗi:
-- Chưa có couple -> `404`.
+Ca l?i:
+- Chua c� couple -> `404`.
 
 ### POST `/chat/clear`
 
-Mục đích: xóa toàn bộ chat của couple.
+M?c d�ch: x�a to�n b? chat c?a couple.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
 - `{ "success": true }`
 
-Ca lỗi:
-- Chưa có couple -> `404`.
+Ca l?i:
+- Chua c� couple -> `404`.
 
 ---
 
@@ -690,19 +690,19 @@ Ca lỗi:
 
 ### GET `/moments`
 
-Mục đích: lấy feed moments của couple.
+M?c d�ch: l?y feed moments c?a couple.
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
 ### POST `/moments`
 
-Mục đích: tạo moment.
+M?c d�ch: t?o moment.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "content": "Kỷ niệm hôm nay",
+  "content": "K? ni?m h�m nay",
   "photos": [
     "http://localhost:3000/uploads/image/abc.jpg"
   ],
@@ -710,34 +710,34 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201 Created`
-- Nếu có `photos`, mỗi ảnh sẽ được sync sang media album.
+- N?u c� `photos`, m?i ?nh s? du?c sync sang media album.
 
-Ca lỗi:
+Ca l?i:
 1. `privacy` sai enum -> `400`.
-2. Chưa có couple -> `404`.
+2. Chua c� couple -> `404`.
 
 ### PUT `/moments/:id`
 
-Mục đích: cập nhật moment.
+M?c d�ch: c?p nh?t moment.
 
-Kỳ vọng:
-- `200` nếu là creator.
+K? v?ng:
+- `200` n?u l� creator.
 
-Ca lỗi:
-1. Không tồn tại -> `404`.
-2. Không phải creator -> `403`.
+Ca l?i:
+1. Kh�ng t?n t?i -> `404`.
+2. Kh�ng ph?i creator -> `403`.
 
 ### DELETE `/moments/:id`
 
-Mục đích: xóa moment.
+M?c d�ch: x�a moment.
 
-Kỳ vọng:
+K? v?ng:
 - `200`, `{ "success": true }`.
 
-Ca lỗi:
-- `404` / `403` tương tự update.
+Ca l?i:
+- `404` / `403` tuong t? update.
 
 ---
 
@@ -745,54 +745,54 @@ Ca lỗi:
 
 ### GET `/events`
 
-Mục đích: lấy danh sách sự kiện của couple.
+M?c d�ch: l?y danh s�ch s? ki?n c?a couple.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
-- Sắp xếp theo ngày tăng dần.
+- S?p x?p theo ng�y tang d?n.
 
 ### POST `/events`
 
-Mục đích: tạo sự kiện.
+M?c d�ch: t?o s? ki?n.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "title": "Kỷ niệm 1 năm",
-  "description": "Đi ăn tối",
+  "title": "K? ni?m 1 nam",
+  "description": "�i an t?i",
   "date": "2026-12-24",
   "isAnniversary": true
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201`.
 
-Ca lỗi:
-1. Thiếu `title` hoặc `date` -> `400`.
-2. Chưa có couple -> `404`.
+Ca l?i:
+1. Thi?u `title` ho?c `date` -> `400`.
+2. Chua c� couple -> `404`.
 
 ### PUT `/events/:id`
 
-Mục đích: sửa sự kiện.
+M?c d�ch: s?a s? ki?n.
 
-Kỳ vọng:
+K? v?ng:
 - `200`.
 
-Ca lỗi:
-1. Event không tồn tại -> `404`.
-2. Event không thuộc couple của user -> `403`.
+Ca l?i:
+1. Event kh�ng t?n t?i -> `404`.
+2. Event kh�ng thu?c couple c?a user -> `403`.
 
 ### DELETE `/events/:id`
 
-Mục đích: xóa sự kiện.
+M?c d�ch: x�a s? ki?n.
 
-Kỳ vọng:
+K? v?ng:
 - `200`, `{ "success": true }`.
 
-Ca lỗi:
-- `404` / `403` tương tự update.
+Ca l?i:
+- `404` / `403` tuong t? update.
 
 ---
 
@@ -800,16 +800,16 @@ Ca lỗi:
 
 ### GET `/trips?userId=&page=&limit=`
 
-Mục đích: lấy danh sách hành trình.
+M?c d�ch: l?y danh s�ch h�nh tr�nh.
 
-Ví dụ query:
+V� d? query:
 - `userId=<USER_A_ID>`
 - `page=1`
 - `limit=20`
 
-Kỳ vọng:
+K? v?ng:
 - `200`
-- Response dạng:
+- Response d?ng:
 
 ```json
 {
@@ -820,24 +820,24 @@ Kỳ vọng:
 }
 ```
 
-Ca lỗi:
-- `userId` không thuộc 2 người trong couple -> `404`.
+Ca l?i:
+- `userId` kh�ng thu?c 2 ngu?i trong couple -> `404`.
 
 ### GET `/trips/:id/detail`
 
-Mục đích: lấy chi tiết 1 trip (có `routeFull`).
+M?c d�ch: l?y chi ti?t 1 trip (c� `routeFull`).
 
-Kỳ vọng:
-- `200` nếu trip hợp lệ và thuộc couple.
+K? v?ng:
+- `200` n?u trip h?p l? v� thu?c couple.
 
-Ca lỗi:
-- Trip không tồn tại/không thuộc couple -> `404`.
+Ca l?i:
+- Trip kh�ng t?n t?i/kh�ng thu?c couple -> `404`.
 
 ### POST `/trips/sync`
 
-Mục đích: đồng bộ danh sách trip từ client.
+M?c d�ch: d?ng b? danh s�ch trip t? client.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -847,8 +847,8 @@ Payload mẫu:
       "startTime": 1760000000000,
       "endTime": 1760003600000,
       "distanceKm": 12.5,
-      "startAddress": "Quận 1",
-      "endAddress": "Quận 7",
+      "startAddress": "Qu?n 1",
+      "endAddress": "Qu?n 7",
       "routePoints": [
         { "lat": 10.7769, "lng": 106.7009 },
         { "lat": 10.7820, "lng": 106.7100 }
@@ -858,41 +858,41 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201 Created`
 - `{ "success": true, "count": 1 }`
 
-Ca lỗi:
-1. `routePoints` rỗng -> `400`.
-2. Sai kiểu `lat/lng/startTime...` -> `400`.
+Ca l?i:
+1. `routePoints` r?ng -> `400`.
+2. Sai ki?u `lat/lng/startTime...` -> `400`.
 
 ---
 
-## 3.13 Places module (`/places`)
+## 3.13 Locations module (`/locations`)
 
-### GET `/places?since=`
+### GET `/locations?since=`
 
-Mục đích: lấy danh sách địa điểm của couple.
+M?c d�ch: l?y danh s�ch d?a di?m c?a couple.
 
-Ví dụ:
-- Không `since`: lấy bản ghi chưa xóa mềm.
-- Có `since=1760000000000`: lấy bản ghi cập nhật từ thời điểm đó.
+V� d?:
+- Kh�ng `since`: l?y b?n ghi chua x�a m?m.
+- C� `since=1760000000000`: l?y b?n ghi c?p nh?t t? th?i di?m d�.
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-### POST `/places`
+### POST `/locations`
 
-Mục đích: tạo địa điểm.
+M?c d�ch: t?o d?a di?m.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "name": "Nhà",
-  "address": "Quận 1, TP.HCM",
+  "name": "Nh�",
+  "address": "Qu?n 1, TP.HCM",
   "latitude": 10.7769,
   "longitude": 106.7009,
-  "placeType": "HOME",
+  "locationType": "HOME",
   "radius": 200,
   "iconResName": "ic_home",
   "isSynced": true,
@@ -900,53 +900,53 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201 Created`.
 
-Ca lỗi:
-1. Thiếu `name` -> `400`.
-2. `latitude/longitude/radius` ngoài range -> `400`.
+Ca l?i:
+1. Thi?u `name` -> `400`.
+2. `latitude/longitude/radius` ngo�i range -> `400`.
 
-### PUT `/places/:id`
+### PUT `/locations/:id`
 
-Mục đích: cập nhật địa điểm.
+M?c d�ch: c?p nh?t d?a di?m.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "name": "Nhà mới",
+  "name": "Nh� m?i",
   "radius": 300
 }
 ```
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-Ca lỗi:
-- Place không tồn tại hoặc không thuộc couple -> `404`.
+Ca l?i:
+- Location kh�ng t?n t?i ho?c kh�ng thu?c couple -> `404`.
 
-### DELETE `/places/:id`
+### DELETE `/locations/:id`
 
-Mục đích: xóa mềm địa điểm.
+M?c d�ch: x�a m?m d?a di?m.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
-- Bản ghi chuyển `isDeleted=true`.
+- B?n ghi chuy?n `isDeleted=true`.
 
-Ca lỗi:
-- Place không tồn tại -> `404`.
+Ca l?i:
+- Location kh�ng t?n t?i -> `404`.
 
-### GET `/places/search?q=`
+### GET `/locations/search?q=`
 
-Mục đích: tìm địa điểm từ Nominatim.
+M?c d�ch: t�m d?a di?m t? Nominatim.
 
-Ví dụ query:
+V� d? query:
 - `q=highlands`
 
-Kỳ vọng:
-- `200`, trả danh sách địa điểm gợi ý.
-- Nếu `q` dưới 2 ký tự -> `[]`.
-- Nếu dịch vụ ngoài lỗi -> `[]` (không throw).
+K? v?ng:
+- `200`, tr? danh s�ch d?a di?m g?i �.
+- N?u `q` du?i 2 k� t? -> `[]`.
+- N?u d?ch v? ngo�i l?i -> `[]` (kh�ng throw).
 
 ---
 
@@ -954,9 +954,9 @@ Kỳ vọng:
 
 ### POST `/geofence/event`
 
-Mục đích: nhận sự kiện vào/ra geofence để tạo thông báo cho partner.
+M?c d�ch: nh?n s? ki?n v�o/ra geofence d? t?o th�ng b�o cho partner.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -966,14 +966,14 @@ Payload mẫu:
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201`
 - `{ "success": true, "placeId": "...", "transition": "ENTER", "timestamp": 1760000000000 }`
 
-Ca lỗi:
+Ca l?i:
 1. `placeId` sai format UUID -> `400`.
-2. Place không tồn tại/không thuộc couple -> `404`.
-3. Chưa có partner -> `400`.
+2. Location kh�ng t?n t?i/kh�ng thu?c couple -> `404`.
+3. Chua c� partner -> `400`.
 
 ---
 
@@ -981,14 +981,14 @@ Ca lỗi:
 
 ### GET `/media?filter=&limit=&cursor=`
 
-Mục đích: lấy album media có phân trang cursor.
+M?c d�ch: l?y album media c� ph�n trang cursor.
 
-Ví dụ query:
+V� d? query:
 - `filter=all|me|partner`
 - `limit=20`
 - `cursor=2026-03-02T01:29:44.575Z|<MEDIA_ID>`
 
-Kỳ vọng:
+K? v?ng:
 - `200`
 
 ```json
@@ -998,62 +998,62 @@ Kỳ vọng:
 }
 ```
 
-Ca lỗi:
-1. Cursor sai định dạng date -> `400`.
-2. `filter=partner` nhưng chưa có partner -> `400`.
+Ca l?i:
+1. Cursor sai d?nh d?ng date -> `400`.
+2. `filter=partner` nhung chua c� partner -> `400`.
 
 ### GET `/media/changes?since=&timeoutMs=`
 
-Mục đích: long-poll chờ thay đổi album.
+M?c d�ch: long-poll ch? thay d?i album.
 
-Ví dụ:
+V� d?:
 - `since=0`
 - `timeoutMs=25000`
 
-Kỳ vọng:
-- `200` với event thay đổi hoặc timeout event theo service realtime.
+K? v?ng:
+- `200` v?i event thay d?i ho?c timeout event theo service realtime.
 
 ### POST `/media`
 
-Mục đích: tạo media mới cho couple.
+M?c d�ch: t?o media m?i cho couple.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
   "url": "http://localhost:3000/uploads/image/abc.jpg",
   "type": "image",
-  "caption": "Ảnh mới",
+  "caption": "?nh m?i",
   "visibility": "couple_only",
   "thumbUrl": "http://localhost:3000/uploads/image/thumb_abc.jpg"
 }
 ```
 
-Kỳ vọng:
+K? v?ng:
 - `201`.
 
-Ca lỗi:
-1. `url` không hợp lệ -> `400`.
+Ca l?i:
+1. `url` kh�ng h?p l? -> `400`.
 2. `type` sai -> `400`.
 3. `visibility` sai -> `400`.
-4. Chưa có couple -> `404`.
+4. Chua c� couple -> `404`.
 
 ### GET `/media/:id`
 
-Mục đích: lấy chi tiết media.
+M?c d�ch: l?y chi ti?t media.
 
-Kỳ vọng:
-- `200` nếu media tồn tại và thuộc couple của user.
+K? v?ng:
+- `200` n?u media t?n t?i v� thu?c couple c?a user.
 
-Ca lỗi:
-1. Không tồn tại -> `404`.
-2. Không thuộc couple -> `403`.
+Ca l?i:
+1. Kh�ng t?n t?i -> `404`.
+2. Kh�ng thu?c couple -> `403`.
 
 ### GET `/media/:id/download`
 
-Mục đích: lấy `downloadUrl` media.
+M?c d�ch: l?y `downloadUrl` media.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
 
 ```json
@@ -1062,34 +1062,34 @@ Kỳ vọng:
 }
 ```
 
-Ca lỗi:
-- như `/media/:id`.
+Ca l?i:
+- nhu `/media/:id`.
 
 ### PATCH `/media/:id`
 
-Mục đích: cập nhật caption/visibility/thumbUrl.
+M?c d�ch: c?p nh?t caption/visibility/thumbUrl.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
-  "caption": "Caption mới",
+  "caption": "Caption m?i",
   "visibility": "friends",
   "thumbUrl": "http://localhost:3000/uploads/image/new_thumb.jpg"
 }
 ```
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-Ca lỗi:
+Ca l?i:
 1. `visibility` sai -> `400`.
-2. Media không tồn tại -> `404`.
+2. Media kh�ng t?n t?i -> `404`.
 
 ### PATCH `/media/:id/status`
 
-Mục đích: cập nhật trạng thái media.
+M?c d�ch: c?p nh?t tr?ng th�i media.
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
@@ -1097,52 +1097,52 @@ Payload mẫu:
 }
 ```
 
-Giá trị hợp lệ:
+Gi� tr? h?p l?:
 - `processing`
 - `active`
 - `flagged`
 - `synced`
 
-Kỳ vọng: `200`.
+K? v?ng: `200`.
 
-Ca lỗi:
+Ca l?i:
 - Status sai -> `400`.
 
 ### DELETE `/media/:id`
 
-Mục đích: xóa mềm media.
+M?c d�ch: x�a m?m media.
 
-Kỳ vọng:
+K? v?ng:
 - `200`
 - `{ "success": true }`
 
-Ca lỗi:
-- Media không tồn tại -> `404`.
+Ca l?i:
+- Media kh�ng t?n t?i -> `404`.
 
 ---
 
-## 4. WebSocket API cần test
+## 4. WebSocket API c?n test
 
-## 4.1 Chuẩn bị
+## 4.1 Chu?n b?
 
-1. Kết nối socket tới backend.
-2. Gửi access token qua:
+1. K?t n?i socket t?i backend.
+2. G?i access token qua:
    - `handshake.auth.token`
-   - hoặc header `authorization`.
+   - ho?c header `authorization`.
 
-Nếu token không hợp lệ -> server trả `Unauthorized` (WsException).
+N?u token kh�ng h?p l? -> server tr? `Unauthorized` (WsException).
 
 ## 4.2 Chat gateway
 
 ### Event `join`
 
-Mục đích: tham gia phòng `couple:<coupleId>`.
+M?c d�ch: tham gia ph�ng `couple:<coupleId>`.
 
-Cách test:
-1. Kết nối socket bằng token user trong couple.
-2. Emit event `join` với payload rỗng.
+C�ch test:
+1. K?t n?i socket b?ng token user trong couple.
+2. Emit event `join` v?i payload r?ng.
 
-Kỳ vọng ack:
+K? v?ng ack:
 
 ```json
 {
@@ -1156,31 +1156,31 @@ Kỳ vọng ack:
 
 ### Event `message:send`
 
-Payload mẫu:
+Payload m?u:
 
 ```json
 {
   "type": "TEXT",
-  "content": "Xin chào",
+  "content": "Xin ch�o",
   "tempId": "tmp-001"
 }
 ```
 
-Kỳ vọng:
-1. Ack trả message đã lưu.
-2. Room couple nhận event `message:received`.
+K? v?ng:
+1. Ack tr? message d� luu.
+2. Room couple nh?n event `message:received`.
 
-Ca lỗi:
+Ca l?i:
 - `type` sai enum.
-- Không token/chưa có couple.
+- Kh�ng token/chua c� couple.
 
 ## 4.3 Media gateway
 
 ### Event `album:join`
 
-Mục đích: join room album của couple.
+M?c d�ch: join room album c?a couple.
 
-Kỳ vọng ack:
+K? v?ng ack:
 
 ```json
 {
@@ -1193,31 +1193,31 @@ Kỳ vọng ack:
 
 ### Server event `album:changed`
 
-Mục đích: server push khi tạo/sửa/xóa media.
+M?c d�ch: server push khi t?o/s?a/x�a media.
 
-Cách test:
+C�ch test:
 1. Socket A emit `album:join`.
-2. Gọi REST `POST /media` hoặc `PATCH /media/:id` hoặc `DELETE /media/:id`.
-3. Quan sát socket A nhận event `album:changed`.
+2. G?i REST `POST /media` ho?c `PATCH /media/:id` ho?c `DELETE /media/:id`.
+3. Quan s�t socket A nh?n event `album:changed`.
 
 ---
 
-## 5. Kịch bản smoke test end-to-end khuyến nghị
+## 5. K?ch b?n smoke test end-to-end khuy?n ngh?
 
-1. `POST /auth/register` tạo A, B.
+1. `POST /auth/register` t?o A, B.
 2. `POST /auth/login` A, B.
-3. `POST /couple/invite` bằng A.
-4. `POST /couple/join` bằng B.
-5. `PUT /profile/location` cho cả A và B.
-6. `POST /places` tạo địa điểm.
-7. `POST /events` tạo sự kiện.
-8. `POST /moments` tạo moment có ảnh.
+3. `POST /couple/invite` b?ng A.
+4. `POST /couple/join` b?ng B.
+5. `PUT /profile/location` cho c? A v� B.
+6. `POST /locations` t?o d?a di?m.
+7. `POST /events` t?o s? ki?n.
+8. `POST /moments` t?o moment c� ?nh.
 9. `POST /uploads/file` upload file media.
-10. `POST /media` tạo media.
-11. `GET /chat/messages` kiểm tra chat.
-12. `GET /notifications` kiểm tra thông báo.
-13. `GET /trips` và `POST /trips/sync` kiểm tra trips.
+10. `POST /media` t?o media.
+11. `GET /chat/messages` ki?m tra chat.
+12. `GET /notifications` ki?m tra th�ng b�o.
+13. `GET /trips` v� `POST /trips/sync` ki?m tra trips.
 14. `POST /security/pin` + `POST /security/verify-pin`.
 15. `POST /auth/refresh` + `POST /auth/logout`.
 
-Nếu toàn bộ pass, hệ thống đã được kiểm tra đầy đủ các luồng chính.
+N?u to�n b? pass, h? th?ng d� du?c ki?m tra d?y d? c�c lu?ng ch�nh.

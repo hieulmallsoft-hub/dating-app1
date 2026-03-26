@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { DataSource, In, IsNull, Not } from "typeorm";
@@ -9,10 +9,11 @@ import { LocationHistoryRepository } from "../infrastructure/persistence/locatio
 import { AuthProvider, User } from "../domain/entities/user.entity";
 import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
 import { LocationSource } from "../domain/entities/location-history.entity";
-import { LocationGateway } from "../presentation/location.gateway";
+import { LOCATION_GATEWAY_TOKEN, type LocationGatewayEmitter } from "../presentation/location.gateway.token";
+import { LocationRateLimitService } from "./location-rate-limit.service";
 import { Event } from "../../../couple-features/events/domain/entities/event.entity";
 import { Moment } from "../../../couple-features/moments/domain/entities/moment.entity";
-import { Place } from "../../../couple-features/places/domain/entities/place.entity";
+import { Location } from "../../../couple-features/locations/domain/entities/location.entity";
 import { Message } from "../../../couple-features/chat/domain/entities/message.entity";
 import { Media } from "../../../couple-features/media/domain/entities/media.entity";
 import { Trip } from "../../../couple-features/trips/domain/entities/trip.entity";
@@ -42,11 +43,17 @@ type UserProfilePayload = User & {
 
 @Injectable()
 export class UsersService {
+    private readonly minUpdateIntervalMs = 3000;
+    private readonly minUpdateDistanceM = 5;
+    private readonly maxSpeedKmh = 300;
+
     constructor(
         private readonly userRepository: UserRepository,
         private readonly locationHistoryRepository: LocationHistoryRepository,
         private readonly dataSource: DataSource,
-        private readonly locationGateway: LocationGateway
+        @Inject(LOCATION_GATEWAY_TOKEN)
+        private readonly locationGateway: LocationGatewayEmitter,
+        private readonly locationRateLimitService: LocationRateLimitService
     ) {}
 
     async getUserById(id: string) {
@@ -203,34 +210,39 @@ export class UsersService {
             eventTime.getTime() <= (currentLastActiveAt as Date).getTime();
 
         if (isStaleUpdate) {
-            return {
-                userId: id,
-                accountCode:
-                    typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
-                        ? existed.accountCode.trim()
-                        : null,
-                latitude:
-                    existed.latitude !== null && existed.latitude !== undefined
-                        ? Number(existed.latitude)
-                        : nextLatitude,
-                longitude:
-                    existed.longitude !== null && existed.longitude !== undefined
-                        ? Number(existed.longitude)
-                        : nextLongitude,
-                accuracy: nextAccuracy,
-                batteryLevel:
-                    existed.batteryLevel !== null && existed.batteryLevel !== undefined
-                        ? existed.batteryLevel
-                        : null,
-                isCharging:
-                    existed.isCharging !== null && existed.isCharging !== undefined
-                        ? existed.isCharging
-                        : null,
-                speed:
-                    existed.speed !== null && existed.speed !== undefined
-                        ? Number(existed.speed)
-                        : null
-            };
+            return this.buildLocationResponse(
+                existed,
+                nextLatitude,
+                nextLongitude,
+                nextAccuracy,
+                nextBatteryLevel,
+                nextIsCharging,
+                nextSpeed
+            );
+        }
+
+        const shouldIgnore = await this.locationRateLimitService.shouldIgnoreUpdate(
+            id,
+            nextLatitude,
+            nextLongitude,
+            eventTime,
+            this.distanceMeters.bind(this),
+            {
+                minIntervalMs: this.minUpdateIntervalMs,
+                minDistanceM: this.minUpdateDistanceM,
+                maxSpeedKmh: this.maxSpeedKmh
+            }
+        );
+        if (shouldIgnore) {
+            return this.buildLocationResponse(
+                existed,
+                nextLatitude,
+                nextLongitude,
+                nextAccuracy,
+                nextBatteryLevel,
+                nextIsCharging,
+                nextSpeed
+            );
         }
 
         const updatePayload: Record<string, unknown> = {
@@ -292,6 +304,8 @@ export class UsersService {
                 );
             }
         }
+
+        await this.locationRateLimitService.commit(id, nextLatitude, nextLongitude, eventTime);
 
         return {
             userId: id,
@@ -364,6 +378,45 @@ export class UsersService {
         return 6_371_000 * c;
     }
 
+    private buildLocationResponse(
+        existed: User,
+        fallbackLat: number,
+        fallbackLng: number,
+        accuracy: number | null,
+        batteryLevel: number | null | undefined,
+        isCharging: boolean | undefined,
+        speed: number | undefined
+    ) {
+        return {
+            userId: existed.id,
+            accountCode:
+                typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
+                    ? existed.accountCode.trim()
+                    : null,
+            latitude:
+                existed.latitude !== null && existed.latitude !== undefined
+                    ? Number(existed.latitude)
+                    : fallbackLat,
+            longitude:
+                existed.longitude !== null && existed.longitude !== undefined
+                    ? Number(existed.longitude)
+                    : fallbackLng,
+            accuracy,
+            batteryLevel:
+                existed.batteryLevel !== null && existed.batteryLevel !== undefined
+                    ? existed.batteryLevel
+                    : batteryLevel ?? null,
+            isCharging:
+                existed.isCharging !== null && existed.isCharging !== undefined
+                    ? existed.isCharging
+                    : isCharging ?? null,
+            speed:
+                existed.speed !== null && existed.speed !== undefined
+                    ? Number(existed.speed)
+                    : speed ?? null
+        };
+    }
+
     private normalizeLocationEventTime(timestamp?: number) {
         if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
             return new Date();
@@ -432,7 +485,7 @@ export class UsersService {
                 await manager.getRepository(Message).delete({ coupleId: In(coupleIds) });
                 await manager.getRepository(Event).delete({ coupleId: In(coupleIds) });
                 await manager.getRepository(Moment).delete({ coupleId: In(coupleIds) });
-                await manager.getRepository(Place).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Location).delete({ coupleId: In(coupleIds) });
                 await manager.getRepository(Media).delete({ coupleId: In(coupleIds) });
                 await manager.getRepository(Trip).delete({ coupleId: In(coupleIds) });
                 await manager.getRepository(Couple).delete({ id: In(coupleIds) });
@@ -441,7 +494,7 @@ export class UsersService {
             await manager.getRepository(Message).delete({ senderId: userId });
             await manager.getRepository(Event).delete({ creatorId: userId });
             await manager.getRepository(Moment).delete({ creatorId: userId });
-            await manager.getRepository(Place).delete({ sharedBy: userId });
+            await manager.getRepository(Location).delete({ sharedBy: userId });
             await manager.getRepository(Media).delete({ uploaderId: userId });
             await manager.getRepository(Trip).delete({ userId });
             await manager.getRepository(Invite).delete({ inviterId: userId });

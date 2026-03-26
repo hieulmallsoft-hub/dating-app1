@@ -1,16 +1,16 @@
-﻿# DOC.md - Cấu trúc dự án `dating-app`
+# DOC.md - C?u tr�c d? �n `dating-app`
 
-## 1. Tổng quan
+## 1. T?ng quan
 
-Dự án hiện tại được tách thành 2 phần chính:
-- `backend/`: API server dùng **NestJS** (TypeORM, Swagger, Socket.IO, JWT/OAuth).
-- `frontend/`: giao diện dùng **React + Vite + TypeScript**.
+D? �n hi?n t?i du?c t�ch th�nh 2 ph?n ch�nh:
+- `backend/`: API server d�ng **NestJS** (TypeORM, Swagger, Socket.IO, JWT/OAuth).
+- `frontend/`: giao di?n d�ng **React + Vite + TypeScript**.
 
-Ghi chú:
-- Tài liệu này mô tả cấu trúc hiện tại trong repo.
-- Cây thư mục bên dưới đã **bỏ qua** `.git`, `node_modules`, `dist` để dễ đọc.
+Ghi ch�:
+- T�i li?u n�y m� t? c?u tr�c hi?n t?i trong repo.
+- C�y thu m?c b�n du?i d� **b? qua** `.git`, `node_modules`, `dist` d? d? d?c.
 
-## 2. Cấu trúc thư mục gốc (root)
+## 2. C?u tr�c thu m?c g?c (root)
 
 ```text
 backend/
@@ -24,21 +24,21 @@ TESTING.md
 
 ## 3. Backend (`backend/`)
 
-### 3.1 Vai trò
-- Backend API cho ứng dụng dating app.
+### 3.1 Vai tr�
+- Backend API cho ?ng d?ng dating app.
 - Entry point: `backend/src/main.ts`
 - Root module: `backend/src/app.module.ts`
-- Cấu hình: `backend/src/config/*`
-- Dùng middleware/guards/decorators chung trong `backend/src/common/*`
+- C?u h�nh: `backend/src/config/*`
+- D�ng middleware/guards/decorators chung trong `backend/src/common/*`
 
-### 3.2 Công nghệ chính (từ `backend/package.json`)
+### 3.2 C�ng ngh? ch�nh (t? `backend/package.json`)
 - Runtime/framework: NestJS (`@nestjs/*`)
 - Database ORM: TypeORM + PostgreSQL (`typeorm`, `pg`)
 - Auth: JWT + Passport (Google/Apple strategies)
 - Realtime: Socket.IO (`@nestjs/websockets`, `socket.io`)
 - API docs: Swagger (`@nestjs/swagger`)
 
-### 3.3 Các module nghiệp vụ chính
+### 3.3 C�c module nghi?p v? ch�nh
 - `admin`
 - `auth`
 - `chat`
@@ -48,13 +48,13 @@ TESTING.md
 - `media`
 - `moments`
 - `notifications`
-- `places`
+- `Locations`
 - `security`
 - `settings`
 - `uploads`
 - `user`
 
-### 3.4 Cấu trúc backend (rút gọn)
+### 3.4 C?u tr�c backend (r�t g?n)
 
 ```text
 backend/
@@ -204,20 +204,20 @@ backend/
 |   |   |   |-- presentation/
 |   |   |   |   `-- notifications.controller.ts
 |   |   |   `-- notifications.module.ts
-|   |   |-- places/
+|   |   |-- locations/
 |   |   |   |-- application/
-|   |   |   |   `-- places.service.ts
+|   |   |   |   `-- locations.service.ts
 |   |   |   |-- domain/
 |   |   |   |   `-- entities/
-|   |   |   |       `-- place.entity.ts
+|   |   |   |       `-- Location.entity.ts
 |   |   |   |-- infrastructure/
 |   |   |   |   `-- persistence/
-|   |   |   |       `-- place.repository.ts
+|   |   |   |       `-- Location.repository.ts
 |   |   |   |-- presentation/
 |   |   |   |   |-- dto/
-|   |   |   |   |   `-- place-ops.dto.ts
-|   |   |   |   `-- places.controller.ts
-|   |   |   `-- places.module.ts
+|   |   |   |   |   `-- Location-ops.dto.ts
+|   |   |   |   `-- locations.controller.ts
+|   |   |   `-- locations.module.ts
 |   |   |-- security/
 |   |   |   |-- application/
 |   |   |   |   `-- security.service.ts
@@ -288,29 +288,29 @@ backend/
 `-- tsconfig.json
 ```
 
-### 3.5 Pattern thư mục backend
-Phần lớn module trong `backend/src/modules/*` đi theo pattern nhiều lớp:
-- `application/`: service xử lý nghiệp vụ
+### 3.5 Pattern thu m?c backend
+Ph?n l?n module trong `backend/src/modules/*` di theo pattern nhi?u l?p:
+- `application/`: service x? l� nghi?p v?
 - `domain/`: entity/model/repository contract
-- `infrastructure/`: persistence/strategy tích hợp kỹ thuật
+- `infrastructure/`: persistence/strategy t�ch h?p k? thu?t
 - `presentation/`: controller, gateway, DTO
 
 ## 4. Frontend (`frontend/`)
 
-### 4.1 Vai trò
-- Giao diện web cho người dùng.
+### 4.1 Vai tr�
+- Giao di?n web cho ngu?i d�ng.
 - Entry point: `frontend/src/main.tsx`
-- Component gốc: `frontend/src/App.tsx`
-- Component màn hình chính: `frontend/src/components/Home.tsx`
+- Component g?c: `frontend/src/App.tsx`
+- Component m�n h�nh ch�nh: `frontend/src/components/Home.tsx`
 
-### 4.2 Công nghệ chính (từ `frontend/package.json`)
+### 4.2 C�ng ngh? ch�nh (t? `frontend/package.json`)
 - React 19 + React DOM
 - Vite
 - TypeScript
 - Axios
 - `lucide-react` (icon)
 
-### 4.3 Cấu trúc frontend (rút gọn)
+### 4.3 C?u tr�c frontend (r�t g?n)
 
 ```text
 frontend/
@@ -337,5 +337,5 @@ frontend/
 `-- vite.config.ts
 ```
 
-## 5. Gợi ý bảo trì tài liệu
-Khi thêm module mới (ví dụ `backend/src/modules/...`) hoặc component lớn ở frontend, hãy cập nhật file này để giữ tài liệu đồng bộ với mã nguồn.
+## 5. G?i � b?o tr� t�i li?u
+Khi th�m module m?i (v� d? `backend/src/modules/...`) ho?c component l?n ? frontend, h�y c?p nh?t file n�y d? gi? t�i li?u d?ng b? v?i m� ngu?n.

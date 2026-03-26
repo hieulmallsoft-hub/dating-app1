@@ -12,7 +12,7 @@ Cập nhật: 09-03-2026
 
 ## 2. Phạm vi
 
-- Bao gồm: Auth, Couple, Users (các API cần thiết), Settings, Security, Places, Events, Moments, Media, Trips, Notifications, Uploads, WebSocket.
+- Bao gồm: Auth, Couple, Users (các API cần thiết), Settings, Security, Locations, Events, Moments, Media, Trips, Notifications, Uploads, WebSocket.
 - Không bao gồm: route UI Swagger (`/api/docs`).
 - Lược bỏ khỏi phạm vi test mobile các API user không cần thiết:
   - `GET /users`
@@ -50,7 +50,7 @@ Mục tiêu: xác nhận toàn bộ dependency chính đều thông.
 5. `GET /users/me`
 6. `PUT /users/me`
 7. `PUT /profile/location`
-8. `POST /places`
+8. `POST /locations`
 9. `POST /events`
 10. `POST /moments`
 11. `POST /uploads/file`
@@ -93,7 +93,7 @@ Mục tiêu: test đủ happy path + auth fail + validation fail + business fail
 4. Core couple features
    - Events: list/create/update/delete
    - Moments: list/create/update/delete
-   - Places: list/create/update/delete/search
+   - Locations: list/create/update/delete/search
    - Geofence: `POST /geofence/event`
    - Chat: `GET /chat/messages`, `POST /chat/clear`
    - Media: list/changes/create/get/download/update/status/delete

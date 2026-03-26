@@ -17,7 +17,7 @@ import CouplePanel from "./CouplePanel";
 import EventsPanel from "./EventsPanel";
 import MomentsPanel from "./MomentsPanel";
 import NotificationsPanel from "./NotificationsPanel";
-import PlacesPanel from "./PlacesPanel";
+import LocationsPanel from "./LocationsPanel";
 import ProfilePanel from "./ProfilePanel";
 import TripsPanel from "./TripsPanel";
 import OpsPanel from "./OpsPanel";
@@ -26,7 +26,7 @@ type Tab =
   | "events"
   | "moments"
   | "trips"
-  | "places"
+  | "locations"
   | "chat"
   | "notifications"
   | "album"
@@ -58,7 +58,7 @@ const Home: React.FC<Props> = ({ onLogout, onAuthInvalid }) => {
         {tab === "events" ? <EventsPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "moments" ? <MomentsPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "trips" ? <TripsPanel onAuthInvalid={onAuthInvalid} /> : null}
-        {tab === "places" ? <PlacesPanel onAuthInvalid={onAuthInvalid} /> : null}
+        {tab === "locations" ? <LocationsPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "album" ? <AlbumPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "chat" ? <ChatPanel onAuthInvalid={onAuthInvalid} /> : null}
         {tab === "notifications" ? <NotificationsPanel onAuthInvalid={onAuthInvalid} /> : null}
@@ -81,8 +81,8 @@ const Home: React.FC<Props> = ({ onLogout, onAuthInvalid }) => {
           <CalendarDays size={24} />
         </button>
         <button
-          className={`nav-item ${tab === "places" ? "active" : ""}`}
-          onClick={() => setTab("places")}
+          className={`nav-item ${tab === "locations" ? "active" : ""}`}
+          onClick={() => setTab("locations")}
           type="button"
         >
           <MapPin size={24} />

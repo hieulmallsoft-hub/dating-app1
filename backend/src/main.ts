@@ -1,22 +1,31 @@
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import { existsSync, mkdirSync } from "fs";
 import { join, resolve } from "path";
 import * as session from "express-session";
 import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import * as cookieParser from "cookie-parser";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 
 async function bootstrap() {
+    const logger = new Logger("Bootstrap");
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     const configService = app.get(ConfigService);
     const port = configService.get("PORT") || 3000;
     const useHttps = String(configService.get("USE_HTTPS") || "").toLowerCase() === "true";
     const uploadPath = configService.get<string>("UPLOAD_PATH") || "./uploads";
     const uploadRoot = resolve(process.cwd(), uploadPath);
+    const redisUrl = configService.get<string>("REDIS_URL");
+    const redisHost = configService.get<string>("REDIS_HOST");
+    const redisPort = configService.get<string>("REDIS_PORT");
+    const redisPassword = configService.get<string>("REDIS_PASSWORD");
+    const redisEnabled = String(configService.get<string>("REDIS_ENABLED") || "").toLowerCase() === "true";
 
     app.useStaticAssets(join(__dirname, "..", "public"));
     if (!existsSync(uploadRoot)) {
@@ -139,6 +148,36 @@ async function bootstrap() {
             persistAuthorization: true
         }
     });
+
+    if (redisEnabled || redisUrl) {
+        const pubClient = redisUrl
+            ? createClient({ url: redisUrl })
+            : createClient({
+                  socket: {
+                      host: redisHost || "127.0.0.1",
+                      port: redisPort ? Number(redisPort) : 6379
+                  },
+                  password: redisPassword || undefined
+              });
+        const subClient = pubClient.duplicate();
+
+        try {
+            await Promise.all([pubClient.connect(), subClient.connect()]);
+
+            class RedisIoAdapter extends IoAdapter {
+                createIOServer(portNumber: number, options?: Record<string, unknown>) {
+                    const server = super.createIOServer(portNumber, options);
+                    server.adapter(createAdapter(pubClient, subClient));
+                    return server;
+                }
+            }
+
+            app.useWebSocketAdapter(new RedisIoAdapter(app));
+            logger.log("Socket.IO Redis adapter enabled.");
+        } catch (error) {
+            await Promise.all([pubClient.quit().catch(() => null), subClient.quit().catch(() => null)]);
+        }
+    }
 
     // app.setGlobalPrefix('api');
     await app.listen(port);

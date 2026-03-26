@@ -18,7 +18,7 @@ import { MomentsModule } from "./modules/couple-features/moments/moments.module"
 import { MediaModule } from "./modules/couple-features/media/media.module";
 import { UploadsModule } from "./modules/common-user/uploads/uploads.module";
 import { ChatModule } from "./modules/couple-features/chat/chat.module";
-import { PlacesModule } from "./modules/couple-features/places/places.module";
+import { LocationsModule } from "./modules/couple-features/locations/locations.module";
 import { EventsModule } from "./modules/couple-features/events/events.module";
 import { NotificationsModule } from "./modules/common-user/notifications/notifications.module";
 import { SettingsModule } from "./modules/common-user/settings/settings.module";
@@ -46,7 +46,7 @@ import { TripsModule } from "./modules/couple-features/trips/trips.module";
         MediaModule,
         UploadsModule,
         ChatModule,
-        PlacesModule,
+        LocationsModule,
         EventsModule,
         NotificationsModule,
         SettingsModule,

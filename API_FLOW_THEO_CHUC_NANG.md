@@ -90,13 +90,13 @@ Mục tiêu: chỉnh setting và PIN.
 
 ## Flow F - Địa điểm & geofence
 
-Mục tiêu: quản lý places và gửi sự kiện vào/ra.
+Mục tiêu: quản lý Locations và gửi sự kiện vào/ra.
 
-1. `GET /places`
-2. `POST /places`
-3. `PUT /places/:id`
-4. `DELETE /places/:id`
-5. `GET /places/search?q=...`
+1. `GET /locations`
+2. `POST /locations`
+3. `PUT /locations/:id`
+4. `DELETE /locations/:id`
+5. `GET /locations/search?q=...`
 6. `POST /geofence/event`
    - Body: `placeId`, `transition` (`ENTER`/`EXIT`)
 
@@ -184,7 +184,7 @@ Mục tiêu: hoàn tất vòng đời phiên đăng nhập.
 4. `POST /couple/join` (B)
 5. `GET /couple`
 6. `PUT /profile/location`
-7. `POST /places`
+7. `POST /locations`
 8. `POST /events`
 9. `POST /moments`
 10. `POST /uploads/file`

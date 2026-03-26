@@ -24,11 +24,16 @@ describe("UsersService.deleteUser", () => {
         };
 
         const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
+        const locationRateLimitService = {
+            shouldIgnoreUpdate: jest.fn().mockResolvedValue(false),
+            commit: jest.fn().mockResolvedValue(undefined)
+        };
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
             dataSource as any,
-            locationGateway
+            locationGateway,
+            locationRateLimitService as any
         );
 
         await expect(service.deleteUser("missing-user")).rejects.toBeInstanceOf(NotFoundException);
@@ -43,7 +48,7 @@ describe("UsersService.deleteUser", () => {
         const messageRepo = createRepository();
         const eventRepo = createRepository();
         const momentRepo = createRepository();
-        const placeRepo = createRepository();
+        const locationRepo = createRepository();
         const mediaRepo = createRepository();
         const tripRepo = createRepository();
         const inviteRepo = createRepository();
@@ -57,7 +62,7 @@ describe("UsersService.deleteUser", () => {
             ["Message", messageRepo],
             ["Event", eventRepo],
             ["Moment", momentRepo],
-            ["Place", placeRepo],
+            ["Location", locationRepo],
             ["Media", mediaRepo],
             ["Trip", tripRepo],
             ["Invite", inviteRepo],
@@ -81,11 +86,16 @@ describe("UsersService.deleteUser", () => {
         const locationHistoryRepository = {};
 
         const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
+        const locationRateLimitService = {
+            shouldIgnoreUpdate: jest.fn().mockResolvedValue(false),
+            commit: jest.fn().mockResolvedValue(undefined)
+        };
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
             dataSource as any,
-            locationGateway
+            locationGateway,
+            locationRateLimitService as any
         );
 
         const result = await service.deleteUser("user-1");
@@ -97,7 +107,7 @@ describe("UsersService.deleteUser", () => {
         expect(messageRepo.delete).toHaveBeenCalled();
         expect(eventRepo.delete).toHaveBeenCalled();
         expect(momentRepo.delete).toHaveBeenCalled();
-        expect(placeRepo.delete).toHaveBeenCalled();
+        expect(locationRepo.delete).toHaveBeenCalled();
         expect(mediaRepo.delete).toHaveBeenCalled();
         expect(tripRepo.delete).toHaveBeenCalled();
         expect(inviteRepo.delete).toHaveBeenCalledWith({ inviterId: "user-1" });
@@ -141,11 +151,16 @@ describe("UsersService.updateMyLocation", () => {
         };
 
         const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
+        const locationRateLimitService = {
+            shouldIgnoreUpdate: jest.fn().mockResolvedValue(false),
+            commit: jest.fn().mockResolvedValue(undefined)
+        };
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
             dataSource as any,
-            locationGateway
+            locationGateway,
+            locationRateLimitService as any
         );
 
         const result = await service.updateMyLocation(
@@ -217,11 +232,16 @@ describe("UsersService.updateMyLocation", () => {
         };
 
         const locationGateway = { emitLocationUpdated: jest.fn() } as unknown as LocationGateway;
+        const locationRateLimitService = {
+            shouldIgnoreUpdate: jest.fn().mockResolvedValue(false),
+            commit: jest.fn().mockResolvedValue(undefined)
+        };
         const service = new UsersService(
             userRepository as any,
             locationHistoryRepository as any,
             dataSource as any,
-            locationGateway
+            locationGateway,
+            locationRateLimitService as any
         );
 
         const result = await service.updateMyLocation(

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getHttpMessage, getHttpStatus } from "../api/error";
 import * as mediaApi from "../api/media";
-import * as placesApi from "../api/places";
+import * as locationsApi from "../api/locations";
 import * as securityApi from "../api/security";
 import * as settingsApi from "../api/settings";
 import * as uploadsApi from "../api/uploads";
@@ -11,9 +11,9 @@ type Props = {
   onAuthInvalid: () => void;
 };
 
-type OpsTab = "settings" | "security" | "places" | "users" | "media" | "uploads";
+type OpsTab = "settings" | "security" | "locations" | "users" | "media" | "uploads";
 
-const PLACE_TYPES: placesApi.PlaceType[] = [
+const LOCATION_TYPES: locationsApi.LocationType[] = [
   "HOME",
   "SCHOOL",
   "COMPANY",
@@ -37,16 +37,16 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
   const [setPinInput, setSetPinInput] = useState("");
   const [verifyPinInput, setVerifyPinInput] = useState("");
 
-  const [places, setPlaces] = useState<placesApi.PlaceItem[]>([]);
-  const [placeName, setPlaceName] = useState("");
-  const [placeAddress, setPlaceAddress] = useState("");
-  const [placeLat, setPlaceLat] = useState("");
-  const [placeLng, setPlaceLng] = useState("");
-  const [placeRadius, setPlaceRadius] = useState("200");
-  const [placeType, setPlaceType] = useState<placesApi.PlaceType>("OTHER");
+  const [locations, setLocations] = useState<locationsApi.LocationItem[]>([]);
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [locationLat, setLocationLat] = useState("");
+  const [locationLng, setLocationLng] = useState("");
+  const [locationRadius, setLocationRadius] = useState("200");
+  const [locationType, setLocationType] = useState<locationsApi.LocationType>("OTHER");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<placesApi.SearchPlaceItem[]>([]);
-  const [geofencePlaceId, setGeofencePlaceId] = useState("");
+  const [searchResults, setSearchResults] = useState<locationsApi.SearchLocationItem[]>([]);
+  const [geofenceLocationId, setGeofenceLocationId] = useState("");
   const [geofenceTransition, setGeofenceTransition] = useState<"ENTER" | "EXIT">("ENTER");
 
   const [userEmailQuery, setUserEmailQuery] = useState("");
@@ -97,103 +97,103 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
     }
   }, [handleFailure]);
 
-  const loadPlaces = useCallback(async () => {
+  const loadLocations = useCallback(async () => {
     try {
-      const data = await placesApi.getPlaces();
-      setPlaces(data);
+      const data = await locationsApi.getLocations();
+      setLocations(data);
     } catch (err: unknown) {
-      handleFailure(err, "Failed to load places");
+      handleFailure(err, "Failed to load locations");
     }
   }, [handleFailure]);
 
   useEffect(() => {
     void loadSettings();
-    void loadPlaces();
-  }, [loadPlaces, loadSettings]);
+    void loadLocations();
+  }, [loadLocations, loadSettings]);
 
-  const placeCount = useMemo(() => places.filter((item) => !item.isDeleted).length, [places]);
+  const locationCount = useMemo(() => locations.filter((item) => !item.isDeleted).length, [locations]);
 
-  const createPlace = async () => {
+  const createLocation = async () => {
     await runAction(async () => {
       try {
-        const created = await placesApi.createPlace({
-          name: placeName.trim(),
-          address: placeAddress.trim() || undefined,
-          latitude: placeLat.trim() ? Number(placeLat) : undefined,
-          longitude: placeLng.trim() ? Number(placeLng) : undefined,
-          placeType,
-          radius: Number(placeRadius) || 200,
+        const created = await locationsApi.createLocation({
+          name: locationName.trim(),
+          address: locationAddress.trim() || undefined,
+          latitude: locationLat.trim() ? Number(locationLat) : undefined,
+          longitude: locationLng.trim() ? Number(locationLng) : undefined,
+          locationType,
+          radius: Number(locationRadius) || 200,
         });
-        setPlaces((prev) => [created, ...prev]);
-        setPlaceName("");
-        setPlaceAddress("");
-        setPlaceLat("");
-        setPlaceLng("");
-        setPlaceRadius("200");
-        setSuccess("Da tao place");
+        setLocations((prev) => [created, ...prev]);
+        setLocationName("");
+        setLocationAddress("");
+        setLocationLat("");
+        setLocationLng("");
+        setLocationRadius("200");
+        setSuccess("Da tao location");
       } catch (err: unknown) {
-        handleFailure(err, "Create place failed");
+        handleFailure(err, "Create location failed");
       }
     });
   };
 
-  const updatePlaceQuick = async (place: placesApi.PlaceItem) => {
-    const nextName = window.prompt("Place name", place.name);
+  const updateLocationQuick = async (location: locationsApi.LocationItem) => {
+    const nextName = window.prompt("Location name", location.name);
     if (nextName === null) return;
-    const nextAddress = window.prompt("Address", place.address || "");
+    const nextAddress = window.prompt("Address", location.address || "");
     if (nextAddress === null) return;
     await runAction(async () => {
       try {
-        const updated = await placesApi.updatePlace(place.id, {
-          name: nextName.trim() || place.name,
+        const updated = await locationsApi.updateLocation(location.id, {
+          name: nextName.trim() || location.name,
           address: nextAddress.trim() || undefined,
         });
-        setPlaces((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        setSuccess("Da cap nhat place");
+        setLocations((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        setSuccess("Da cap nhat location");
       } catch (err: unknown) {
-        handleFailure(err, "Update place failed");
+        handleFailure(err, "Update location failed");
       }
     });
   };
 
-  const deletePlace = async (id: string) => {
-    if (!window.confirm("Xoa place nay?")) return;
+  const deleteLocation = async (id: string) => {
+    if (!window.confirm("Xoa location nay?")) return;
     await runAction(async () => {
       try {
-        await placesApi.deletePlace(id);
-        await loadPlaces();
-        setSuccess("Da xoa place");
+        await locationsApi.deleteLocation(id);
+        await loadLocations();
+        setSuccess("Da xoa location");
       } catch (err: unknown) {
-        handleFailure(err, "Delete place failed");
+        handleFailure(err, "Delete location failed");
       }
     });
   };
 
-  const searchPlace = async () => {
+  const searchLocation = async () => {
     if (searchQuery.trim().length < 2) {
       setError("Nhap it nhat 2 ky tu de search");
       return;
     }
     await runAction(async () => {
       try {
-        const data = await placesApi.searchPlaces(searchQuery.trim());
+        const data = await locationsApi.searchLocations(searchQuery.trim());
         setSearchResults(data);
         setSuccess(`Tim thay ${data.length} ket qua`);
       } catch (err: unknown) {
-        handleFailure(err, "Search place failed");
+        handleFailure(err, "Search location failed");
       }
     });
   };
 
   const sendGeofence = async () => {
-    if (!geofencePlaceId.trim()) {
-      setError("Nhap placeId de test geofence");
+    if (!geofenceLocationId.trim()) {
+      setError("Nhap locationId de test geofence");
       return;
     }
     await runAction(async () => {
       try {
-        await placesApi.sendGeofenceEvent({
-          placeId: geofencePlaceId.trim(),
+        await locationsApi.sendGeofenceEvent({
+          locationId: geofenceLocationId.trim(),
           transition: geofenceTransition,
           timestamp: Date.now(),
         });
@@ -342,8 +342,8 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
         <button className={`location-tab-btn ${tab === "security" ? "active" : ""}`} type="button" onClick={() => setTab("security")}>
           Security
         </button>
-        <button className={`location-tab-btn ${tab === "places" ? "active" : ""}`} type="button" onClick={() => setTab("places")}>
-          Places
+        <button className={`location-tab-btn ${tab === "locations" ? "active" : ""}`} type="button" onClick={() => setTab("locations")}>
+          Locations
         </button>
         <button className={`location-tab-btn ${tab === "users" ? "active" : ""}`} type="button" onClick={() => setTab("users")}>
           Users
@@ -436,14 +436,14 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
         </div>
       ) : null}
 
-      {tab === "places" ? (
+      {tab === "locations" ? (
         <div className="events-form">
-          <div className="hint">Places active: {placeCount}</div>
+          <div className="hint">Locations active: {locationCount}</div>
           <label className="auth-field">
-            <span>Search place</span>
+            <span>Search location</span>
             <div className="join-row">
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="VD: cafe district 1" className="join-input" />
-              <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void searchPlace()}>
+              <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void searchLocation()}>
                 Search
               </button>
             </div>
@@ -454,7 +454,7 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
                 <div className="location-history-item" key={item.id}>
                   <div className="location-history-main">{item.name}</div>
                   <div className="location-history-sub">
-                    {item.latitude ?? "-"}, {item.longitude ?? "-"} | {item.placeType}
+                    {item.latitude ?? "-"}, {item.longitude ?? "-"} | {item.locationType}
                   </div>
                 </div>
               ))}
@@ -462,36 +462,36 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
           ) : null}
 
           <label className="auth-field">
-            <span>New place name</span>
-            <input value={placeName} onChange={(e) => setPlaceName(e.target.value)} />
+            <span>New location name</span>
+            <input value={locationName} onChange={(e) => setLocationName(e.target.value)} />
           </label>
           <label className="auth-field">
             <span>Address</span>
-            <input value={placeAddress} onChange={(e) => setPlaceAddress(e.target.value)} />
+            <input value={locationAddress} onChange={(e) => setLocationAddress(e.target.value)} />
           </label>
           <div className="grid-2">
             <label className="auth-field">
               <span>Latitude</span>
-              <input value={placeLat} onChange={(e) => setPlaceLat(e.target.value)} />
+              <input value={locationLat} onChange={(e) => setLocationLat(e.target.value)} />
             </label>
             <label className="auth-field">
               <span>Longitude</span>
-              <input value={placeLng} onChange={(e) => setPlaceLng(e.target.value)} />
+              <input value={locationLng} onChange={(e) => setLocationLng(e.target.value)} />
             </label>
           </div>
           <div className="grid-2">
             <label className="auth-field">
               <span>Radius</span>
-              <input value={placeRadius} onChange={(e) => setPlaceRadius(e.target.value)} />
+              <input value={locationRadius} onChange={(e) => setLocationRadius(e.target.value)} />
             </label>
             <label className="auth-field">
               <span>Type</span>
               <select
                 className="select"
-                value={placeType}
-                onChange={(e) => setPlaceType(e.target.value as placesApi.PlaceType)}
+                value={locationType}
+                onChange={(e) => setLocationType(e.target.value as locationsApi.LocationType)}
               >
-                {PLACE_TYPES.map((type) => (
+                {LOCATION_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>
@@ -499,16 +499,16 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
               </select>
             </label>
           </div>
-          <button className="btn btn-primary" type="button" disabled={isWorking} onClick={() => void createPlace()}>
-            Create place
+          <button className="btn btn-primary" type="button" disabled={isWorking} onClick={() => void createLocation()}>
+            Create location
           </button>
-          <button className="btn btn-outline" type="button" disabled={isWorking} onClick={() => void loadPlaces()}>
-            Reload places
+          <button className="btn btn-outline" type="button" disabled={isWorking} onClick={() => void loadLocations()}>
+            Reload locations
           </button>
 
           <label className="auth-field">
-            <span>Geofence test placeId</span>
-            <input value={geofencePlaceId} onChange={(e) => setGeofencePlaceId(e.target.value)} />
+            <span>Geofence test locationId</span>
+            <input value={geofenceLocationId} onChange={(e) => setGeofenceLocationId(e.target.value)} />
           </label>
           <label className="auth-field">
             <span>Transition</span>
@@ -525,20 +525,20 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
             Send geofence event
           </button>
 
-          {places.length ? (
+          {locations.length ? (
             <div className="events-list">
-              {places.slice(0, 20).map((place) => (
-                <div className="event-item" key={place.id}>
+              {locations.slice(0, 20).map((location) => (
+                <div className="event-item" key={location.id}>
                   <div className="event-head">
-                    <div className="event-title">{place.name}</div>
-                    <span className="event-badge">{place.placeType}</span>
+                    <div className="event-title">{location.name}</div>
+                    <span className="event-badge">{location.locationType}</span>
                   </div>
-                  <div className="event-desc">{place.id}</div>
+                  <div className="event-desc">{location.id}</div>
                   <div className="event-actions">
-                    <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void updatePlaceQuick(place)}>
+                    <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void updateLocationQuick(location)}>
                       Edit
                     </button>
-                    <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void deletePlace(place.id)}>
+                    <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void deleteLocation(location.id)}>
                       Delete
                     </button>
                   </div>
