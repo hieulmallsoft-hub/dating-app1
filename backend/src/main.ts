@@ -58,7 +58,7 @@ async function bootstrap() {
     app.enableCors({
         origin: true,
         methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-        credentials: true
+        credentials: false // Set to true if you need to support cookies in CORS requests
     });
     // Security headers using Helmet
     app.use(
