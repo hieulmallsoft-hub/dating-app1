@@ -49,8 +49,6 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
   const [geofenceLocationId, setGeofenceLocationId] = useState("");
   const [geofenceTransition, setGeofenceTransition] = useState<"ENTER" | "EXIT">("ENTER");
 
-  const [userEmailQuery, setUserEmailQuery] = useState("");
-  const [userByEmail, setUserByEmail] = useState<userApi.PublicUser | null>(null);
 
   const [mediaId, setMediaId] = useState("");
   const [mediaItem, setMediaItem] = useState<mediaApi.MediaItem | null>(null);
@@ -252,18 +250,6 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
     });
   };
 
-  const findUserByEmail = async () => {
-    if (!userEmailQuery.trim()) return;
-    await runAction(async () => {
-      try {
-        const data = await userApi.getUserByEmail(userEmailQuery.trim());
-        setUserByEmail(data);
-        setSuccess(data ? "Tim thay user theo email" : "Khong tim thay user");
-      } catch (err: unknown) {
-        handleFailure(err, "Find user by email failed");
-      }
-    });
-  };
 
   const removeUser = async () => {
     if (!window.confirm("Xoa tai khoan hien tai? Hanh dong nay khong the hoan tac.")) return;
@@ -551,17 +537,6 @@ export default function OpsPanel({ onAuthInvalid }: Props) {
 
       {tab === "users" ? (
         <div className="events-form">
-          <label className="auth-field">
-            <span>Find by email</span>
-            <div className="join-row">
-              <input value={userEmailQuery} onChange={(e) => setUserEmailQuery(e.target.value)} className="join-input" />
-              <button className="btn btn-small" type="button" disabled={isWorking} onClick={() => void findUserByEmail()}>
-                Find
-              </button>
-            </div>
-          </label>
-          {userByEmail ? <div className="hint">Email result: {userByEmail.id} - {userByEmail.email}</div> : null}
-
           <label className="auth-field">
             <span>Delete current account</span>
             <div className="join-row">

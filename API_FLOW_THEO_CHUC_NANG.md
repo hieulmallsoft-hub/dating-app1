@@ -61,20 +61,16 @@ Lưu ý:
 
 Mục tiêu: đọc/sửa profile của chính mình.
 
-1. `GET /users/me`
-2. `PUT /users/me`
+1. `GET /profile`
+2. `PATCH /profile`
    - Body: `fullName`, `bio`, `avatar`, `gender`, ...
 3. `PUT /profile/location`
    - Body bắt buộc: `lat`, `lng`
    - Optional: `accuracy`, `batteryLevel`, `isCharging`, `speed`
-   - Legacy compatibility: `PUT /users/me/location`
 
 Ghi chú:
 - Không dùng flow mobile:
   - `GET /users`
-  - `GET /users/:id`
-  - `GET /users/email/:email`
-  - `DELETE /users/:id`
 
 ## Flow E - Cài đặt & bảo mật
 

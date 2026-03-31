@@ -34,9 +34,7 @@ export class MomentsService {
 
         // Sync photos to media album
         if (dto.photos && dto.photos.length > 0) {
-            for (const photoUrl of dto.photos) {
-                await this.mediaService.addMedia(userId, couple.id, photoUrl);
-            }
+            await this.syncPhotosInBatches(userId, couple.id, dto.photos);
         }
 
         if (savedMoment.privacy === MomentPrivacy.COUPLE && (!dto.photos || dto.photos.length === 0)) {
@@ -179,5 +177,13 @@ export class MomentsService {
             return MomentPrivacy.COUPLE;
         }
         return isPrivate ? MomentPrivacy.PRIVATE : MomentPrivacy.COUPLE;
+    }
+
+    private async syncPhotosInBatches(userId: string, coupleId: string, photoUrls: string[]) {
+        const batchSize = 5;
+        for (let index = 0; index < photoUrls.length; index += batchSize) {
+            const batch = photoUrls.slice(index, index + batchSize);
+            await Promise.all(batch.map((url) => this.mediaService.addMedia(userId, coupleId, url)));
+        }
     }
 }

@@ -130,7 +130,7 @@ export class MediaController {
         @Query("timeoutMs") timeoutMs?: string
     ) {
         const parsedSince = since ? Number(since) : 0;
-        const parsedTimeout = timeoutMs ? Number(timeoutMs) : 25000;
+        const parsedTimeout = timeoutMs ? Number(timeoutMs) : 10000;
         return this.mediaService.waitForAlbumChange(this.getCurrentUserId(req), parsedSince, parsedTimeout);
     }
 

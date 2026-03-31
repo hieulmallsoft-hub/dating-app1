@@ -14,11 +14,7 @@ Cập nhật: 09-03-2026
 
 - Bao gồm: Auth, Couple, Users (các API cần thiết), Settings, Security, Locations, Events, Moments, Media, Trips, Notifications, Uploads, WebSocket.
 - Không bao gồm: route UI Swagger (`/api/docs`).
-- Lược bỏ khỏi phạm vi test mobile các API user không cần thiết:
-  - `GET /users`
-  - `GET /users/email/:email`
-  - `GET /users/:id`
-  - `DELETE /users/:id`
+- Lược bỏ khỏi phạm vi test mobile các API user không cần thiết.
 
 ## 3. Chuẩn bị trước test
 
@@ -47,9 +43,9 @@ Mục tiêu: xác nhận toàn bộ dependency chính đều thông.
 2. `POST /auth/login` (A, B) hoặc `POST /auth/google` (nếu social mobile)
 3. `POST /couple/invite` (A)
 4. `POST /couple/join` (B, dùng `INVITE_CODE`)
-5. `GET /users/me`
-6. `PUT /users/me`
-7. `PUT /profile/location`
+5. `GET /profile`
+6. `PATCH /profile`
+7. `PATCH /profile/location`
 8. `POST /locations`
 9. `POST /events`
 10. `POST /moments`
@@ -75,11 +71,10 @@ Mục tiêu: test đủ happy path + auth fail + validation fail + business fail
 1. Auth
    - Register/Login/Profile/Refresh/Logout
    - Google mobile login: `POST /auth/google` với `idToken` thật
-2. Users (chỉ phần cần thiết mobile)
-   - `GET /users/me`
-   - `PUT /users/me`
-   - `PUT /profile/location`
-   - Legacy compatibility: `PUT /users/me/location`
+2. Profile (mobile)
+   - `GET /profile`
+   - `PATCH /profile`
+   - `PATCH /profile/location`
 3. Couple
    - `GET /couple`
    - `GET /couple/locations`

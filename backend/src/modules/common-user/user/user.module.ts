@@ -2,7 +2,6 @@ import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { User } from "./domain/entities/user.entity";
 import { LocationHistory } from "./domain/entities/location-history.entity";
-import { UsersController } from "./presentation/users.controller";
 import { ProfileController } from "./presentation/profile.controller";
 import { LocationGateway } from "./presentation/location.gateway";
 import { LOCATION_GATEWAY_TOKEN } from "./presentation/location.gateway.token";
@@ -24,7 +23,7 @@ import { RedisModule } from "../../../common/redis/redis.module";
         CoupleModule,
         forwardRef(() => AuthModule)
     ],
-    controllers: [UsersController, ProfileController],
+    controllers: [ProfileController],
     providers: [
         UsersService,
         UserRepository,

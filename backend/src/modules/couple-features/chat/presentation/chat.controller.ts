@@ -51,14 +51,16 @@ export class ChatController {
     @ApiUnauthorizedResponse({
         description: "Missing/invalid access token"
     })
-    async getChatHistory(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
-        const messages = await this.chatService.getMessages(this.getCurrentUserId(req), limit, offset);
+    async getChatHistory(@Req() req, @Query("limit") limit?: string, @Query("offset") offset?: string) {
+        const safeLimit = this.normalizeLimit(limit);
+        const safeOffset = this.normalizeOffset(offset);
+        const messages = await this.chatService.getMessages(this.getCurrentUserId(req), safeLimit, safeOffset);
         return toChatMessageResponseList(messages);
     }
 
     @Get("messages")
     @ApiExcludeEndpoint()
-    async getMessagesLegacy(@Req() req, @Query("limit") limit: number = 50, @Query("offset") offset: number = 0) {
+    async getMessagesLegacy(@Req() req, @Query("limit") limit?: string, @Query("offset") offset?: string) {
         return this.getChatHistory(req, limit, offset);
     }
 
@@ -95,6 +97,22 @@ export class ChatController {
             throw new UnauthorizedException("Invalid access token payload");
         }
         return userId;
+    }
+
+    private normalizeLimit(value?: string) {
+        const parsed = value ? Number(value) : NaN;
+        if (!Number.isFinite(parsed)) {
+            return 50;
+        }
+        return Math.max(1, Math.min(100, Math.floor(parsed)));
+    }
+
+    private normalizeOffset(value?: string) {
+        const parsed = value ? Number(value) : NaN;
+        if (!Number.isFinite(parsed)) {
+            return 0;
+        }
+        return Math.max(0, Math.floor(parsed));
     }
 }
 

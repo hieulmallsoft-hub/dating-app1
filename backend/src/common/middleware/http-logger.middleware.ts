@@ -52,8 +52,12 @@ export class HttpLoggerMiddleware implements NestMiddleware {
       const contentType = req.get("content-type") || "";
       const hasBody = req.body && typeof req.body === "object" && Object.keys(req.body).length > 0;
 
+      const allowBodyLogging =
+        process.env.NODE_ENV !== "production" &&
+        process.env.LOG_HTTP_BODY !== "false";
+
       // Skip log body for multipart uploads
-      if (hasBody && !contentType.includes("multipart/form-data")) {
+      if (allowBodyLogging && hasBody && !contentType.includes("multipart/form-data")) {
         const safeBody = maskSensitive(req.body);
         const bodyStr = JSON.stringify(safeBody);
         this.logger.debug(`Body: ${bodyStr.length > 2000 ? bodyStr.slice(0, 2000) + "...(truncated)" : bodyStr}`);

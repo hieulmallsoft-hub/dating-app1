@@ -16,10 +16,6 @@ export type UserMe = {
   longitude?: number | null;
 };
 
-export type PublicUser = UserMe & {
-  createdAt?: string;
-  updatedAt?: string;
-};
 
 export type UpdateMePayload = Partial<{
   fullName: string;
@@ -35,11 +31,6 @@ export async function getMe() {
 
 export async function updateMe(payload: UpdateMePayload) {
   const { data } = await http.patch<UserMe>("/profile", payload);
-  return data;
-}
-
-export async function getUserByEmail(email: string) {
-  const { data } = await http.get<PublicUser | null>(`/users/email/${encodeURIComponent(email)}`);
   return data;
 }
 

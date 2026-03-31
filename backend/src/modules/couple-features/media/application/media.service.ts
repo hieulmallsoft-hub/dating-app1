@@ -272,8 +272,8 @@ export class MediaService {
 
     const safeSince = Number.isFinite(sinceVersion) ? Math.max(0, Math.floor(sinceVersion)) : 0;
     const safeTimeout = Number.isFinite(timeoutMs)
-      ? Math.min(30000, Math.max(1000, Math.floor(timeoutMs)))
-      : 25000;
+      ? Math.min(15000, Math.max(1000, Math.floor(timeoutMs)))
+      : 10000;
 
     return this.mediaRealtimeService.waitForChange(couple.id, safeSince, safeTimeout);
   }
