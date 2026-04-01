@@ -1,14 +1,18 @@
 type MomentLike = {
+  id: string;
+  coupleId: string;
+  creatorId: string;
+  content?: string | null;
+  photos?: string[] | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationName?: string | null;
+  locationAddress?: string | null;
+  privacy: "COUPLE" | "PRIVATE";
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  creator?: {
     id: string;
-    coupleId: string;
-    creatorId: string;
-    content?: string | null;
-    photos?: string[] | null;
-    privacy: "COUPLE" | "PRIVATE";
-    createdAt: Date | string;
-    updatedAt: Date | string;
-    creator?: {
-        id: string;
         email: string;
         fullName?: string | null;
         avatar?: string | null;
@@ -24,16 +28,20 @@ export function toMomentResponse(moment: MomentLike, currentUserId?: string) {
     const creatorName = moment.creator?.fullName?.trim() || moment.creator?.email || moment.creatorId;
     const isPrivate = moment.privacy === "PRIVATE";
 
-    return {
-        id: moment.id,
-        creatorName,
-        isUpdate: isOwner,
-        content: moment.content ?? null,
-        photos: Array.isArray(moment.photos) ? moment.photos : null,
-        isPrivate,
-        createdAt: toIsoString(moment.createdAt),
-        updatedAt: toIsoString(moment.updatedAt)
-    };
+  return {
+    id: moment.id,
+    creatorName,
+    isUpdate: isOwner,
+    content: moment.content ?? null,
+    photos: Array.isArray(moment.photos) ? moment.photos : null,
+    lat: moment.latitude ?? null,
+    lng: moment.longitude ?? null,
+    locationName: moment.locationName ?? null,
+    locationAddress: moment.locationAddress ?? null,
+    isPrivate,
+    createdAt: toIsoString(moment.createdAt),
+    updatedAt: toIsoString(moment.updatedAt)
+  };
 }
 
 export function toMomentResponseList(moments: MomentLike[], currentUserId?: string) {

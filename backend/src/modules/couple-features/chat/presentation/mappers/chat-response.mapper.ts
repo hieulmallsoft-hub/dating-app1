@@ -11,6 +11,10 @@ type ChatMessageLike = {
     senderId: string;
     type: "TEXT" | "IMAGE" | "VOICE" | "LOCATION";
     content?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    locationName?: string | null;
+    locationAddress?: string | null;
     isRead: boolean;
     createdAt: Date | string;
     sender?: SenderLike | null;
@@ -40,6 +44,10 @@ export function toChatMessageResponse(message: ChatMessageLike) {
         senderId: message.senderId,
         type: message.type,
         content: message.content ?? null,
+        lat: message.latitude ?? null,
+        lng: message.longitude ?? null,
+        locationName: message.locationName ?? null,
+        locationAddress: message.locationAddress ?? null,
         isRead: Boolean(message.isRead),
         createdAt: toIsoString(message.createdAt),
         sender: toChatSenderResponse(message.sender)

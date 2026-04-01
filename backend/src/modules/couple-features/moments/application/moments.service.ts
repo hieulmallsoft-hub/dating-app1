@@ -20,11 +20,23 @@ export class MomentsService {
 
     async createMoment(userId: string, dto: CreateMomentDto) {
         const couple = await this.coupleService.getMyCouple(userId);
-        const { isPrivate, privacy: legacyPrivacy, ...restDto } = dto;
+        const {
+            isPrivate,
+            privacy: legacyPrivacy,
+            lat,
+            lng,
+            locationName,
+            locationAddress,
+            ...restDto
+        } = dto;
         const normalizedIsPrivate = isPrivate ?? legacyPrivacy;
 
         const moment = this.momentRepository.create({
             ...restDto,
+            latitude: lat ?? null,
+            longitude: lng ?? null,
+            locationName: locationName?.trim() || null,
+            locationAddress: locationAddress?.trim() || null,
             privacy: this.toEntityPrivacy(normalizedIsPrivate),
             coupleId: couple.id,
             creatorId: userId
@@ -60,6 +72,10 @@ export class MomentsService {
                 "moment.creatorId",
                 "moment.content",
                 "moment.photos",
+                "moment.latitude",
+                "moment.longitude",
+                "moment.locationName",
+                "moment.locationAddress",
                 "moment.privacy",
                 "moment.createdAt",
                 "moment.updatedAt",
@@ -82,6 +98,18 @@ export class MomentsService {
         }
         if (dto.photos !== undefined) {
             moment.photos = dto.photos;
+        }
+        if (dto.lat !== undefined) {
+            moment.latitude = dto.lat;
+        }
+        if (dto.lng !== undefined) {
+            moment.longitude = dto.lng;
+        }
+        if (dto.locationName !== undefined) {
+            moment.locationName = dto.locationName?.trim() || null;
+        }
+        if (dto.locationAddress !== undefined) {
+            moment.locationAddress = dto.locationAddress?.trim() || null;
         }
         const normalizedIsPrivate = dto.isPrivate ?? dto.privacy;
         if (normalizedIsPrivate !== undefined) {
@@ -162,6 +190,10 @@ export class MomentsService {
                 "moment.creatorId",
                 "moment.content",
                 "moment.photos",
+                "moment.latitude",
+                "moment.longitude",
+                "moment.locationName",
+                "moment.locationAddress",
                 "moment.privacy",
                 "moment.createdAt",
                 "moment.updatedAt",

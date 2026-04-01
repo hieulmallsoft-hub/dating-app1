@@ -33,6 +33,10 @@ export class ChatService {
 
         const message = this.messageRepository.create({
             ...dto,
+            latitude: dto.lat ?? null,
+            longitude: dto.lng ?? null,
+            locationName: dto.locationName?.trim() || null,
+            locationAddress: dto.locationAddress?.trim() || null,
             coupleId: couple.id,
             senderId: userId
         });

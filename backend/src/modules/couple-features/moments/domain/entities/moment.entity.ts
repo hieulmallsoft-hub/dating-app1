@@ -37,13 +37,25 @@ export class Moment {
     @Column({ type: "text", nullable: true })
     content: string;
 
-    @Column({ type: "simple-json", nullable: true })
-    photos: string[];
+  @Column({ type: "simple-json", nullable: true })
+  photos: string[];
 
-    @Column({
-        type: "enum",
-        enum: MomentPrivacy,
-        default: MomentPrivacy.COUPLE
+  @Column({ type: "double precision", nullable: true })
+  latitude: number | null;
+
+  @Column({ type: "double precision", nullable: true })
+  longitude: number | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  locationName: string | null;
+
+  @Column({ type: "text", nullable: true })
+  locationAddress: string | null;
+
+  @Column({
+      type: "enum",
+      enum: MomentPrivacy,
+      default: MomentPrivacy.COUPLE
     })
     privacy: MomentPrivacy;
 

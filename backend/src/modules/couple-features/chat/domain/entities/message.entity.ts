@@ -38,6 +38,18 @@ export class Message {
     @Column({ type: "text", nullable: true })
     content: string;
 
+    @Column({ type: "double precision", nullable: true })
+    latitude: number | null;
+
+    @Column({ type: "double precision", nullable: true })
+    longitude: number | null;
+
+    @Column({ type: "varchar", length: 255, nullable: true })
+    locationName: string | null;
+
+    @Column({ type: "text", nullable: true })
+    locationAddress: string | null;
+
     @Column({ default: false })
     isRead: boolean;
 

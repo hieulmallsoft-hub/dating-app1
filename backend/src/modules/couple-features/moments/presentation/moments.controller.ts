@@ -91,6 +91,10 @@ export class MomentsController {
                             items: { type: "string" },
                             example: ["https://cdn.example.com/photos/1.jpg", "https://cdn.example.com/photos/2.jpg"]
                         },
+                        lat: { type: "number", example: 10.762622 },
+                        lng: { type: "number", example: 106.660172 },
+                        locationName: { type: "string", example: "Cafe Terrace" },
+                        locationAddress: { type: "string", example: "2715 Ash Dr. San Jose, South Dakota 83475" },
                         isPrivate: { type: "boolean", example: true }
                     }
                 },
@@ -99,6 +103,10 @@ export class MomentsController {
                     properties: {
                         content: { type: "string" },
                         isPrivate: { type: "boolean" },
+                        lat: { type: "number", example: 10.762622 },
+                        lng: { type: "number", example: 106.660172 },
+                        locationName: { type: "string", example: "Cafe Terrace" },
+                        locationAddress: { type: "string", example: "2715 Ash Dr. San Jose, South Dakota 83475" },
                         photos: {
                             type: "array",
                             items: { type: "string", format: "binary" },

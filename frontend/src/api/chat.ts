@@ -15,6 +15,10 @@ export type ChatMessage = {
   senderId: string;
   type: ChatMessageType;
   content: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  locationName?: string | null;
+  locationAddress?: string | null;
   isRead: boolean;
   createdAt: string;
   sender?: ChatMessageSender;

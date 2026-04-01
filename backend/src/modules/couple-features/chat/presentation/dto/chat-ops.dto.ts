@@ -62,6 +62,34 @@ export class ChatMessageResponseDto {
     })
     content?: string | null;
 
+    @ApiPropertyOptional({
+        description: "Latitude for check-in location",
+        example: 10.762622,
+        nullable: true
+    })
+    lat?: number | null;
+
+    @ApiPropertyOptional({
+        description: "Longitude for check-in location",
+        example: 106.660172,
+        nullable: true
+    })
+    lng?: number | null;
+
+    @ApiPropertyOptional({
+        description: "Location name or short label",
+        example: "Cafe Terrace",
+        nullable: true
+    })
+    locationName?: string | null;
+
+    @ApiPropertyOptional({
+        description: "Full address text for check-in location",
+        example: "2715 Ash Dr. San Jose, South Dakota 83475",
+        nullable: true
+    })
+    locationAddress?: string | null;
+
     @ApiProperty({
         description: "Read flag",
         example: false
