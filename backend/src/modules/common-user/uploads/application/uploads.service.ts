@@ -20,7 +20,7 @@ export class UploadsService {
 
     async generatePresignedUrl(_fileName: string, _type: string) {
         const s3 = this.getS3Context();
-        console.log("S3 Context:", s3 ? { bucket: s3.bucket, region: s3.region } : "Not configured");
+        
         if (!s3) {
             throw new BadRequestException(
                 "S3 upload is not configured. Set AWS_S3_BUCKET, AWS_REGION, and credentials."
