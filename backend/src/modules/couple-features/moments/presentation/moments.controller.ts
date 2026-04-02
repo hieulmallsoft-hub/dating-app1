@@ -168,10 +168,13 @@ export class MomentsController {
         }
 
         const mergedPhotos = Array.from(new Set([...(dto.photos || []), ...uploadedPhotoUrls]));
+        const normalizedIsPrivate = this.normalizeBoolean(dto.isPrivate ?? dto.privacy);
         const payload: CreateMomentDto = {
             ...dto,
+            isPrivate: normalizedIsPrivate,
             photos: mergedPhotos.length > 0 ? mergedPhotos : dto.photos
         };
+        delete (payload as Partial<CreateMomentDto> & { privacy?: boolean }).privacy;
 
         const moment = await this.momentsService.createMoment(userId, payload);
         return toMomentResponse(moment, userId);
@@ -205,8 +208,24 @@ export class MomentsController {
     })
     async updateMoment(@Req() req, @Param("id") id: string, @Body() dto: UpdateMomentDto) {
         const userId = this.getCurrentUserId(req);
-        const moment = await this.momentsService.updateMoment(userId, id, dto);
+        const normalizedIsPrivate = this.normalizeBoolean(dto.isPrivate ?? dto.privacy);
+        const payload: UpdateMomentDto = { ...dto, isPrivate: normalizedIsPrivate };
+        delete (payload as Partial<UpdateMomentDto> & { privacy?: boolean }).privacy;
+        const moment = await this.momentsService.updateMoment(userId, id, payload);
         return toMomentResponse(moment, userId);
+    }
+
+    private normalizeBoolean(value?: boolean | string | null) {
+        if (value === undefined || value === null) {
+            return value;
+        }
+        if (typeof value === "boolean") {
+            return value;
+        }
+        const raw = value.trim().toLowerCase();
+        if (["true", "1", "yes", "y", "on"].includes(raw)) return true;
+        if (["false", "0", "no", "n", "off"].includes(raw)) return false;
+        return value as unknown as boolean;
     }
 
     @Delete(":id")
