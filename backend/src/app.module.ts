@@ -28,7 +28,7 @@ import { TripsModule } from "./modules/couple-features/trips/trips.module";
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            envFilePath: "src/env/.env",
+            envFilePath: ["./.env", "src/env/.env"],
             load: [databaseConfig, jwtConfig, appConfig, authConfig]
         }),
         TypeOrmModule.forRootAsync({

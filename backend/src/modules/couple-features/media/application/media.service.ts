@@ -14,8 +14,6 @@ import type {
 import { MediaRepository } from "../infrastructure/persistence/media.repository";
 import { MediaRealtimeService } from "./media-realtime.service";
 import { MediaGateway } from "../presentation/media.gateway";
-import { NotificationsService } from "../../../common-user/notifications/application/notifications.service";
-import { NotificationType } from "../../../common-user/notifications/domain/entities/notification.entity";
 
 type AlbumFilter = "all" | "me" | "partner";
 type MediaType = "image" | "video";
@@ -42,8 +40,7 @@ export class MediaService {
     private readonly mediaRepository: MediaRepository,
     private readonly coupleService: CoupleService,
     private readonly mediaRealtimeService: MediaRealtimeService,
-    private readonly mediaGateway: MediaGateway,
-    private readonly notificationsService: NotificationsService
+    private readonly mediaGateway: MediaGateway
   ) {}
 
   async getAlbum(
@@ -139,7 +136,6 @@ export class MediaService {
       mediaId: saved.id,
       actorId: userId,
     });
-    await this.notifyPartnerForNewMedia(myCouple, userId, saved.type, saved.caption);
     return saved;
   }
 
@@ -179,7 +175,6 @@ export class MediaService {
       mediaId: saved.id,
       actorId: userId,
     });
-    await this.notifyPartnerForNewMedia(couple, userId, saved.type, saved.caption);
     return saved;
   }
 
@@ -288,30 +283,5 @@ export class MediaService {
     this.mediaGateway.emitAlbumChanged(event);
   }
 
-  private async notifyPartnerForNewMedia(
-    couple: { user1Id: string; user2Id: string | null },
-    uploaderId: string,
-    mediaType: MediaType,
-    caption?: string
-  ) {
-    const partnerId = couple.user1Id === uploaderId ? couple.user2Id : couple.user1Id;
-    if (!partnerId) return;
-
-    const title = mediaType === "video" ? "Video moi trong album" : "Anh moi trong album";
-    const trimmedCaption = caption?.trim() || "";
-    const content =
-      trimmedCaption.length > 0
-        ? trimmedCaption.length > 160
-          ? `${trimmedCaption.slice(0, 157)}...`
-          : trimmedCaption
-        : mediaType === "video"
-          ? "Doi cua ban vua dang mot video moi"
-          : "Doi cua ban vua dang mot anh moi";
-
-    try {
-      await this.notificationsService.createNotification(partnerId, title, content, NotificationType.MEDIA);
-    } catch (error) {
-      this.logger.warn(`Create media notification failed: ${(error as Error)?.message || "unknown"}`);
-    }
-  }
+  // Media notifications are disabled; album is a derived view from Moments.
 }

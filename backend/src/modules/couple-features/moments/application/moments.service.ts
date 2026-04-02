@@ -49,7 +49,7 @@ export class MomentsService {
             await this.syncPhotosInBatches(userId, couple.id, dto.photos);
         }
 
-        if (savedMoment.privacy === MomentPrivacy.COUPLE && (!dto.photos || dto.photos.length === 0)) {
+        if (savedMoment.privacy === MomentPrivacy.COUPLE) {
             await this.notifyPartnerForMoment(couple, userId, "created", savedMoment);
         }
 
