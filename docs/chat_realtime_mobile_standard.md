@@ -61,6 +61,10 @@ Bên kia có gửi `message:send` hợp lệ | Realtime chỉ phát sinh khi có
 `message:send` (SendMessageDto theo `send-message.dto.ts`)
 - `type`: enum `MessageType` (`TEXT`, `IMAGE`, `VOICE`, `LOCATION`)
 - `content`: string (bắt buộc)
+- `lat`: number (optional, chỉ gửi khi có vị trí; nếu có thì phải có `lng`)
+- `lng`: number (optional, chỉ gửi khi có vị trí; nếu có thì phải có `lat`)
+- `locationName`: string (optional, tên ngắn địa điểm)
+- `locationAddress`: string (optional, địa chỉ đầy đủ)
 - `tempId`: string (optional, client-side optimistic updates)
 
 `message:received` (theo `chat-response.mapper.ts`)
@@ -69,6 +73,10 @@ Bên kia có gửi `message:send` hợp lệ | Realtime chỉ phát sinh khi có
 - `senderId`: string
 - `type`: `TEXT` | `IMAGE` | `VOICE` | `LOCATION`
 - `content`: string | null
+- `lat`: number | null
+- `lng`: number | null
+- `locationName`: string | null
+- `locationAddress`: string | null
 - `isRead`: boolean
 - `createdAt`: ISO string
 - `sender`: object | undefined
