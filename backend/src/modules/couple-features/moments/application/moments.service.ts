@@ -204,11 +204,34 @@ export class MomentsService {
             .getOne();
     }
 
-    private toEntityPrivacy(isPrivate?: boolean): MomentPrivacy {
-        if (isPrivate === undefined) {
+    private toEntityPrivacy(isPrivate?: boolean | string | null): MomentPrivacy {
+        if (isPrivate === undefined || isPrivate === null) {
             return MomentPrivacy.COUPLE;
         }
-        return isPrivate ? MomentPrivacy.PRIVATE : MomentPrivacy.COUPLE;
+
+        const normalized = this.normalizeBoolean(isPrivate);
+        if (normalized === undefined) {
+            // Fall back to private for unrecognized values to avoid accidental exposure.
+            return MomentPrivacy.PRIVATE;
+        }
+
+        return normalized ? MomentPrivacy.PRIVATE : MomentPrivacy.COUPLE;
+    }
+
+    private normalizeBoolean(value: boolean | string): boolean | undefined {
+        if (typeof value === "boolean") {
+            return value;
+        }
+
+        const raw = value.trim().toLowerCase();
+        if (["true", "1", "yes", "y", "on"].includes(raw)) {
+            return true;
+        }
+        if (["false", "0", "no", "n", "off"].includes(raw)) {
+            return false;
+        }
+
+        return undefined;
     }
 
     private async syncPhotosInBatches(userId: string, coupleId: string, photoUrls: string[]) {
