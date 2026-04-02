@@ -13,8 +13,16 @@ import {
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 function toBoolean(value: unknown) {
-    if (value === "true") return true;
-    if (value === "false") return false;
+    if (typeof value === "boolean") {
+        return value;
+    }
+    if (typeof value !== "string") {
+        return value;
+    }
+
+    const raw = value.trim().toLowerCase();
+    if (["true", "1", "yes", "y", "on"].includes(raw)) return true;
+    if (["false", "0", "no", "n", "off"].includes(raw)) return false;
     return value;
 }
 
