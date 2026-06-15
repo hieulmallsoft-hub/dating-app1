@@ -1,0 +1,584 @@
+import {
+    Inject,
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+    ConflictException,
+    HttpException,
+    HttpStatus
+} from "@nestjs/common";
+import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
+import { Between, DataSource, In, IsNull, Not } from "typeorm";
+import { CreateUserDto } from "../presentation/dto/create-user.dto";
+import { UpdateUserDto } from "../presentation/dto/update-user.dto";
+import { UserRepository } from "../infrastructure/persistence/user.repository";
+import { LocationHistoryRepository } from "../infrastructure/persistence/location-history.repository";
+import { AuthProvider, User } from "../domain/entities/user.entity";
+import { Couple, CoupleStatus } from "../../../couple-features/couple/domain/entities/couple.entity";
+import { LocationHistory, LocationSource } from "../domain/entities/location-history.entity";
+import { LOCATION_GATEWAY_TOKEN, type LocationGatewayEmitter } from "../presentation/location.gateway.token";
+import { LocationRateLimitService } from "./location-rate-limit.service";
+import { Event } from "../../../couple-features/events/domain/entities/event.entity";
+import { Moment } from "../../../couple-features/moments/domain/entities/moment.entity";
+import { Location } from "../../../couple-features/locations/domain/entities/location.entity";
+import { Message } from "../../../couple-features/chat/domain/entities/message.entity";
+import { Media } from "../../../couple-features/media/domain/entities/media.entity";
+import { Trip } from "../../../couple-features/trips/domain/entities/trip.entity";
+import { Invite } from "../../../couple-features/invites/domain/entities/invite.entity";
+import { Notification } from "../../notifications/domain/entities/notification.entity";
+import { Setting } from "../../settings/domain/entities/setting.entity";
+import { SecuritySetting } from "../../security/domain/entities/security.entity";
+
+type CreateUserPayload = CreateUserDto & {
+    socialId?: string;
+    sub?: string;
+    provider?: AuthProvider;
+};
+
+type UpdateUserPayload = UpdateUserDto & {
+    email?: string;
+    password?: string;
+    socialId?: string;
+    sub?: string;
+    provider?: AuthProvider;
+};
+
+type UserProfilePayload = User & {
+    startDate: Date | null;
+    startDateAt: Date | null;
+};
+
+@Injectable()
+export class UsersService {
+    private readonly minUpdateIntervalMs = 3000;
+    private readonly minUpdateDistanceM = 5;
+    private readonly maxSpeedKmh = 300;
+
+    constructor(
+        private readonly userRepository: UserRepository,
+        private readonly locationHistoryRepository: LocationHistoryRepository,
+        private readonly dataSource: DataSource,
+        @Inject(LOCATION_GATEWAY_TOKEN)
+        private readonly locationGateway: LocationGatewayEmitter,
+        private readonly locationRateLimitService: LocationRateLimitService
+    ) {}
+
+    async getUserById(id: string) {
+        const user = await this.userRepository.findById(id);
+        if (!user) throw new NotFoundException("User not found");
+        return user;
+    }
+
+    async getUserByEmail(email: string) {
+        return this.userRepository.findByEmail(email);
+    }
+
+    async getUserByProviderAndSocialId(provider: AuthProvider, socialId: string) {
+        return this.userRepository.findByProviderAndSocialId(provider, socialId);
+    }
+
+    async getUserWithPassword(email: string) {
+        return this.userRepository.findByEmailWithPassword(email);
+    }
+
+    async createUser(dto: CreateUserPayload) {
+        const existed = await this.userRepository.findByEmail(dto.email);
+        if (existed) throw new ConflictException("Email already exists");
+
+        const passwordHash = dto.password ? await bcrypt.hash(dto.password, 10) : null;
+        const createdUser = await this.userRepository.createAndSave({
+            email: dto.email,
+            fullName: dto.fullName,
+            password: passwordHash,
+            tokenVersion: 0,
+            phoneNumber: dto.phoneNumber,
+            birthDate: dto.birthDate,
+            gender: dto.gender,
+            genderPreference: dto.genderPreference,
+            bio: dto.bio,
+            avatar: dto.avatar,
+            socialId: dto.socialId,
+            sub: dto.sub ?? dto.socialId,
+            provider: dto.provider
+        });
+
+        return this.ensureAccountCode(createdUser.id);
+    }
+
+    async ensureAccountCode(userId: string): Promise<User> {
+        const existed = await this.userRepository.findById(userId);
+        if (!existed) throw new NotFoundException("User not found");
+        if (existed.accountCode && /^[0-9]{6}$/.test(existed.accountCode)) return existed;
+        if (existed.accountCode) {
+            await this.userRepository.updateById(userId, { accountCode: null });
+        }
+
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+            const candidateCode = this.generateAccountCode();
+            try {
+                const assigned = await this.userRepository.assignAccountCodeIfMissing(userId, candidateCode);
+                if (assigned) {
+                    const userWithCode = await this.userRepository.findById(userId);
+                    if (userWithCode) return userWithCode;
+                } else {
+                    const currentUser = await this.userRepository.findById(userId);
+                    if (currentUser?.accountCode) return currentUser;
+                }
+            } catch (error) {
+                if ((error as { code?: string }).code !== "23505") {
+                    throw error;
+                }
+            }
+        }
+
+        throw new ConflictException("Could not generate unique account code");
+    }
+
+    async getProfile(userId: string): Promise<UserProfilePayload> {
+        const user = await this.ensureAccountCode(userId);
+        return this.withCoupleDates(userId, user);
+    }
+
+    async updateUser(id: string, dto: UpdateUserPayload) {
+        const existed = await this.userRepository.findById(id);
+        if (!existed) throw new NotFoundException("User not found");
+
+        const forbiddenKeys = [
+            "role",
+            "accountCode",
+            "tokenVersion",
+            "refreshToken",
+            "refreshTokenExp",
+            "isBanned",
+            "isActive",
+            "isVerified",
+            "isPremium",
+            "id",
+            "createdAt",
+            "updatedAt",
+            "lastActiveAt"
+        ] as const;
+
+        const hasForbiddenField = forbiddenKeys.some((key) => key in dto);
+        if (hasForbiddenField) {
+            throw new BadRequestException("Cannot update protected fields");
+        }
+
+        const payload: UpdateUserPayload = { ...dto };
+
+        if (payload.password) {
+            payload.password = await bcrypt.hash(payload.password, 10);
+        }
+
+        if (payload.email && payload.email !== existed.email) {
+            const emailTaken = await this.userRepository.findByEmail(payload.email);
+            if (emailTaken) throw new ConflictException("Email already exists");
+        }
+
+        await this.userRepository.updateById(id, payload);
+        return this.getUserById(id);
+    }
+
+    async updateProfile(id: string, dto: UpdateUserDto): Promise<UserProfilePayload> {
+        const user = await this.updateUser(id, dto);
+        return this.withCoupleDates(id, user);
+    }
+
+    async setPremiumStatus(userId: string, isPremium: boolean): Promise<void> {
+        await this.userRepository.updateById(userId, { isPremium });
+    }
+
+    async updateMyLocation(
+        id: string,
+        latitude: number,
+        longitude: number,
+        accuracy?: number,
+        batteryLevel?: number,
+        isCharging?: boolean,
+        speed?: number,
+        timestamp?: number
+    ) {
+        const eventTime = this.normalizeLocationEventTime(timestamp);
+        if (await this.locationRateLimitService.isTooFrequent(id, eventTime, this.minUpdateIntervalMs)) {
+            throw new HttpException(
+                "Location update is too frequent. Wait at least 3 seconds before retrying.",
+                HttpStatus.TOO_MANY_REQUESTS
+            );
+        }
+
+        const existed = await this.userRepository.findById(id);
+        if (!existed) throw new NotFoundException("User not found");
+
+        const nextLatitude = Number(latitude.toFixed(7));
+        const nextLongitude = Number(longitude.toFixed(7));
+        const nextAccuracy =
+            typeof accuracy === "number" && Number.isFinite(accuracy)
+                ? Number(Math.max(0, accuracy).toFixed(1))
+                : null;
+        const nextBatteryLevel =
+            typeof batteryLevel === "number" && Number.isFinite(batteryLevel)
+                ? Math.max(0, Math.min(100, Math.round(batteryLevel)))
+                : undefined;
+        const nextIsCharging = typeof isCharging === "boolean" ? isCharging : undefined;
+        const nextSpeed =
+            typeof speed === "number" && Number.isFinite(speed) ? Math.max(0, speed) : undefined;
+        const hasTelemetryChange =
+            (nextBatteryLevel !== undefined && existed.batteryLevel !== nextBatteryLevel) ||
+            (nextIsCharging !== undefined && existed.isCharging !== nextIsCharging) ||
+            (nextSpeed !== undefined && Number(existed.speed) !== nextSpeed);
+        const currentLastActiveAt = existed.lastActiveAt ? new Date(existed.lastActiveAt) : null;
+        const isStaleUpdate =
+            Boolean(currentLastActiveAt) &&
+            eventTime.getTime() <= (currentLastActiveAt as Date).getTime();
+
+        if (isStaleUpdate) {
+            throw new BadRequestException(
+                "Location timestamp is older than the latest saved location. Omit timestamp or send a newer epoch milliseconds value."
+            );
+        }
+
+        const ignoreReason = await this.locationRateLimitService.getIgnoreReason(
+            id,
+            nextLatitude,
+            nextLongitude,
+            eventTime,
+            this.distanceMeters.bind(this),
+            {
+                minIntervalMs: this.minUpdateIntervalMs,
+                minDistanceM: this.minUpdateDistanceM,
+                maxSpeedKmh: this.maxSpeedKmh
+            }
+        );
+        if (ignoreReason && !(hasTelemetryChange && ["too_frequent", "too_close"].includes(ignoreReason))) {
+            if (ignoreReason === "too_frequent") {
+                throw new HttpException(
+                    "Location update is too frequent. Wait at least 3 seconds before retrying.",
+                    HttpStatus.TOO_MANY_REQUESTS
+                );
+            }
+            if (ignoreReason === "too_close") {
+                throw new BadRequestException("Location change is too small to update. Move at least 5 meters or retry later.");
+            }
+            if (ignoreReason === "unrealistic_speed") {
+                throw new BadRequestException("Location jump is too large for the elapsed time. Retry after a few seconds or send the real client timestamp.");
+            }
+            throw new BadRequestException("Location timestamp must be newer than the last accepted update.");
+        }
+
+        const updatePayload: Record<string, unknown> = {
+            latitude: nextLatitude,
+            longitude: nextLongitude,
+            lastActiveAt: eventTime
+        };
+
+        if (nextBatteryLevel !== undefined) updatePayload.batteryLevel = nextBatteryLevel;
+        if (nextIsCharging !== undefined) updatePayload.isCharging = nextIsCharging;
+        if (nextSpeed !== undefined) updatePayload.speed = nextSpeed;
+
+        await this.userRepository.updateById(id, updatePayload);
+
+        const coupleId = await this.resolveActiveCoupleId(id);
+        if (coupleId) {
+            this.locationGateway.emitLocationUpdated({
+                coupleId,
+                userId: id,
+                latitude: nextLatitude,
+                longitude: nextLongitude,
+                accuracy: nextAccuracy,
+                batteryLevel: nextBatteryLevel ?? null,
+                isCharging: nextIsCharging ?? null,
+                speed: nextSpeed ?? null,
+                lastActiveAt: eventTime.toISOString()
+            });
+        }
+
+        const latest = await this.locationHistoryRepository.findOne({
+            where: { userId: id },
+            order: { recordedAt: "DESC" }
+        });
+
+        const shouldPersist =
+            !latest ||
+            this.distanceMeters(
+                Number(latest.latitude),
+                Number(latest.longitude),
+                nextLatitude,
+                nextLongitude
+            ) >= 10 ||
+            eventTime.getTime() - new Date(latest.recordedAt).getTime() >= 30_000;
+
+        if (shouldPersist) {
+            if (coupleId) {
+                await this.locationHistoryRepository.save(
+                    this.locationHistoryRepository.create({
+                        userId: id,
+                        coupleId,
+                        latitude: nextLatitude,
+                        longitude: nextLongitude,
+                        accuracy: nextAccuracy,
+                        speed: nextSpeed ?? null,
+                        heading: null,
+                        recordedAt: eventTime,
+                        source: LocationSource.REALTIME
+                    })
+                );
+            }
+        }
+
+        await this.locationRateLimitService.commit(id, nextLatitude, nextLongitude, eventTime);
+
+        return {
+            userId: id,
+            accountCode:
+                typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
+                    ? existed.accountCode.trim()
+                    : null,
+            latitude: nextLatitude,
+            longitude: nextLongitude,
+            accuracy: nextAccuracy,
+            batteryLevel: nextBatteryLevel ?? null,
+            isCharging: nextIsCharging ?? null,
+            speed: nextSpeed ?? null,
+            lastActiveAt: eventTime.toISOString()
+        };
+    }
+
+    async getLocationHistory(
+        requesterId: string,
+        options: {
+            targetUserId?: string;
+            from: Date;
+            to: Date;
+            limit: number;
+            offset: number;
+        }
+    ) {
+        const targetUserId = options.targetUserId ?? requesterId;
+        const coupleId = await this.resolveActiveCoupleId(requesterId);
+        if (!coupleId) {
+            return [];
+        }
+
+        if (targetUserId !== requesterId) {
+            const isPartner = await this.isUserInCouple(coupleId, targetUserId);
+            if (!isPartner) {
+                throw new BadRequestException("Target user is not in your couple");
+            }
+        }
+
+        if (options.from.getTime() >= options.to.getTime()) {
+            return [];
+        }
+
+        return this.locationHistoryRepository.find({
+            where: {
+                coupleId,
+                userId: targetUserId,
+                recordedAt: Between(options.from, options.to)
+            },
+            order: { recordedAt: "ASC" },
+            take: options.limit,
+            skip: options.offset
+        });
+    }
+
+    async updateRefreshToken(id: string, refreshToken: string | null, refreshTokenExp: Date | null) {
+        await this.userRepository.updateById(id, {
+            refreshToken,
+            refreshTokenExp
+        });
+    }
+
+    async getUserByRefreshToken(refreshToken: string) {
+        return this.userRepository.findByRefreshToken(refreshToken);
+    }
+
+    async replaceSession(id: string, refreshToken: string, refreshTokenExp: Date) {
+        return this.userRepository.replaceSession(id, refreshToken, refreshTokenExp);
+    }
+
+    async rotateRefreshToken(
+        id: string,
+        currentRefreshToken: string,
+        refreshToken: string,
+        refreshTokenExp: Date
+    ) {
+        return this.userRepository.rotateRefreshToken(
+            id,
+            currentRefreshToken,
+            refreshToken,
+            refreshTokenExp
+        );
+    }
+
+    async clearSession(id: string) {
+        return this.userRepository.clearSession(id);
+    }
+
+
+    private distanceMeters(
+        latitudeA: number,
+        longitudeA: number,
+        latitudeB: number,
+        longitudeB: number
+    ) {
+        const toRad = (value: number) => (value * Math.PI) / 180;
+        const lat1 = toRad(latitudeA);
+        const lat2 = toRad(latitudeB);
+        const deltaLat = toRad(latitudeB - latitudeA);
+        const deltaLon = toRad(longitudeB - longitudeA);
+
+        const h =
+            Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1) *
+                Math.cos(lat2) *
+                Math.sin(deltaLon / 2) *
+                Math.sin(deltaLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        return 6_371_000 * c;
+    }
+
+    private buildLocationResponse(
+        existed: User,
+        fallbackLat: number,
+        fallbackLng: number,
+        accuracy: number | null,
+        batteryLevel: number | null | undefined,
+        isCharging: boolean | undefined,
+        speed: number | undefined
+    ) {
+        return {
+            userId: existed.id,
+            accountCode:
+                typeof existed.accountCode === "string" && existed.accountCode.trim().length > 0
+                    ? existed.accountCode.trim()
+                    : null,
+            latitude:
+                existed.latitude !== null && existed.latitude !== undefined
+                    ? Number(existed.latitude)
+                    : fallbackLat,
+            longitude:
+                existed.longitude !== null && existed.longitude !== undefined
+                    ? Number(existed.longitude)
+                    : fallbackLng,
+            accuracy,
+            batteryLevel:
+                existed.batteryLevel !== null && existed.batteryLevel !== undefined
+                    ? existed.batteryLevel
+                    : batteryLevel ?? null,
+            isCharging:
+                existed.isCharging !== null && existed.isCharging !== undefined
+                    ? existed.isCharging
+                    : isCharging ?? null,
+            speed:
+                existed.speed !== null && existed.speed !== undefined
+                    ? Number(existed.speed)
+                    : speed ?? null,
+            lastActiveAt: existed.lastActiveAt ? new Date(existed.lastActiveAt).toISOString() : null
+        };
+    }
+
+    private normalizeLocationEventTime(timestamp?: number) {
+        if (typeof timestamp !== "number" || !Number.isFinite(timestamp) || timestamp <= 0) {
+            return new Date();
+        }
+
+        const parsed = new Date(timestamp);
+        if (Number.isNaN(parsed.getTime())) {
+            return new Date();
+        }
+
+        return parsed;
+    }
+
+    private async resolveActiveCoupleId(userId: string) {
+        const coupleRepository = this.dataSource.getRepository(Couple);
+        const couple = await coupleRepository.findOne({
+            where: [
+                { user1Id: userId, user2Id: Not(IsNull()), status: CoupleStatus.ACTIVE },
+                { user2Id: userId, status: CoupleStatus.ACTIVE }
+            ],
+            select: ["id"]
+        });
+        return couple?.id || null;
+    }
+
+    private async isUserInCouple(coupleId: string, userId: string) {
+        const coupleRepository = this.dataSource.getRepository(Couple);
+        const couple = await coupleRepository.findOne({
+            where: [
+                { id: coupleId, user1Id: userId, status: CoupleStatus.ACTIVE },
+                { id: coupleId, user2Id: userId, status: CoupleStatus.ACTIVE }
+            ],
+            select: ["id"]
+        });
+        return Boolean(couple);
+    }
+
+    private async resolveActiveCoupleDates(userId: string) {
+        const coupleRepository = this.dataSource.getRepository(Couple);
+        const couple = await coupleRepository.findOne({
+            where: [
+                { user1Id: userId, user2Id: Not(IsNull()), status: CoupleStatus.ACTIVE },
+                { user2Id: userId, status: CoupleStatus.ACTIVE }
+            ],
+            select: ["startDate", "startDateAt"]
+        });
+        return {
+            startDate: couple?.startDate ?? null,
+            startDateAt: couple?.startDateAt ?? null
+        };
+    }
+
+    private async withCoupleDates(userId: string, user: User): Promise<UserProfilePayload> {
+        const { startDate, startDateAt } = await this.resolveActiveCoupleDates(userId);
+        return {
+            ...user,
+            startDate,
+            startDateAt
+        };
+    }
+
+    private generateAccountCode() {
+        return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+    }
+
+    async deleteUser(userId: string) {
+        const existed = await this.userRepository.findById(userId);
+        if (!existed) throw new NotFoundException("User not found");
+
+        await this.dataSource.transaction(async (manager) => {
+            const couples = await manager.getRepository(Couple).find({
+                where: [{ user1Id: userId }, { user2Id: userId }],
+                select: ["id"]
+            });
+            const coupleIds = couples.map((couple) => couple.id);
+
+            if (coupleIds.length > 0) {
+                await manager.getRepository(Message).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Event).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Moment).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Location).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Media).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Trip).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(LocationHistory).delete({ coupleId: In(coupleIds) });
+                await manager.getRepository(Couple).delete({ id: In(coupleIds) });
+            }
+
+            await manager.getRepository(Message).delete({ senderId: userId });
+            await manager.getRepository(Event).delete({ creatorId: userId });
+            await manager.getRepository(Moment).delete({ creatorId: userId });
+            await manager.getRepository(Location).delete({ sharedBy: userId });
+            await manager.getRepository(Media).delete({ uploaderId: userId });
+            await manager.getRepository(Trip).delete({ userId });
+            await manager.getRepository(Invite).delete({ inviterId: userId });
+            await manager.getRepository(Notification).delete({ userId });
+            await manager.getRepository(Setting).delete({ userId });
+            await manager.getRepository(SecuritySetting).delete({ userId });
+            await manager.getRepository(User).delete({ id: userId });
+        });
+
+        return { message: "User deleted successfully" };
+    }
+}

@@ -12,6 +12,7 @@ Thumbs.db
 # Dependencies
 node_modules/
 .npm
+.npm-cache/
 .eslintcache
 yarn-error.log*
 
